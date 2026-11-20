@@ -144,21 +144,149 @@ if config then
 	Anims = load("Anims")
 end
 
+-- The hero (Dev 2026-11-20: "why does the loading screen snowball just rotate"): a snowy
+-- hill across the screen, and the snowball rolls down it, growing as it goes, hopping
+-- over two bumps and kicking up snow puffs, then rolls off and comes round again.
+local SLOPE_A = Vector2.new(-160, 70) -- hill top edge, stage pixels
+local SLOPE_B = Vector2.new(1440, 330)
+local slopeDir = (SLOPE_B - SLOPE_A).Unit
+local slopeAngle = math.deg(math.atan2(slopeDir.Y, slopeDir.X))
+local function hillY(x: number): number
+	return SLOPE_A.Y + (x - SLOPE_A.X) * (SLOPE_B.Y - SLOPE_A.Y) / (SLOPE_B.X - SLOPE_A.X)
+end
+local hill = Instance.new("Frame")
+hill.Name = "Hill"
+hill.Size = UDim2.fromOffset(2400, 1400)
+hill.AnchorPoint = Vector2.new(0.5, 0)
+local mid = (SLOPE_A + SLOPE_B) / 2
+hill.Position = UDim2.fromOffset(mid.X, mid.Y)
+hill.Rotation = slopeAngle
+hill.BackgroundColor3 = Color3.new(1, 1, 1)
+hill.BorderSizePixel = 0
+local hillShade = Instance.new("UIGradient")
+hillShade.Color = ColorSequence.new(Color3.new(1, 1, 1), Color3.fromRGB(190, 222, 250))
+hillShade.Rotation = 90
+hillShade.Parent = hill
+local edge = Instance.new("UIStroke")
+edge.Thickness = 5
+edge.Color = Color3.fromRGB(120, 175, 225)
+edge.Parent = hill
+hill.Parent = stage
+-- Two little snow bumps on the hill the ball hops over.
+local BUMPS = { 430, 880 }
+for _, bx in BUMPS do
+	local bump = Instance.new("Frame")
+	bump.Size = UDim2.fromOffset(150, 60)
+	bump.AnchorPoint = Vector2.new(0.5, 0.75)
+	bump.Position = UDim2.fromOffset(bx, hillY(bx) + 6)
+	bump.Rotation = slopeAngle
+	bump.BackgroundColor3 = Color3.new(1, 1, 1)
+	bump.BorderSizePixel = 0
+	local c = Instance.new("UICorner")
+	c.CornerRadius = UDim.new(0.5, 0)
+	c.Parent = bump
+	bump.Parent = stage
+end
+
 local ball = Instance.new("ImageLabel")
 ball.Name = "Ball"
 ball.BackgroundTransparency = 1
 ball.Image = Images.Icon_Snowball or ""
-ball.Size = UDim2.fromOffset(200, 200)
+ball.Size = UDim2.fromOffset(80, 80)
 ball.AnchorPoint = Vector2.new(0.5, 0.5)
-ball.Position = UDim2.new(0.5, 0, 0.5, -130)
+ball.ZIndex = 5
 ball.Parent = stage
+local shadow = Instance.new("Frame")
+shadow.Name = "Shadow"
+shadow.AnchorPoint = Vector2.new(0.5, 0.5)
+shadow.BackgroundColor3 = Color3.fromRGB(120, 160, 210)
+shadow.BackgroundTransparency = 0.5
+shadow.BorderSizePixel = 0
+shadow.Rotation = slopeAngle
+shadow.ZIndex = 4
+local sc = Instance.new("UICorner")
+sc.CornerRadius = UDim.new(0.5, 0)
+sc.Parent = shadow
+shadow.Parent = stage
+
+local hero = { x = SLOPE_A.X, spin = 0, puff = 0, wait = 0 }
+local function puff(at: Vector2, size: number)
+	local p = Instance.new("Frame")
+	p.AnchorPoint = Vector2.new(0.5, 0.5)
+	p.Size = UDim2.fromOffset(size, size)
+	p.Position = UDim2.fromOffset(at.X, at.Y)
+	p.BackgroundColor3 = Color3.new(1, 1, 1)
+	p.BorderSizePixel = 0
+	p.ZIndex = 4
+	local c = Instance.new("UICorner")
+	c.CornerRadius = UDim.new(0.5, 0)
+	c.Parent = p
+	local st = Instance.new("UIStroke")
+	st.Thickness = 2
+	st.Color = Color3.fromRGB(170, 205, 240)
+	st.Parent = p
+	p.Parent = stage
+	local drift = UDim2.fromOffset(at.X - math.random(20, 60), at.Y - math.random(25, 60))
+	local t = TweenInfo.new(0.7, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+	TweenService
+		:Create(p, t, { Position = drift, Size = UDim2.fromOffset(size * 1.8, size * 1.8), BackgroundTransparency = 1 })
+		:Play()
+	TweenService:Create(st, t, { Transparency = 1 }):Play()
+	task.delay(0.75, function()
+		p:Destroy()
+	end)
+end
+
+local function stepHero(dt: number)
+	if hero.wait > 0 then
+		hero.wait -= dt
+		ball.Visible = false
+		shadow.Visible = false
+		return
+	end
+	ball.Visible = true
+	shadow.Visible = true
+	local span = SLOPE_B.X - SLOPE_A.X
+	local k = math.clamp((hero.x - SLOPE_A.X) / span, 0, 1)
+	local r = 34 + 96 * k -- grows as it rolls
+	local speed = 260 + 420 * k -- and speeds up
+	hero.x += speed * dt
+	hero.spin += speed * dt / r * 57.3
+	-- Hop over the bumps.
+	local hop = 0
+	for _, bx in BUMPS do
+		local u = (hero.x - (bx - 70)) / 190
+		if u > 0 and u < 1 then
+			hop = math.max(hop, math.sin(u * math.pi) * 70)
+		end
+	end
+	local ground = hillY(hero.x)
+	local squash = if hop < 4 then 1 + 0.06 * math.abs(math.sin(hero.spin / 57.3 * 2)) else 1
+	ball.Size = UDim2.fromOffset(r * 2 * squash, r * 2 / squash)
+	ball.Position = UDim2.fromOffset(hero.x, ground - r / squash - hop)
+	ball.Rotation = hero.spin
+	shadow.Size = UDim2.fromOffset(r * 1.6 * (1 - hop / 200), r * 0.35)
+	shadow.Position = UDim2.fromOffset(hero.x, ground + 2)
+	-- Snow kicked up behind it while it touches the ground.
+	hero.puff -= dt
+	if hop < 6 and hero.puff <= 0 then
+		hero.puff = 0.05
+		puff(Vector2.new(hero.x - r * 0.7, ground - r * 0.25), r * (0.35 + math.random() * 0.25))
+	end
+	if hero.x - r > 1300 then
+		hero.x = SLOPE_A.X
+		hero.spin = 0
+		hero.wait = 0.5
+	end
+end
 
 local title = label({
 	Name = "Title",
 	Size = UDim2.fromOffset(1000, 110),
 	AnchorPoint = Vector2.new(0.5, 0.5),
-	Position = UDim2.new(0.5, 0, 0.5, 40),
+	Position = UDim2.new(0.5, 0, 0.5, 70),
 	Text = "ROLL THE SNOWBALL",
+	ZIndex = 6,
 }, 96)
 local ts = title:FindFirstChildOfClass("UIStroke") :: UIStroke
 ts.Thickness = 6
@@ -265,6 +393,7 @@ for _, name in { "Assets", "EggModels" } do
 end
 
 local started = os.clock()
+local lastFrame: number? = nil
 local done = 0
 local skipped = false
 skip.Activated:Connect(function()
@@ -299,7 +428,8 @@ end)
 
 while true do
 	local t = os.clock() - started
-	ball.Rotation = t * 90
+	stepHero(math.min(0.1, os.clock() - (lastFrame or os.clock())))
+	lastFrame = os.clock()
 	-- The bar never runs ahead of the work, and fills smoothly at the end.
 	local p = if #items > 0 then done / #items else 1
 	show(if finished then math.min(1, t / MIN_SECONDS) else math.min(p, 0.97))
