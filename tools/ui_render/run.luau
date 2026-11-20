@@ -261,7 +261,7 @@ local data = {
 	Settings = { Music = 0.6, Sfx = 0.8, Steer = 1, FreePops = true },
 	IncomePerSec = 84,
 	Luck = 1,
-	Rewards = nil,
+	Rewards = { DailyIndex = 3, DailyReady = true, DailyNextAt = 0, PlaytimeClaimed = { true }, Playtime = 400, Spins = 0, FreeSpin = true, CashOf = {} },
 	Spins = 1,
 	CashMult = 1,
 	CashPacks = nil,

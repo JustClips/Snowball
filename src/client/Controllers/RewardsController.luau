@@ -327,9 +327,7 @@ local function makeCard(name: string, title: string, r: Rewards.Reward, w: numbe
 	status.Position = UDim2.new(0.5, 0, 1, -6)
 	status.BackgroundColor3 = Ui.Colors.PanelDark
 	status.ZIndex = 5
-	Ui.corner(status, 16)
-	Ui.gradient(status)
-	Ui.stroke(status, 3)
+	Ui.block(status, nil, 2.5, 4)
 	Ui.label({
 		Name = "Label",
 		Size = UDim2.new(1, -10, 1, -6),
@@ -361,7 +359,7 @@ end
 
 local function setStatus(card: Card, text: string, color: Color3, claimable: boolean, claimed: boolean)
 	Ui.setText(card.status, text)
-	card.status.BackgroundColor3 = color
+	Ui.tint(card.status, color)
 	card.done.Visible = claimed
 	card.frame:SetAttribute("Claimable", claimable)
 end

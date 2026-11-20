@@ -26,16 +26,33 @@ local rebirthButton: TextButton
 local skipButton: TextButton
 
 -- An icon with a number next to it.
-local function stat(parent: Frame, icon: string, x: number, y: number, color: Color3?): TextLabel
-	Ui.icon(icon, { Size = UDim2.fromOffset(56, 56), Position = UDim2.fromOffset(x, y) }).Parent = parent
-	local l = Ui.label({
-		Size = UDim2.fromOffset(110, 40),
-		Position = UDim2.fromOffset(x + 60, y + 8),
-		Text = "",
-		TextColor3 = color or Ui.Colors.Snow,
-		TextXAlignment = Enum.TextXAlignment.Left,
+-- What you get: a dark stud well with the icon on top and the new value under it.
+local function gain(parent: Frame, icon: string, x: number): TextLabel
+	local well = Ui.frame({
+		Name = icon,
+		Size = UDim2.fromOffset(150, 120),
+		Position = UDim2.fromOffset(x, 92),
+		BackgroundColor3 = Ui.Colors.PanelDark,
 	})
-	l.Parent = parent
+	Ui.block(well, nil, 3, 5)
+	well.Parent = parent
+	Ui.icon(icon, {
+		Size = UDim2.fromOffset(62, 62),
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.new(0.5, 0, 0, 8),
+		ZIndex = 3,
+	}).Parent =
+		well
+	local l = Ui.label({
+		Size = UDim2.new(1, -12, 0, 40),
+		AnchorPoint = Vector2.new(0.5, 1),
+		Position = UDim2.new(0.5, 0, 1, -10),
+		Text = "",
+		TextColor3 = Ui.Colors.Lime,
+		ZIndex = 3,
+	})
+	Ui.maxText(l, 36)
+	l.Parent = well
 	return l
 end
 
@@ -49,7 +66,7 @@ local function render(data)
 	cashLabel.Text = `x{Economy.rebirthCashMult(n + 1)}`
 	luckLabel.Text = `+{math.floor((n + 1) * Economy.RebirthLuckBonus * 100 + 0.5)}%`
 	local ready = data.ReachedVillage and not BigNum.lt(data.Cash, cost)
-	rebirthButton.BackgroundColor3 = if ready then Ui.Colors.Green else Ui.Colors.PanelDark
+	Ui.tint(rebirthButton, if ready then Ui.Colors.Green else Ui.Colors.Muted)
 	local product = Products.ProductByKey.SkipRebirth
 	local canSkip = data.ReachedVillage
 		and not ready
@@ -57,6 +74,9 @@ local function render(data)
 		and product ~= nil
 		and product.Id ~= 0
 	skipButton.Visible = canSkip
+	-- REBIRTH sits in the middle; with the Robux skip it moves left to make room.
+	rebirthButton.AnchorPoint = Vector2.new(if canSkip then 1 else 0.5, 1)
+	rebirthButton.Position = UDim2.new(0.5, if canSkip then -6 else 0, 1, -8)
 	if product then
 		Ui.setText(skipButton, `{Ui.ROBUX}{product.Price}`)
 	end
@@ -81,36 +101,40 @@ function RebirthController:Init(controllers)
 	local body
 	window, body = Ui.window(gui, "Window", "REBIRTH", Vector2.new(520, 380))
 	-- Need: the Village (lock / check) + the cash price.
-	Ui.icon("Target", { Size = UDim2.fromOffset(56, 56), Position = UDim2.fromOffset(10, 4) }).Parent = body
-	villageIcon = Ui.icon("Lock", { Size = UDim2.fromOffset(40, 40), Position = UDim2.fromOffset(52, 22) })
+	-- Need (top row, centred): the Village (lock / check) + the cash price.
+	Ui.icon("Target", { Size = UDim2.fromOffset(56, 56), Position = UDim2.fromOffset(110, 8) }).Parent = body
+	villageIcon = Ui.icon("Lock", { Size = UDim2.fromOffset(36, 36), Position = UDim2.fromOffset(146, 34) })
 	villageIcon.Parent = body
-	priceLabel = stat(body, "Cash", 150, 4)
+	Ui.icon("Cash", { Size = UDim2.fromOffset(56, 56), Position = UDim2.fromOffset(200, 8) }).Parent = body
+	priceLabel = Ui.label({
+		Size = UDim2.fromOffset(170, 48),
+		Position = UDim2.fromOffset(262, 12),
+		Text = "",
+		TextXAlignment = Enum.TextXAlignment.Left,
+	})
+	Ui.maxText(priceLabel, 40)
+	priceLabel.Parent = body
 	-- Get: training, cash, luck.
-	local arrow = Ui.icon(
-		"Upgrade",
-		{ Size = UDim2.fromOffset(50, 50), AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0, 70) }
-	)
-	arrow.Parent = body
-	trainLabel = stat(body, "Power", 10, 130, Ui.Colors.Green)
-	cashLabel = stat(body, "Cash", 175, 130, Ui.Colors.Green)
-	luckLabel = stat(body, "Luck", 340, 130, Ui.Colors.Green)
-	rebirthButton = Ui.tile("Rebirth", "Rebirth", "REBIRTH", Ui.Colors.Green, function()
+	trainLabel = gain(body, "Power", 6)
+	cashLabel = gain(body, "Cash", 170)
+	luckLabel = gain(body, "Luck", 334)
+	rebirthButton = Ui.bigButton("Rebirth", "Rebirth", "REBIRTH", Ui.Colors.Green, function()
 		local ok, why = Net.func("Rebirth"):InvokeServer()
 		if ok then
 			Ui.closeWindow(window)
 		elseif why then
 			Ui.toast(why, "Bad")
 		end
-	end, 110)
-	rebirthButton.AnchorPoint = Vector2.new(0.5, 1)
-	rebirthButton.Position = UDim2.new(0.5, -70, 1, -4)
+	end, Vector2.new(240, 74))
+	rebirthButton.AnchorPoint = Vector2.new(1, 1)
+	rebirthButton.Position = UDim2.new(0.5, 0, 1, -8)
 	rebirthButton.Parent = body
 	skipButton = Ui.button(
 		{
 			Name = "Skip",
-			Size = UDim2.fromOffset(130, 70),
+			Size = UDim2.fromOffset(170, 74),
 			AnchorPoint = Vector2.new(0, 1),
-			Position = UDim2.new(0.5, 10, 1, -24),
+			Position = UDim2.new(0.5, 14, 1, -8),
 			BackgroundColor3 = Ui.Colors.Robux,
 			Visible = false,
 		},

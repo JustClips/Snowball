@@ -144,18 +144,10 @@ function StarterPackController:Init(controllers)
 	C = controllers
 	local gui = Ui.screen("StarterPack", 26)
 	local body
-	window, body = Ui.window(gui, "Window", "STARTER PACK", Vector2.new(640, 430))
-	-- Swap the window's plain header colour for the offer red/orange.
-	local header = window:FindFirstChild("Header") :: Frame
-	for _, g in header:GetDescendants() do
-		if g:IsA("UIGradient") then
-			g.Color = ColorSequence.new(Color3.fromRGB(255, 90, 70), Color3.fromRGB(255, 150, 40))
-		end
-	end
-	local hg = header:FindFirstChildOfClass("UIGradient")
-	if hg then
-		hg.Color = ColorSequence.new(Color3.fromRGB(255, 90, 70), Color3.fromRGB(255, 150, 40))
-	end
+	window, body = Ui.window(gui, "Window", "STARTER PACK", Vector2.new(640, 430), {
+		Icon = "Chest",
+		Color = Color3.fromRGB(255, 110, 50),
+	})
 
 	-- Top row: a tilted ONCE! tag and the timer pill.
 	local tag = Ui.label({
@@ -234,8 +226,7 @@ function StarterPackController:Init(controllers)
 			Text = `-{math.floor((1 - price / value) * 100)}%`,
 			ZIndex = 5,
 		})
-		Ui.corner(save, 10)
-		Ui.stroke(save, 3)
+		Ui.block(save, nil, 3, 4)
 		save.Parent = holder
 	end
 	holder.Parent = body
