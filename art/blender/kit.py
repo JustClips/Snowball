@@ -59,6 +59,7 @@ def srgb(c):
 
 
 def reset():
+    _mats.clear()
     bpy.ops.wm.read_factory_settings(use_empty=True)
     scene = bpy.context.scene
     scene.unit_settings.system = "NONE"
@@ -259,6 +260,18 @@ def bake(obj, name, size=1024, samples=24):
 
 
 def export_glb(objs, name):
+    """Exports objs to art/out/<name>.glb and records the model's bounding-box centre in
+    Roblox model-local coords in art/out/meta.json (the game pivots the model on it)."""
+    import json
+    import mathutils
+    pts = [o.matrix_world @ mathutils.Vector(c) for o in objs for c in o.bound_box]
+    mn = [min(p[i] for p in pts) for i in range(3)]
+    mx = [max(p[i] for p in pts) for i in range(3)]
+    c = [(mn[i] + mx[i]) / 2 for i in range(3)]
+    meta_path = os.path.join(OUT, "meta.json")
+    meta = json.load(open(meta_path)) if os.path.exists(meta_path) else {}
+    meta[name] = {"center": [round(-c[0], 4), round(c[2], 4), round(c[1], 4)]}
+    json.dump(meta, open(meta_path, "w"), indent=1, sort_keys=True)
     bpy.ops.object.select_all(action="DESELECT")
     for o in objs:
         o.select_set(True)

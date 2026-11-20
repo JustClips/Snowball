@@ -16,6 +16,7 @@ local Rollers = require(Shared.Config.Rollers)
 local Signal = require(Shared.Signal)
 local World = require(Shared.Config.World)
 local Images = require(Shared.Config.Images)
+local ModelLoader = require(script.Parent.Parent.Lib.ModelLoader)
 
 local TrainService = {
 	-- (player, training: boolean) when a player steps on or off their roller
@@ -207,29 +208,53 @@ function TrainService:RefreshRoller(player: Player)
 	model.Name = "Roller"
 	model:SetAttribute("Look", look)
 	local cf = pad.CFrame * CFrame.new(0, 0.5, 0)
-	local function frame(name: string, size: Vector3, offset: CFrame)
-		local p = Instance.new("Part")
-		p.Name = name
-		p.Anchored = true
-		p.Size = size
-		p.CFrame = cf * offset
-		p.Material = Enum.Material.Wood
-		p.Color = color:Lerp(Color3.fromRGB(120, 85, 55), 0.5)
-		p.Parent = model
+	-- The Blender station for this tier (art/blender/roller.py): "Station" + a "Ball" that
+	-- TrainController spins. Falls back to a graybox until the model is uploaded.
+	local look3d = ModelLoader.clone("Roller_" .. look, cf)
+	if look3d then
+		for _, child in look3d:GetChildren() do
+			child.Parent = model
+		end
+		look3d:Destroy()
+		-- Mesh hulls would wall off the deck: the meshes are visual, a plain box is the deck.
+		for _, d in model:GetDescendants() do
+			if d:IsA("BasePart") then
+				d.CanCollide = false
+				d.CanQuery = false
+			end
+		end
+		local deck = Instance.new("Part")
+		deck.Name = "DeckCollider"
+		deck.Anchored = true
+		deck.Transparency = 1
+		deck.Size = Vector3.new(16, 0.6, 16)
+		deck.CFrame = cf * CFrame.new(0, 0.3, 0)
+		deck.Parent = model
+	else
+		local function frame(name: string, size: Vector3, offset: CFrame)
+			local p = Instance.new("Part")
+			p.Name = name
+			p.Anchored = true
+			p.Size = size
+			p.CFrame = cf * offset
+			p.Material = Enum.Material.Wood
+			p.Color = color:Lerp(Color3.fromRGB(120, 85, 55), 0.5)
+			p.Parent = model
+		end
+		frame("PostL", Vector3.new(1.5, 12, 1.5), CFrame.new(-7, 6, 0))
+		frame("PostR", Vector3.new(1.5, 12, 1.5), CFrame.new(7, 6, 0))
+		frame("Bar", Vector3.new(15.5, 1.5, 1.5), CFrame.new(0, 12, 0))
+		local ball = Instance.new("Part")
+		ball.Name = "Ball"
+		ball.Shape = Enum.PartType.Ball
+		ball.Anchored = true
+		ball.CanCollide = false
+		ball.Size = Vector3.new(9, 9, 9)
+		ball.CFrame = cf * CFrame.new(0, 5, 4.5)
+		ball.Material = Enum.Material.Snow
+		ball.Color = Color3.fromRGB(245, 248, 255):Lerp(color, 0.25)
+		ball.Parent = model
 	end
-	frame("PostL", Vector3.new(1.5, 12, 1.5), CFrame.new(-7, 6, 0))
-	frame("PostR", Vector3.new(1.5, 12, 1.5), CFrame.new(7, 6, 0))
-	frame("Bar", Vector3.new(15.5, 1.5, 1.5), CFrame.new(0, 12, 0))
-	local ball = Instance.new("Part")
-	ball.Name = "Ball"
-	ball.Shape = Enum.PartType.Ball
-	ball.Anchored = true
-	ball.CanCollide = false
-	ball.Size = Vector3.new(9, 9, 9)
-	ball.CFrame = cf * CFrame.new(0, 5, 4.5)
-	ball.Material = Enum.Material.Snow
-	ball.Color = Color3.fromRGB(245, 248, 255):Lerp(color, 0.25)
-	ball.Parent = model
 	model:SetAttribute("Owner", player.UserId)
 
 	-- Upgrade the station right here (Dev, 2026-11-20: like the treadmill games): a sign
