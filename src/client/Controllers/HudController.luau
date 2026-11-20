@@ -12,6 +12,7 @@ local Format = require(Shared.Format)
 local Net = require(Shared.Net)
 local PowerCurve = require(Shared.PowerCurve)
 local Zones = require(Shared.Config.Zones)
+local AvalancheConfig = require(Shared.Config.Avalanche)
 local State = require(script.Parent.Parent.State)
 local Ui = require(script.Parent.Parent.Ui)
 
@@ -30,6 +31,9 @@ local zoneBar: Frame
 local zoneFill: Frame
 local zoneText: TextLabel
 local zoneBest: Frame
+local avaBar: Frame
+local avaFill: Frame
+local avaText: TextLabel
 
 local function nextZone(distance: number)
 	for _, z in Zones.List do
@@ -91,6 +95,33 @@ local function updateChips()
 	else
 		clearChip("ServerLuck")
 	end
+	local crown = data.Boosts.Crown
+	if type(crown) == "number" and crown > now then
+		chip("Crown", `CROWN {Format.time(crown - now)}`, Ui.Colors.Gold)
+	else
+		clearChip("Crown")
+	end
+end
+
+-- Avalanche meter, top centre (ServerState: AvalancheMeter 0-1, AvalancheAt, AvalancheEnds).
+local function updateAvalanche()
+	local now = os.time()
+	local at = State.server("AvalancheAt")
+	local ends = State.server("AvalancheEnds")
+	if at and now < at then
+		avaFill.Size = UDim2.fromScale(1, 1)
+		avaFill.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
+		avaText.Text = `AVALANCHE IN {at - now}!`
+	elseif ends and now < ends then
+		avaFill.Size = UDim2.fromScale(math.clamp((ends - now) / AvalancheConfig.ActiveSeconds, 0, 1), 1)
+		avaFill.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
+		avaText.Text = `AVALANCHE! 2x LUCK {Format.time(ends - now)}`
+	else
+		local m = State.server("AvalancheMeter") or 0
+		avaFill.Size = UDim2.fromScale(math.clamp(m, 0, 1), 1)
+		avaFill.BackgroundColor3 = Ui.Colors.Ice
+		avaText.Text = `AVALANCHE {math.floor(m * 100)}%`
+	end
 end
 
 local function render(data)
@@ -110,6 +141,7 @@ end
 -- Zone bar during a roll: s = the ball's distance.
 function HudController:ShowZoneBar(on: boolean)
 	zoneBar.Visible = on
+	avaBar.Visible = not on
 end
 
 function HudController:SetZoneProgress(s: number)
@@ -221,10 +253,27 @@ function HudController:Init(controllers)
 	zoneText.Parent = zoneBar
 	zoneBar.Parent = root
 
+	-- Avalanche meter, top centre (hidden while the zone bar shows).
+	avaBar = Ui.frame({
+		Name = "Avalanche",
+		Size = UDim2.fromOffset(300, 30),
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.new(0.5, 0, 0, 14),
+		BackgroundColor3 = Ui.Colors.PanelDark,
+	})
+	Ui.stroke(avaBar, 3)
+	Ui.autoScale(avaBar)
+	avaFill = Ui.frame({ Name = "Fill", Size = UDim2.fromScale(0, 1), BackgroundColor3 = Ui.Colors.Ice })
+	avaFill.Parent = avaBar
+	avaText = Ui.label({ Name = "Text", Size = UDim2.new(1, -8, 1, -4), Position = UDim2.fromOffset(4, 2), Text = "" })
+	avaText.ZIndex = 2
+	avaText.Parent = avaBar
+	avaBar.Parent = root
+
 	-- Core buttons, right side (mobile thumb reach).
 	local buttons = Ui.frame({
 		Name = "Buttons",
-		Size = UDim2.fromOffset(130, 300),
+		Size = UDim2.fromOffset(130, 370),
 		AnchorPoint = Vector2.new(1, 0.5),
 		Position = UDim2.new(1, -12, 0.5, 0),
 		BackgroundTransparency = 1,
@@ -247,6 +296,10 @@ function HudController:Init(controllers)
 			C.PetsController:Toggle()
 		end
 	end)
+	core("Rebirth", "REBIRTH", Color3.fromRGB(200, 120, 255), function()
+		C.RebirthController:Toggle()
+	end)
+	;((buttons :: any).Rebirth :: GuiObject).Visible = false
 	core("Base", "BASE", Ui.Colors.Ice, function()
 		Net.func("Teleport"):InvokeServer("Base")
 	end)
@@ -273,6 +326,7 @@ function HudController:Start()
 		if acc >= 0.5 then
 			acc = 0
 			updateChips()
+			updateAvalanche()
 		end
 	end)
 	local _ = player

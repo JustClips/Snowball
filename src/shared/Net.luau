@@ -36,6 +36,7 @@ local EVENTS: { [string]: number } = {
 local FUNCTIONS: { [string]: number } = {
 	GetState = 2,
 	BuyRoller = 4, -- () -> ok, message: buy the next cash Snow Roller
+	Rebirth = 2, -- () -> ok, message: see RebirthService
 	BuyUpgrade = 6, -- (upgradeId) -> ok, message: Core / EggSlots / PetSlots / PackZone
 	StartPack = 2, -- () -> ok, message: step onto the launch deck and start packing
 	CancelPack = 2,

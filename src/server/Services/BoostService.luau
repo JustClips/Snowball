@@ -110,6 +110,9 @@ function BoostService:GetLuck(player: Player): number
 	if data.Gamepasses.VIP then
 		bonus += Economy.VIPLuckBonus
 	end
+	if active(data.Boosts.Crown) then
+		bonus += 0.25
+	end
 	local luck = core.Luck * (1 + bonus) * BoostService:GetServerLuck()
 	if S.AvalancheService and S.AvalancheService:IsActive() then
 		luck *= 2

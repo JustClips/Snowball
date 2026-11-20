@@ -16,6 +16,7 @@ local ORDER = {
 	"BallController",
 	"ResultsController",
 	"UpgradesController",
+	"RebirthController",
 	"PetsController",
 	"FollowerController",
 	"HatchController",
