@@ -11,7 +11,7 @@ for _, z in Zones.List do
 		table.insert(KNOTS, { math.log10(z.Power), z.Start })
 	end
 end
-table.insert(KNOTS, { math.log10(5e8), 6_000 })
+table.insert(KNOTS, { math.log10(5e9), 7_000 })
 
 local PowerCurve = {}
 

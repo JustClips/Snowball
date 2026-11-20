@@ -11,13 +11,17 @@ local Economy = {
 	-- Auto Train pass ("Fast Train"). Tapping is only for pops. Roller Power is per rep.
 	TrainRepsPerSecond = 0.8,
 	FastTrainMult = 2,
-	AutoTrainTapsPerSecond = 0.8, -- reps/s used to value Training Time products
+	AutoTrainTapsPerSecond = 0.8, -- reps/s a Snow Pop's Mult x Seconds is paid at
+	-- "N min of Training" products pay N minutes at this rate: the best a free player gets
+	-- (Fast Train + every pop claimed, ~6 reps/s). At 0.8 a 179 R$ "30 min" pack was worth
+	-- ~7 min of real training, less than the 39 R$ Power Pack III (docs/BALANCE.md).
+	TrainTimeRepsPerSecond = 6,
 	RollerDeck = 16, -- the roller's square deck (studs): standing on it = training
 	RollerHeight = 8,
 
 	-- Rebirth (GAME_PLAN §5.11)
-	RebirthFirstCost = 150_000_000,
-	RebirthCostGrowth = 1.6,
+	RebirthFirstCost = 40_000_000,
+	RebirthCostGrowth = 5,
 	RebirthTrainBonus = 0.5, -- x1.5 training per rebirth (multiplicative)
 	RebirthCashBonus = 0.5, -- +50% cash per rebirth (additive)
 	RebirthLuckBonus = 0.1,
@@ -25,6 +29,7 @@ local Economy = {
 
 	-- Pets (GAME_PLAN §5.10)
 	EquipSlots = 3,
+	PetTrainBonusCap = 15, -- pets add at most +1500% training (x16), docs/BALANCE.md
 	EquipSlotsPass = 2,
 	StartPetSlots = 6,
 	OfflineIncomeRate = 0.5,
@@ -100,8 +105,11 @@ function Economy.rebirthTrainMult(rebirths: number): number
 	return (1 + Economy.RebirthTrainBonus) ^ rebirths
 end
 
+-- Geometric like the training bonus (x1.5 per rebirth), a bit under the x4 cost growth so
+-- each rebirth takes a little longer than the last (docs/BALANCE.md; it was +50% each, which
+-- against an exponential cost made every rebirth much slower than the one before).
 function Economy.rebirthCashMult(rebirths: number): number
-	return 1 + Economy.RebirthCashBonus * rebirths
+	return (1 + Economy.RebirthCashBonus) ^ rebirths
 end
 
 return Economy

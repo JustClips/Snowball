@@ -5,11 +5,11 @@ local Upgrades = {}
 -- Snowball Cores: luck + growth of your ball. Level 1 is free.
 Upgrades.Cores = {
 	{ Id = "Snow", Name = "Snow Core", Luck = 1, Growth = 1, Price = 0 },
-	{ Id = "Packed", Name = "Packed Core", Luck = 1.5, Growth = 1.1, Price = 1_000 },
-	{ Id = "Ice", Name = "Ice Core", Luck = 2.5, Growth = 1.2, Price = 15_000 },
-	{ Id = "Crystal", Name = "Crystal Core", Luck = 4, Growth = 1.3, Price = 200_000 },
-	{ Id = "Golden", Name = "Golden Core", Luck = 7, Growth = 1.4, Price = 3_000_000 },
-	{ Id = "Aurora", Name = "Aurora Core", Luck = 12, Growth = 1.5, Price = 50_000_000 },
+	{ Id = "Packed", Name = "Packed Core", Luck = 1.3, Growth = 1.1, Price = 1_000 },
+	{ Id = "Ice", Name = "Ice Core", Luck = 1.7, Growth = 1.2, Price = 15_000 },
+	{ Id = "Crystal", Name = "Crystal Core", Luck = 2.2, Growth = 1.3, Price = 200_000 },
+	{ Id = "Golden", Name = "Golden Core", Luck = 3, Growth = 1.4, Price = 3_000_000 },
+	{ Id = "Aurora", Name = "Aurora Core", Luck = 4, Growth = 1.5, Price = 50_000_000 },
 }
 
 -- Egg Slots: eggs one ball can carry. Start 1, max 6. Price of the 2nd, 3rd...

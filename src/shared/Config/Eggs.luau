@@ -43,6 +43,10 @@ local Eggs = {
 	-- Bought eggs (Products): the lowest rarity they can hatch.
 	BoughtFloor = { Frozen = "Epic", Aurora = "Legendary" },
 	BagSize = 40,
+	-- How hard luck pushes weight up the ladder: tier n's weight x luck^((n-1) x LuckPower).
+	-- Was 0.5: a 9 R$ Super Lucky Roll (x100) made Village eggs ~all Secret, and the free
+	-- Aurora Core (x12) made a third of Aurora eggs Mythic. docs/BALANCE.md has the tables.
+	LuckPower = 0.3,
 }
 for _, r in Rarities do
 	Eggs.ByName[r.Name] = r
@@ -58,7 +62,7 @@ function Eggs.roll(rng: Random, pool: { [string]: number }, luck: number, floor:
 		if r.Order < floorOrder then
 			w = 0
 		elseif w > 0 then
-			w *= math.max(1, luck) ^ ((r.Order - 1) * 0.5)
+			w *= math.max(1, luck) ^ ((r.Order - 1) * Eggs.LuckPower)
 		end
 		weights[r.Name] = w
 		total += w

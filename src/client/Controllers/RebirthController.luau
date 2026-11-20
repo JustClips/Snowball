@@ -64,7 +64,7 @@ local function render(data)
 	priceLabel.Text = Format.cash(cost)
 	priceLabel.TextColor3 = if BigNum.lt(data.Cash, cost) then Ui.Colors.Red else Ui.Colors.Green
 	trainLabel.Text = `x{Format.big(Economy.rebirthTrainMult(n + 1))}`
-	cashLabel.Text = `x{Economy.rebirthCashMult(n + 1)}`
+	cashLabel.Text = `x{Format.big(Economy.rebirthCashMult(n + 1))}`
 	luckLabel.Text = `+{math.floor((n + 1) * Economy.RebirthLuckBonus * 100 + 0.5)}%`
 	local ready = data.ReachedVillage and not BigNum.lt(data.Cash, cost)
 	Ui.tint(rebirthButton, if ready then Ui.Colors.Green else Ui.Colors.Muted)

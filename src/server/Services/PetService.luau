@@ -109,7 +109,9 @@ function PetService:GetTrainBonus(player: Player): number
 	for i = 1, math.min(#list, PetService:EquipSlots(player)) do
 		total += list[i]
 	end
-	return total
+	-- Capped (docs/BALANCE.md): uncapped, three Village Mythics gave x75 training and
+	-- rebirths collapsed into minutes.
+	return math.min(total, Economy.PetTrainBonusCap)
 end
 
 local function baseOf(player: Player): (Instance?, number?)

@@ -56,7 +56,7 @@ local KINDS: { Kind } = {
 	{
 		Id = "IceBlock",
 		Zone = "Lake",
-		SizeNeeded = 9,
+		SizeNeeded = 8,
 		Radius = 4,
 		Height = 7,
 		Cash = 9,
@@ -65,7 +65,7 @@ local KINDS: { Kind } = {
 	{
 		Id = "FishingHut",
 		Zone = "Lake",
-		SizeNeeded = 12,
+		SizeNeeded = 11,
 		Radius = 6,
 		Height = 10,
 		Cash = 12,
@@ -74,7 +74,7 @@ local KINDS: { Kind } = {
 	{
 		Id = "Crystal",
 		Zone = "Cave",
-		SizeNeeded = 15,
+		SizeNeeded = 14,
 		Radius = 5,
 		Height = 14,
 		Cash = 15,
@@ -83,7 +83,7 @@ local KINDS: { Kind } = {
 	{
 		Id = "Stalagmite",
 		Zone = "Cave",
-		SizeNeeded = 18,
+		SizeNeeded = 17,
 		Radius = 6,
 		Height = 20,
 		Cash = 18,
@@ -92,7 +92,7 @@ local KINDS: { Kind } = {
 	{
 		Id = "Boulder",
 		Zone = "Aurora",
-		SizeNeeded = 24,
+		SizeNeeded = 21,
 		Radius = 8,
 		Height = 14,
 		Cash = 24,
@@ -101,7 +101,7 @@ local KINDS: { Kind } = {
 	{
 		Id = "BigPine",
 		Zone = "Aurora",
-		SizeNeeded = 28,
+		SizeNeeded = 25,
 		Radius = 6,
 		Height = 34,
 		Cash = 28,

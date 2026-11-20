@@ -54,6 +54,7 @@ export type ZoneDef = {
 	Start: number, -- studs along the track
 	Power: number, -- Power needed to reach Start with a Perfect, clean roll
 	CoinValue: number,
+	CrackSeconds: number?, -- seconds of pet income paid when a ball cracks here
 	IncomeMult: number,
 	Color: Color3,
 	GroundColor: Color3,

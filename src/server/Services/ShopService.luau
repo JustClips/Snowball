@@ -15,6 +15,7 @@ local Eggs = require(Shared.Config.Eggs)
 local Products = require(Shared.Config.Products)
 local Pets = require(Shared.Config.Pets)
 local Rollers = require(Shared.Config.Rollers)
+local Zones = require(Shared.Config.Zones)
 
 local ShopService = {}
 
@@ -236,7 +237,7 @@ local GRANTS: { [string]: (product: any, buyer: Player, recipient: Player) -> ()
 	end,
 	TrainTime = function(product, _buyer, recipient)
 		-- That many minutes of training at Auto Train speed, at your current rate.
-		local taps = product.Minutes * 60 * Economy.AutoTrainTapsPerSecond
+		local taps = product.Minutes * 60 * Economy.TrainTimeRepsPerSecond
 		local gain = S.TrainService:Grant(recipient, taps, true)
 		got(recipient, `+{Format.big(gain)} POWER`)
 	end,
@@ -275,7 +276,11 @@ local GRANTS: { [string]: (product: any, buyer: Player, recipient: Player) -> ()
 		notify(recipient, `{product.Name} added to your bag!`)
 	end,
 	HugePet = function(product, _buyer, recipient)
-		S.PetService:GivePet(recipient, product.Pet, { Zone = "Meadow" })
+		-- From your best zone, like bought eggs: a Meadow Huge Dragon (5K/s) was weaker than
+		-- one free Aurora Legendary by the first hour (docs/BALANCE.md).
+		local data = S.DataService:GetData(recipient)
+		local zone = Zones.List[math.clamp(data and data.BestZone or 1, 1, #Zones.List)]
+		S.PetService:GivePet(recipient, product.Pet, { Zone = zone.Id })
 		notify(recipient, `{Pets.ById[product.Pet].Name} is yours!`)
 	end,
 	SkipHatch = function(product, _buyer, recipient)

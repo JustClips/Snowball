@@ -97,7 +97,7 @@ local Pets = {
 	ById = {} :: { [string]: PetDef },
 	ByRarity = {} :: { [string]: { PetDef } }, -- zone egg pets only
 	-- Zone the egg came from -> income/training scale (GAME_PLAN §5.10).
-	ZoneMult = { Meadow = 1, Pine = 3, Lake = 9, Cave = 27, Aurora = 80, Village = 120 } :: { [string]: number },
+	ZoneMult = { Meadow = 1, Pine = 3, Lake = 9, Cave = 27, Aurora = 80, Village = 250 } :: { [string]: number },
 	TrainZoneMult = { Meadow = 1, Pine = 1.3, Lake = 1.7, Cave = 2.2, Aurora = 3, Village = 4 } :: { [string]: number },
 }
 -- Weight (Steal an Egg style): every pet rolls a weight when it hatches. Heavier pets

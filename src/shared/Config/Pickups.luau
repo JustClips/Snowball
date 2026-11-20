@@ -9,7 +9,7 @@ local Pickups = {
 	HitRadius = 3, -- pickup radius (added to the ball radius)
 	-- Average studs between pickups of each kind.
 	Every = {
-		Snow = 22,
+		Snow = 18,
 		Coin = 38,
 		Egg = 180,
 		Present = 700,

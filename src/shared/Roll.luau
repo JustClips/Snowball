@@ -15,6 +15,7 @@ export type Ball = {
 	snow: number, -- snow collected (radius grows from this)
 	growth: number, -- Core growth multiplier
 	D: number, -- target distance (where a clean run stops)
+	D0: number, -- the target distance at launch (hit losses are a share of this)
 	steer: number, -- -1..1 from the player
 	done: boolean,
 	wallUntil: number?,
@@ -34,9 +35,15 @@ local Roll = {
 	MaxRadius = 40,
 	GrowthScale = 3, -- r = Start + GrowthScale * sqrt(snow * growth)
 	WallBounce = 0.45,
-	-- Hits (GAME_PLAN §5.5)
-	SmashKeep = 0.95, -- speed kept after a smash
-	BonkKeep = 0.65, -- speed kept after a bonk
+	-- Hits (GAME_PLAN §5.5, docs/BALANCE.md). A hit takes a FLAT share of the roll's whole
+	-- target distance off the run. It used to multiply the distance still to go (x0.9 per
+	-- smash, x0.42 per bonk), which compounded: 10 smashes and 2 bonks left a 1B-Power ball
+	-- at ~1.9 km, so the Village was out of reach for any Power (Dev 2026-11-20).
+	SmashKeep = 0.95, -- speed kept after a smash (feel only)
+	BonkKeep = 0.65, -- speed kept after a bonk (feel only)
+	SmashLoss = 0.0005, -- share of the target distance a smash costs
+	BonkLoss = 0.025, -- share of the target distance a bonk costs...
+	BonkMin = 20, -- ...but at least this many studs
 	BonkSideSpeed = 26,
 	RampBoost = 70, -- extra studs a speed ramp adds to the run
 	-- The last stretch: speed is at most SettleGrip x the studs left, so the ball bites into
@@ -60,24 +67,26 @@ function Roll.new(x: number, D: number, growth: number): Ball
 		snow = 0,
 		growth = growth,
 		D = D,
+		D0 = D,
 		steer = 0,
 		done = false,
 	}
 end
 
--- Keeps speed in step with a changed D (remaining distance scales with speed squared).
-local function scaleRemaining(ball: Ball, keep: number)
+-- Takes `loss` studs off the run (never behind the ball) and slows the ball for the feel.
+-- Roll.step caps the speed to what the remaining distance allows, so it eases out on its own.
+local function cut(ball: Ball, loss: number, keep: number)
 	local remaining = math.max(0, ball.D - ball.s)
-	ball.D = ball.s + remaining * keep * keep
+	ball.D = ball.s + math.max(0, remaining - loss)
 	ball.v *= keep
 end
 
 function Roll.smash(ball: Ball)
-	scaleRemaining(ball, Roll.SmashKeep)
+	cut(ball, Roll.SmashLoss * (ball.D0 or ball.D), Roll.SmashKeep)
 end
 
 function Roll.bonk(ball: Ball, side: number)
-	scaleRemaining(ball, Roll.BonkKeep)
+	cut(ball, math.max(Roll.BonkMin, Roll.BonkLoss * (ball.D0 or ball.D)), Roll.BonkKeep)
 	ball.vx = (if side >= 0 then 1 else -1) * Roll.BonkSideSpeed
 end
 

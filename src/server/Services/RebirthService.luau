@@ -72,7 +72,7 @@ function RebirthService:Rebirth(player: Player, skipped: boolean?): (boolean, st
 	Net.fire(
 		"Notify",
 		player,
-		`REBIRTH {n}! x{Format.big(Economy.rebirthTrainMult(n))} training, x{Economy.rebirthCashMult(n)} cash.{extra}`,
+		`REBIRTH {n}! x{Format.big(Economy.rebirthTrainMult(n))} training, x{Format.big(Economy.rebirthCashMult(n))} cash.{extra}`,
 		"Good"
 	)
 	Net.fireAll("Announce", `{player.DisplayName} reached Rebirth {n}!`)

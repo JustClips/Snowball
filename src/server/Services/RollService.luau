@@ -412,7 +412,16 @@ local function finish(player: Player, run: Run)
 	setPhase(player, run, "Cracking")
 	local zone = Zones.at(ball.s)
 	local village = ball.s >= endAt - 1
-	local cash = run.coins + run.smashCash + ball.r * zone.CoinValue * 2
+	-- Coins + smashes + the crack (bigger ball, deeper zone = more), plus CrackSeconds of
+	-- your pets' income so a roll keeps up with your base (docs/BALANCE.md).
+	-- (GetIncomePerSec already has the cash boosts in it; they are applied once, below.)
+	local petIncome = if S.PetService
+		then S.PetService:GetIncomePerSec(player) / math.max(1e-9, S.BoostService:GetCashMult(player))
+		else 0
+	local cash = run.coins
+		+ run.smashCash
+		+ ball.r * zone.CoinValue * Zones.CrackPerRadius
+		+ petIncome * (zone.CrackSeconds or 0)
 	if village then
 		cash *= 3
 		local rarity = S.InventoryService:RollRarity("Village", run.luck)
