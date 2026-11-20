@@ -32,6 +32,7 @@ return {
 	Gem = "rbxassetid://73983781596237",
 	Gift = "rbxassetid://77267721085581",
 	GoldenEgg = "rbxassetid://125152969925223",
+	Icon_CrackStop = "rbxassetid://115196588062268",
 	Icon_Snowball = "rbxassetid://131830846812721",
 	Info = "rbxassetid://73020874100323",
 	Lock = "rbxassetid://92120653182034",

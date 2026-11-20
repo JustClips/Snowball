@@ -636,6 +636,8 @@ local function onEvent(kind: string, data: any)
 		ending = true
 		Ui.sound("Reveal")
 		Ui.word(`{#data.Eggs} EGGS SLEDDED HOME!`, Ui.Colors.Green, 1.4)
+	elseif kind == "Dropped" then
+		Ui.sound("Pop", 0.8)
 	elseif kind == "Repelled" then
 		Ui.sound("Upgrade")
 		Ui.word("NO YETI!", Ui.Colors.Green, 1)

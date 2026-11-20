@@ -154,6 +154,11 @@
   "id": 125152969925223,
   "sha": "7e56d34fc24a7c2434c8cdbc4831655ccce627765def5a0654598b7db338a44f"
  },
+ "Icon_CrackStop": {
+  "granted": true,
+  "id": 115196588062268,
+  "sha": "fb2f96b07c545d1c819da3484a9d31e3649358416639dacc41ffe89a68f15fa2"
+ },
  "Icon_Snowball": {
   "granted": true,
   "id": 131830846812721,

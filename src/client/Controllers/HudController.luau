@@ -456,7 +456,7 @@ function HudController:Init(controllers)
 	end, L.Action.Size)
 	stopButton.Visible = false
 	stopButton.Parent = action
-	crackButton = Ui.bigButton("Crack", "Icon_Snowball", "STOP", Ui.Colors.Red, function()
+	crackButton = Ui.bigButton("Crack", "Icon_CrackStop", "STOP", Ui.Colors.Red, function()
 		Net.func("CrackNow"):InvokeServer()
 	end, L.Action.Size)
 	crackButton.Visible = false
