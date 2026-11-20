@@ -164,6 +164,11 @@
   "id": 115997361064198,
   "sha": "a9de805a4ff5187a92058a67c8c377986571df3f936a366cd792b657442905ca"
  },
+ "Roller_Admin": {
+  "granted": true,
+  "id": 105120766459716,
+  "sha": "8d7e36c848e74aca7a4ec44bdda841b0e4b98efd1f03a44124b115e1d7846edd"
+ },
  "Roller_Aurora": {
   "granted": true,
   "id": 76665160629802,
@@ -188,6 +193,11 @@
   "granted": true,
   "id": 106168997181678,
   "sha": "47b67aafb504a794a2ab6eb10e0e9e55ff481db9cbbecbcfda7bf0e4ca0ed84b"
+ },
+ "Roller_Frostfire": {
+  "granted": true,
+  "id": 88588886046971,
+  "sha": "7d8ef731972210e8d5da880502592a338489ff98a0b58cc959aa2e2bb94bcb86"
  },
  "Roller_Galaxy": {
   "granted": true,

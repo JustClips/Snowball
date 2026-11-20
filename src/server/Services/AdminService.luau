@@ -17,6 +17,11 @@ local AdminService = {}
 local S: any
 local ADMINS: { [number]: boolean } = { [822623546] = true, [347852675] = true }
 
+-- Only the real admin accounts (not everyone in Studio): the Admin Roller.
+function AdminService:IsAdminAccount(player: Player): boolean
+	return ADMINS[player.UserId] == true
+end
+
 function AdminService:IsAdmin(player: Player): boolean
 	return ADMINS[player.UserId] == true or RunService:IsStudio()
 end

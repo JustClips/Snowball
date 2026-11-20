@@ -39,6 +39,10 @@ local Roll = {
 	BonkKeep = 0.65, -- speed kept after a bonk
 	BonkSideSpeed = 26,
 	RampBoost = 70, -- extra studs a speed ramp adds to the run
+	-- The last stretch: speed is at most SettleGrip x the studs left, so the ball bites into
+	-- the snow and settles in ~2-3 s instead of gliding on (Dev 2026-11-20: "frictionless").
+	SettleGrip = 1.7,
+	SteerFullSpeed = 30, -- steering is full above this speed, weaker below (no slow slides)
 	Surface = SURFACE,
 }
 
@@ -96,7 +100,7 @@ function Roll.step(ball: Ball, dt: number, spline: Spline.Spline, endAt: number)
 	local surf = SURFACE[smp.Surface] or SURFACE.Snow
 	local remaining = math.max(0, ball.D - ball.s)
 	local top = surf.TopSpeed + ball.s * Roll.TopSpeedPerStud
-	local target = math.min(top, math.sqrt(2 * surf.Decel * remaining))
+	local target = math.min(top, math.sqrt(2 * surf.Decel * remaining), Roll.SettleGrip * remaining + 0.5)
 	if ball.v < target then
 		ball.v = math.min(target, ball.v + Roll.Accel * dt)
 	else
@@ -105,8 +109,11 @@ function Roll.step(ball: Ball, dt: number, spline: Spline.Spline, endAt: number)
 	ball.s += ball.v * dt
 
 	-- Steering: side speed eases toward steer * SteerSpeed (slow to answer on ice).
-	local want = math.clamp(ball.steer, -1, 1) * surf.SteerSpeed
-	ball.vx += (want - ball.vx) * math.min(1, surf.Grip * dt)
+	-- A slow ball barely turns and its sideways drift dies quickly (it grips the snow).
+	local speed01 = math.clamp(ball.v / Roll.SteerFullSpeed, 0.12, 1)
+	local want = math.clamp(ball.steer, -1, 1) * surf.SteerSpeed * speed01
+	local grip = surf.Grip + (1 - speed01) * 10
+	ball.vx += (want - ball.vx) * math.min(1, grip * dt)
 	ball.x += ball.vx * dt
 	local half = smp.Width / 2 - ball.r
 	if half < 0 then
@@ -123,7 +130,7 @@ function Roll.step(ball: Ball, dt: number, spline: Spline.Spline, endAt: number)
 	if ball.s >= endAt then
 		ball.s = endAt
 		ball.done = true
-	elseif remaining <= 0.5 or (ball.v < 0.5 and remaining < 3) then
+	elseif remaining <= 0.5 or (ball.v < 1.2 and remaining < 3) then
 		ball.done = true
 		ball.v = 0
 	end

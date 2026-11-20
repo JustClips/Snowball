@@ -450,6 +450,9 @@ function ShopService:Start()
 		if purchased and pass and data then
 			data.Gamepasses[pass.Key] = true
 			applyPassEffects(player)
+			if pass.Key == "FrostfireRoller" then
+				S.TrainService:RefreshRoller(player)
+			end
 			Net.fire("Purchased", player, pass.Key, {})
 			S.AnalyticsService:Custom(player, "GamepassPurchase", pass.Price, { Pass = pass.Key })
 			S.AnalyticsService:Purchased(player, pass.Key, pass.Price)

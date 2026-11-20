@@ -40,6 +40,9 @@ TIERS = {
     "NorthernLights": dict(frame="Aurora", trim="RoofBlue", ball="Aurora", emblem="Aurora", extras=["arcs", "crystals"]),
     "Galaxy": dict(frame="Purple", trim="Black", ball="Purple", emblem="Purple", extras=["stars", "arcs"]),
     "Divine": dict(frame="Snow", trim="Gold", ball="Snow", emblem="Gold", extras=["wings", "lamps", "stars"]),
+    # Gamepass + admin rollers (Dev 2026-11-20).
+    "Frostfire": dict(frame="Ice", trim="Red", ball="Ice", emblem="Red", extras=["crystals", "spikes", "lamps", "arcs"]),
+    "Admin": dict(frame="Black", trim="Gold", ball="Gold", emblem="Red", extras=["wings", "spikes", "stars", "lamps", "rivets"]),
 }
 
 

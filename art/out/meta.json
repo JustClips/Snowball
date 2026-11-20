@@ -230,6 +230,13 @@
    0.0
   ]
  },
+ "Roller_Admin": {
+  "center": [
+   -0.0,
+   9.5,
+   0.5
+  ]
+ },
  "Roller_Aurora": {
   "center": [
    -0.0,
@@ -263,6 +270,13 @@
    -0.0,
    9.5,
    0.5
+  ]
+ },
+ "Roller_Frostfire": {
+  "center": [
+   -0.0,
+   8.6079,
+   0.468
   ]
  },
  "Roller_Galaxy": {
