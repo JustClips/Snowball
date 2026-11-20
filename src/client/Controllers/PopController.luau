@@ -73,7 +73,7 @@ local function show(id: number, tierId: string, x: number, y: number, seconds: n
 	if rainbow then
 		text = `x{tier.Mult}\n{Ui.ROBUX}{price or "?"}`
 	elseif tier.Kind == "Train" then
-		text = "" -- a Power icon instead (it pays Power now, bigger pops pay more)
+		text = `{tier.Mult}X` -- Dev 2026-11-20: show 2X / 5X, not an icon
 	elseif tier.Kind == "Coin" then
 		text = "$$$"
 	elseif tier.Kind == "Luck" then
@@ -107,15 +107,6 @@ local function show(id: number, tierId: string, x: number, y: number, seconds: n
 		}),
 		40
 	)
-	if tier.Kind == "Train" then
-		Ui.icon("Power", {
-			Size = UDim2.fromScale(0.62, 0.62),
-			AnchorPoint = Vector2.new(0.5, 0.5),
-			Position = UDim2.fromScale(0.5, 0.5),
-			ZIndex = 2,
-		}).Parent =
-			b
-	end
 	local popScale = Instance.new("UIScale")
 	popScale.Parent = b
 	b.Activated:Connect(function()

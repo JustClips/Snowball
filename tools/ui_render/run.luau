@@ -284,6 +284,7 @@ end
 -------------------------------------------------------------------------- boot
 
 local MAIN_SRC = fs.readFile(ROOT .. "/src/client/Main.client.luau")
+local LOADING_SRC = fs.readFile(ROOT .. "/src/first/Loading.client.luau")
 local controllers
 local function boot()
 	local req = env.require
@@ -387,6 +388,15 @@ local function opener(ctrl, method, ...)
 		local c = controllers[ctrl]
 		c[method](c, table.unpack(args, 1, args.n))
 	end
+end
+SCENARIOS.loading = function()
+	local scriptEnv = {}
+	for k, v in env do
+		scriptEnv[k] = v
+	end
+	scriptEnv.script = Instance.new("LocalScript")
+	local fn = require("@lune/luau").load(LOADING_SRC, { debugName = "Loading", environment = scriptEnv })
+	R.task.spawn(fn)
 end
 SCENARIOS.pack = function()
 	player:SetAttribute("RollPhase", "Packing")

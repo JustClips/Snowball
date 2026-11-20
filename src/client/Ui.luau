@@ -103,7 +103,11 @@ function Ui.stroke(parent: Instance, thickness: number?, color: Color3?): UIStro
 	s.Thickness = thickness or 3
 	s.Color = color or INK
 	s.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-	s.LineJoinMode = Enum.LineJoinMode.Miter
+	-- Miter draws square corners even on a UICorner shape (a round pop showed a black
+	-- square around it), so round things get Round joins.
+	s.LineJoinMode = if parent:FindFirstChildOfClass("UICorner")
+		then Enum.LineJoinMode.Round
+		else Enum.LineJoinMode.Miter
 	s.Parent = parent
 	return s
 end
@@ -161,6 +165,11 @@ function Ui.round(parent: GuiObject): UICorner
 	local c = Instance.new("UICorner")
 	c.CornerRadius = UDim.new(0.5, 0)
 	c.Parent = parent
+	for _, st in parent:GetChildren() do
+		if st:IsA("UIStroke") then
+			st.LineJoinMode = Enum.LineJoinMode.Round
+		end
+	end
 	return c
 end
 

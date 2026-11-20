@@ -1238,6 +1238,7 @@ local NOOPS = {
 	"LoadCharacter",
 	"Preload",
 	"PreloadAsync",
+	"RemoveDefaultLoadingScreen",
 	"SetCore",
 	"SetCoreGuiEnabled",
 	"BindToRenderStep",
