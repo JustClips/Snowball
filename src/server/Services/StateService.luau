@@ -117,6 +117,7 @@ function StateService:Build(player: Player, full: boolean?): Types.PlayerSnapsho
 		Rewards = if S.RewardService then S.RewardService:Snapshot(player) else nil,
 		Spins = data.Spins,
 		CashMult = S.BoostService:GetCashMult(player),
+		CashPacks = if S.ShopService then S.ShopService:CashPackAmounts(player) else nil,
 		TutorialStep = step,
 		BaseIndex = session.Runtime.BaseIndex or 0,
 		ServerTime = os.time(),

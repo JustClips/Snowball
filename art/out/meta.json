@@ -335,6 +335,13 @@
    0.5
   ]
  },
+ "Yeti": {
+  "center": [
+   -0.0,
+   5.2267,
+   0.03
+  ]
+ },
  "VfxHatchRing": {
   "bounds": {
    "min": [

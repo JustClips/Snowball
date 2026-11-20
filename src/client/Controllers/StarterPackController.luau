@@ -13,6 +13,7 @@ local Economy = require(Shared.Config.Economy)
 local Format = require(Shared.Format)
 local Net = require(Shared.Net)
 local Products = require(Shared.Config.Products)
+local Buy = require(script.Parent.Parent.Buy)
 local State = require(script.Parent.Parent.State)
 local Ui = require(script.Parent.Parent.Ui)
 
@@ -93,10 +94,7 @@ local function close()
 end
 
 local function onBuy()
-	local ok, why = Net.func("PromptPurchase"):InvokeServer("StarterPack")
-	if not ok and why then
-		Ui.toast(why, "Bad")
-	end
+	task.spawn(Buy.prompt, "StarterPack", nil, window)
 end
 
 function StarterPackController:Open()
@@ -164,7 +162,6 @@ function StarterPackController:Init(controllers)
 		Name = "Once",
 		Size = UDim2.fromOffset(120, 40),
 		Position = UDim2.fromOffset(4, 4),
-		Rotation = -6,
 		BackgroundTransparency = 0,
 		BackgroundColor3 = Ui.Colors.Red,
 		Text = "ONCE!",
@@ -206,10 +203,10 @@ function StarterPackController:Init(controllers)
 	grid.HorizontalAlignment = Enum.HorizontalAlignment.Center
 	grid.SortOrder = Enum.SortOrder.LayoutOrder
 	grid.Parent = items
-	itemTile(1, "Power", "ROLLER", Color3.fromRGB(150, 160, 180)).Parent = items
-	itemTile(2, "GoldenEgg", string.upper(pack.EggRarity), Color3.fromRGB(170, 90, 255)).Parent = items
-	itemTile(3, "Luck", `x{pack.LuckyRolls}`, Color3.fromRGB(70, 200, 90)).Parent = items
-	itemTile(4, "Bolt", `2x {pack.Train2xMinutes}m`, Color3.fromRGB(255, 160, 40)).Parent = items
+	itemTile(1, "Shop_StarterRoller", "ROLLER", Color3.fromRGB(150, 160, 180)).Parent = items
+	itemTile(2, "Shop_EpicEgg", string.upper(pack.EggRarity), Color3.fromRGB(170, 90, 255)).Parent = items
+	itemTile(3, "Shop_Lucky3", `x{pack.LuckyRolls}`, Color3.fromRGB(70, 200, 90)).Parent = items
+	itemTile(4, "Shop_Pass2xPower", `2x {pack.Train2xMinutes}m`, Color3.fromRGB(255, 160, 40)).Parent = items
 	items.Parent = body
 
 	-- Buy: a -x% pill and the big green button.
@@ -232,7 +229,6 @@ function StarterPackController:Init(controllers)
 			Size = UDim2.fromOffset(96, 38),
 			AnchorPoint = Vector2.new(0.5, 0.5),
 			Position = UDim2.new(1, 0, 0, 2),
-			Rotation = 8,
 			BackgroundTransparency = 0,
 			BackgroundColor3 = Ui.Colors.Red,
 			Text = `-{math.floor((1 - price / value) * 100)}%`,

@@ -93,7 +93,7 @@ local Products: { ProductDef } = {
 	p("PowerPack2", 9, "Power Pack II", "PowerPack", true, { Taps = 192 }),
 	p("PowerPack3", 39, "Power Pack III", "PowerPack", true, { Taps = 960 }),
 	p("PowerPack4", 99, "Power Pack IV", "PowerPack", true, { Taps = 2_880 }),
-	p("Train2xBoost", 29, "2x Training (10 min)", "Boost", true, { Boost = "Train2x", Minutes = 10 }),
+	p("Train2xBoost", 13, "2x Power (10 min)", "Boost", true, { Boost = "Train2x", Minutes = 10 }),
 	p("Cash2xBoost", 25, "2x Cash (15 min)", "Boost", true, { Boost = "Cash2x", Minutes = 15 }),
 	-- Lucky Rolls
 	p("LuckyRoll3", 27, "3 Lucky Rolls", "LuckyRoll", true, { Count = 3 }),
@@ -160,6 +160,14 @@ local Config = {
 	-- do this (RunService:IsStudio() is false there).
 	StudioTestBuys = true,
 }
+-- Real ids live in ProductIds.luau (written by tools/create_products.py).
+local Ids = require(script.Parent.ProductIds) :: { [string]: number }
+for _, def in Gamepasses do
+	def.Id = Ids[def.Key] or def.Id
+end
+for _, def in Products do
+	def.Id = Ids[def.Key] or def.Id
+end
 for _, def in Gamepasses do
 	Config.PassByKey[def.Key] = def
 	if def.Id ~= 0 then
