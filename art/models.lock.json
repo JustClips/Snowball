@@ -3,5 +3,70 @@
   "granted": true,
   "id": 100921593962689,
   "sha": "c85459e0bed5c74d107315dd1e2811a02eb186e5fa1c7bf2efe983447f84e752"
+ },
+ "Roller_Aurora": {
+  "granted": true,
+  "id": 76665160629802,
+  "sha": "c2b92a65c6c7def24ea6dfb8f069bd47f66eb55afad8cc1663e204863281abcd"
+ },
+ "Roller_CandyCane": {
+  "granted": true,
+  "id": 136507451286981,
+  "sha": "f15a13718d362bdf9977a060deca1b1d4fd124acf2bab7fe13da8af5d2fb5f63"
+ },
+ "Roller_Crystal": {
+  "granted": true,
+  "id": 91382095452687,
+  "sha": "19a8b6d084f8bf5189f874ee537b186e995fe67786ad910f2aaeb6ecec95843f"
+ },
+ "Roller_Diamond": {
+  "granted": true,
+  "id": 84026131624515,
+  "sha": "eb74ea535019cb689c2444f3c8a6ed44978491f2a41001535f1752ee20444686"
+ },
+ "Roller_Divine": {
+  "granted": true,
+  "id": 106168997181678,
+  "sha": "47b67aafb504a794a2ab6eb10e0e9e55ff481db9cbbecbcfda7bf0e4ca0ed84b"
+ },
+ "Roller_Galaxy": {
+  "granted": true,
+  "id": 102778996767162,
+  "sha": "1a376ec4f239117a35247b4d1db6e1129c4db348250e7383f22467484ec117a2"
+ },
+ "Roller_Glacier": {
+  "granted": true,
+  "id": 74563228203558,
+  "sha": "5b4214ffb777cc3756aa5b88bd3284e88666a8030edb0ec11924d99f1432e314"
+ },
+ "Roller_Gold": {
+  "granted": true,
+  "id": 117262103142266,
+  "sha": "090e7e6a3433816913f1156053f88f9aef3a395e2788801e3335aaa702f64743"
+ },
+ "Roller_Golden": {
+  "granted": true,
+  "id": 98406259672840,
+  "sha": "20a2e339e2b32dfabe074a6c33e06856a430f89b3ce8402b32ca4c4fa40d313c"
+ },
+ "Roller_Iron": {
+  "granted": true,
+  "id": 92843988142410,
+  "sha": "80027bbc549c2115bded57cc3cdff24f651e69b7fdb4b21e9d8037fc77be0621"
+ },
+ "Roller_NorthernLights": {
+  "granted": true,
+  "id": 109460777693098,
+  "sha": "8725a642e2a38b57aea64e51e6275cc9cd64491eb91dd8562bec265223814dce"
+ },
+ "Roller_Stone": {
+  "granted": true,
+  "id": 119249194850517,
+  "sha": "6a191eec613e937f590acf4987183765eb9853941ddceecb63829a390e416ae3"
+ },
+ "Roller_Wooden": {
+  "granted": true,
+  "id": 82071087939459,
+  "sha": "38e8cbf5f284ccd9794a96f8971b4dd279bf03428b8c568edeb6d0a60b243dd1"
  }
 }

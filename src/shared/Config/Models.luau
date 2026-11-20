@@ -4,4 +4,17 @@
 -- pivot the loaded model on its bounding box and place it at origin * Center.
 return {
 	Base = { Id = 100921593962689, Center = Vector3.new(0.0, 7.8745, -0.358) },
+	Roller_Aurora = { Id = 76665160629802, Center = Vector3.new(-0.0, 8.5016, 0.468) },
+	Roller_CandyCane = { Id = 136507451286981, Center = Vector3.new(-0.0, 8.15, 0.5) },
+	Roller_Crystal = { Id = 91382095452687, Center = Vector3.new(-0.0, 8.15, 0.468) },
+	Roller_Diamond = { Id = 84026131624515, Center = Vector3.new(-0.0, 8.15, 0.468) },
+	Roller_Divine = { Id = 106168997181678, Center = Vector3.new(-0.0, 9.5, 0.5) },
+	Roller_Galaxy = { Id = 102778996767162, Center = Vector3.new(-0.0, 9.5, 0.5) },
+	Roller_Glacier = { Id = 74563228203558, Center = Vector3.new(-0.0, 8.6079, 0.468) },
+	Roller_Gold = { Id = 117262103142266, Center = Vector3.new(-0.0, 8.15, 0.5) },
+	Roller_Golden = { Id = 98406259672840, Center = Vector3.new(-0.0, 8.6079, 0.5) },
+	Roller_Iron = { Id = 92843988142410, Center = Vector3.new(-0.0, 8.15, 0.5) },
+	Roller_NorthernLights = { Id = 109460777693098, Center = Vector3.new(-0.0, 8.5016, 0.468) },
+	Roller_Stone = { Id = 119249194850517, Center = Vector3.new(-0.0, 8.15, 0.4321) },
+	Roller_Wooden = { Id = 82071087939459, Center = Vector3.new(-0.0, 8.15, 0.5) },
 } :: { [string]: { Id: number, Center: Vector3 } }

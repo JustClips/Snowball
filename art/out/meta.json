@@ -5,5 +5,96 @@
    7.8745,
    -0.358
   ]
+ },
+ "Roller_Aurora": {
+  "center": [
+   -0.0,
+   8.5016,
+   0.468
+  ]
+ },
+ "Roller_CandyCane": {
+  "center": [
+   -0.0,
+   8.15,
+   0.5
+  ]
+ },
+ "Roller_Crystal": {
+  "center": [
+   -0.0,
+   8.15,
+   0.468
+  ]
+ },
+ "Roller_Diamond": {
+  "center": [
+   -0.0,
+   8.15,
+   0.468
+  ]
+ },
+ "Roller_Divine": {
+  "center": [
+   -0.0,
+   9.5,
+   0.5
+  ]
+ },
+ "Roller_Galaxy": {
+  "center": [
+   -0.0,
+   9.5,
+   0.5
+  ]
+ },
+ "Roller_Glacier": {
+  "center": [
+   -0.0,
+   8.6079,
+   0.468
+  ]
+ },
+ "Roller_Gold": {
+  "center": [
+   -0.0,
+   8.15,
+   0.5
+  ]
+ },
+ "Roller_Golden": {
+  "center": [
+   -0.0,
+   8.6079,
+   0.5
+  ]
+ },
+ "Roller_Iron": {
+  "center": [
+   -0.0,
+   8.15,
+   0.5
+  ]
+ },
+ "Roller_NorthernLights": {
+  "center": [
+   -0.0,
+   8.5016,
+   0.468
+  ]
+ },
+ "Roller_Stone": {
+  "center": [
+   -0.0,
+   8.15,
+   0.4321
+  ]
+ },
+ "Roller_Wooden": {
+  "center": [
+   -0.0,
+   8.15,
+   0.5
+  ]
  }
 }
