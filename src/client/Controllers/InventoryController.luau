@@ -1,11 +1,11 @@
 --!strict
 -- Your bag, like Sweep the World / Steal an Egg: eggs and pets that aren't out in your
 -- base live here. Two parts:
---   Hotbar (bottom right, HudLayout.Hotbar): your best egg stacks and pets as big 3D
---     slots, 4 on PC / 3 on phones, keys 1-4. Tap one to carry it (tap again to put it
+--   Hotbar (bottom centre like Sweep, HudLayout.Hotbar): your best egg stacks and pets as
+--     big 3D slots, 6 on PC / 4 on phones, keys 1-6. Tap one to carry it (tap again to put it
 --     away), then click or tap a spot in your base to put it down (PlacementController).
 --     The last slot opens the bag.
---   Bag window (the Bag slot, the Pets tile on the left rail, B or `): every egg stack and
+--   Bag window (the Bag slot at the end of the hotbar, B or `): every egg stack and
 --     pet in a grid of 3D tiles, name in its rarity colour, weight / count under it. Tap a
 --     tile to carry it. BEST lets your best pets out; the top shows pets out / room.
 -- Pets in your base aren't in the bag: walk up to one and press Pick Up to carry it again.
@@ -30,6 +30,7 @@ local C: any
 local gui: ScreenGui
 local hotbar: Frame
 local bagButton: TextButton
+local putAway: TextButton
 local window: Frame
 local grid: ScrollingFrame
 local petsCount: TextLabel
@@ -179,7 +180,7 @@ end
 -------------------------------------------------------------------------- hotbar
 
 local function slotCount(): number
-	return if Ui.isPhone() then 3 else 4
+	return if Ui.isPhone() then 4 else 6
 end
 
 local function makeSlot(i: number): TextButton
@@ -421,6 +422,10 @@ function InventoryController:Toggle()
 	end
 end
 
+function InventoryController:ShowPutAway(on: boolean)
+	putAway.Visible = on
+end
+
 function InventoryController:Refresh()
 	local items = InventoryController:Items()
 	renderHotbar(items)
@@ -440,12 +445,12 @@ function InventoryController:Init(controllers)
 	Ui.autoScale(hotbar)
 	local row = Instance.new("UIListLayout")
 	row.FillDirection = Enum.FillDirection.Horizontal
-	row.HorizontalAlignment = Enum.HorizontalAlignment.Right
+	row.HorizontalAlignment = Enum.HorizontalAlignment.Center
 	row.VerticalAlignment = Enum.VerticalAlignment.Bottom
 	row.Padding = UDim.new(0, 8)
 	row.SortOrder = Enum.SortOrder.LayoutOrder
 	row.Parent = hotbar
-	for i = 1, 4 do
+	for i = 1, 6 do
 		local b = makeSlot(i)
 		b.Parent = hotbar
 		slots[i] = b
@@ -454,6 +459,17 @@ function InventoryController:Init(controllers)
 		InventoryController:Toggle()
 	end, L.Slot)
 	bagButton.LayoutOrder = 10
+	-- Red X on the left of the bar while you carry something: puts it back in the bag.
+	putAway = Ui.tile("PutAway", "Close", "", Ui.Colors.Red, function()
+		C.PlacementController:Stop()
+	end, L.Slot)
+	putAway.LayoutOrder = 0
+	putAway.Visible = false
+	local xWord = putAway:FindFirstChild("Label") :: TextLabel?
+	if xWord then
+		xWord.Visible = false
+	end
+	putAway.Parent = hotbar
 	-- The tile's word hangs under it; keep the bar's bottom edge on the slots.
 	local word = bagButton:FindFirstChild("Label") :: TextLabel?
 	if word then
@@ -545,7 +561,14 @@ function InventoryController:Start()
 			InventoryController:Toggle()
 			return
 		end
-		local nums = { Enum.KeyCode.One, Enum.KeyCode.Two, Enum.KeyCode.Three, Enum.KeyCode.Four }
+		local nums = {
+			Enum.KeyCode.One,
+			Enum.KeyCode.Two,
+			Enum.KeyCode.Three,
+			Enum.KeyCode.Four,
+			Enum.KeyCode.Five,
+			Enum.KeyCode.Six,
+		}
 		for i, code in nums do
 			if k == code and slots[i].Visible and slotItems[i] then
 				InventoryController:Use(slotItems[i] :: Item)
@@ -556,7 +579,10 @@ function InventoryController:Start()
 	task.spawn(function()
 		while true do
 			local mode = C.HudController:Mode()
-			hotbar.Visible = mode == "Normal"
+			-- The roll's result card sits where the hotbar is: hide the bar while it shows.
+			local results = gui.Parent and gui.Parent:FindFirstChild("Results")
+			local card = results and results:FindFirstChild("Card", true) :: GuiObject?
+			hotbar.Visible = mode == "Normal" and not (card and card.Visible)
 			if mode ~= "Normal" and window.Visible then
 				Ui.closeWindow(window)
 			end

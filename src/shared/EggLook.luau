@@ -21,7 +21,7 @@ function EggLook.make(rarity: string): Model
 		part.CanCollide = false
 		part.CanTouch = false
 		part.Parent = model
-		model.PrimaryPart = part
+		-- No PrimaryPart yet: WorldPivot is ignored once a model has one.
 		model.WorldPivot = CFrame.new()
 		model:PivotTo(CFrame.new())
 		local _, size = model:GetBoundingBox()
@@ -31,7 +31,9 @@ function EggLook.make(rarity: string): Model
 		-- Bottom centre at the pivot.
 		local box = model:GetBoundingBox()
 		local _, sz = model:GetBoundingBox()
-		model.WorldPivot = CFrame.new(box.Position - Vector3.new(0, sz.Y / 2, 0))
+		local pivot = CFrame.new(box.Position - Vector3.new(0, sz.Y / 2, 0))
+		model.PrimaryPart = part
+		part.PivotOffset = part.CFrame:ToObjectSpace(pivot)
 		return model
 	end
 	local def = Eggs.ByName[rarity]
@@ -50,7 +52,7 @@ function EggLook.make(rarity: string): Model
 	mesh.Parent = p
 	p.Parent = model
 	model.PrimaryPart = p
-	model.WorldPivot = CFrame.new()
+	p.PivotOffset = p.CFrame:Inverse() -- pivot = bottom centre (WorldPivot is ignored with a PrimaryPart)
 	return model
 end
 

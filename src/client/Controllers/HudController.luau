@@ -3,7 +3,7 @@
 -- reference-study.md). Every position comes from Config/HudLayout (tools/hud_preview.py
 -- renders the same numbers on phone and PC screens to check for overlaps):
 --   bottom-left   Power + cash numbers with no panel
---   left rail     Shop / Pets / Upgrade / Home / Rebirth tiles, word under each tile
+--   left rail     Shop / Upgrade / Home / Rebirth tiles, word under each tile
 --   right rail    Daily / Gifts / Spin / Codes (RewardsController adds them)
 --   top-right     Avalanche bar + boost chips
 --   top centre    the tutorial goal line (TutorialController), toasts under it
@@ -402,9 +402,7 @@ function HudController:Init(controllers)
 	HudController:AddTile("Shop", "Shop", "Shop", Color3.fromRGB(255, 70, 90), 1, function()
 		C.ShopController:Toggle()
 	end)
-	HudController:AddTile("Pets", "Pets", "Pets", Color3.fromRGB(255, 160, 40), 2, function()
-		C.InventoryController:Toggle()
-	end)
+	-- No Pets tile: eggs and pets live in the bag hotbar at the bottom (Dev 2026-11-20).
 	HudController:AddTile("Upgrades", "Upgrade", "Upgrade", Color3.fromRGB(70, 200, 80), 3, function()
 		C.UpgradesController:Toggle()
 	end)
