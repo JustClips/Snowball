@@ -619,35 +619,14 @@ function RollService:Continue(player: Player): boolean
 	return true
 end
 
--- Stepping onto your own lane pad starts the launch (Dev 2026-11-20: no GO button; like
--- Throw Food's throw circle). Only on the step ON, so standing there after a roll waits.
-local PAD_RADIUS = 3.8
-local onPadBefore: { [Player]: boolean } = {}
-local function onOwnPad(player: Player): boolean
-	local root = rootOf(player)
-	local lane = player:GetAttribute("BaseIndex")
-	if not root or type(lane) ~= "number" then
-		return false
+-- Only the ROLL button starts a launch (Dev 2026-11-20: "don't make it start roll
+-- automatically when we go near the launch zone"). BaseService's Teleport("Deck") puts you
+-- on your lane pad and calls this.
+function RollService:StartPack(player: Player): (boolean, string?)
+	if S.TrainService and S.TrainService:IsTraining(player) then
+		return false, nil
 	end
-	local pad = World.DeckStand + Vector3.new(World.laneX(lane), 0, 0)
-	local d = root.Position - pad
-	return Vector3.new(d.X, 0, d.Z).Magnitude <= PAD_RADIUS and math.abs(d.Y) < 6
-end
-
-local function checkPads()
-	for player in S.DataService:GetSessions() do
-		local on = onOwnPad(player)
-		local was = onPadBefore[player]
-		onPadBefore[player] = on
-		local run = runs[player]
-		local idle = run == nil or run.phase == "Idle"
-		if on and not was and idle and not (S.TrainService and S.TrainService:IsTraining(player)) then
-			local ok, why = startPack(player)
-			if not ok and why then
-				Net.fire("Notify", player, why, "Bad")
-			end
-		end
-	end
+	return startPack(player)
 end
 
 local function simulate(dt: number)
@@ -728,12 +707,10 @@ function RollService:Init(services)
 	end)
 	S.DataService.ProfileReleasing:Connect(function(player)
 		runs[player] = nil
-		onPadBefore[player] = nil
 	end)
 	Players.PlayerRemoving:Connect(function(player)
 		setFocus(player, nil)
 		runs[player] = nil
-		onPadBefore[player] = nil
 	end)
 end
 
@@ -747,7 +724,6 @@ function RollService:Start()
 			local dt = math.min(0.2, now - last)
 			last = now
 			simulate(dt)
-			checkPads()
 			snapAcc += dt
 			if snapAcc >= 1 / SNAP_HZ then
 				snapAcc = 0

@@ -57,6 +57,12 @@ type Yeti = {
 	shown: boolean,
 }
 local yeti: Yeti? = nil
+-- One thing on screen at a time (Dev 2026-11-20 "tf is this ui spam"): the run's result
+-- card first, then the rescue HUD; and the HUD goes the moment the rescue is over
+-- (last egg saved, sled bought) instead of flashing "Grab an egg!" for a second.
+local quietUntil = 0
+local ending = false
+local sawCard = false
 local flagSign: BillboardGui? = nil
 
 local function myFolder(): Folder?
@@ -381,12 +387,16 @@ end
 
 local function onEvent(kind: string, data: any)
 	if kind == "Start" then
-		-- The result card would sit over the rescue buttons: let it be seen, then go.
-		task.delay(2.5, function()
+		-- The result card gets the screen to itself for a moment, then the rescue starts.
+		ending = false
+		quietUntil = os.clock() + 2.2
+		sawCard = false
+		task.delay(2.2, function()
+			sawCard = false
 			C.ResultsController:Close()
+			Ui.word(`{data.Eggs} EGG{if data.Eggs > 1 then "S" else ""} TO SAVE!`, Ui.Colors.Yellow, 1.4)
+			Ui.sound("Pop")
 		end)
-		Ui.word(`{data.Eggs} EGG{if data.Eggs > 1 then "S" else ""} TO SAVE!`, Ui.Colors.Yellow, 1.4)
-		Ui.sound("Pop")
 	elseif kind == "Grab" then
 		Ui.sound("Egg")
 		Ui.word(if data.Count > 1 then "GOT 2!" else "GOT IT!", Ui.Colors.Ice, 0.6)
@@ -422,17 +432,21 @@ local function onEvent(kind: string, data: any)
 		end
 	elseif kind == "Saved" then
 		Ui.sound("Reveal")
-		Ui.word("SAVED!", Ui.Colors.Green, 1, 1.3)
+		Ui.word(if data.Left > 0 then "SAVED!" else "ALL SAVED!", Ui.Colors.Green, 1, 1.3)
 		if data.Left > 0 then
 			fadeOutIn()
+		else
+			ending = true
 		end
 	elseif kind == "Sled" then
+		ending = true
 		Ui.sound("Reveal")
 		Ui.word(`{#data.Eggs} EGGS SLEDDED HOME!`, Ui.Colors.Green, 1.4)
 	elseif kind == "Repelled" then
 		Ui.sound("Upgrade")
 		Ui.word("NO YETI!", Ui.Colors.Green, 1)
 	elseif kind == "Ended" then
+		ending = false
 		local saved = #data.Saved
 		if data.Reason == "Time" then
 			Ui.toast("Time's up! The rest of the eggs froze.", "Bad")
@@ -448,7 +462,17 @@ local function step(dt: number)
 	local folder = myFolder()
 	local phase = player:GetAttribute("Rescue")
 	local on = phase ~= nil and folder ~= nil
-	gui.Enabled = on
+	if os.clock() < quietUntil then
+		if C.ResultsController:IsOpen() then
+			sawCard = true
+		elseif sawCard then
+			quietUntil = 0 -- tapped the card away: start now
+		end
+	end
+	gui.Enabled = on and not ending and os.clock() >= quietUntil
+	if not on or not folder or ending then
+		C.TutorialController:Guide(nil)
+	end
 	if not on or not folder then
 		if yeti then
 			yeti.model:Destroy()
@@ -477,7 +501,7 @@ local function step(dt: number)
 			setGoal("Pin", "Run to the flag!", Color3.fromRGB(110, 235, 90))
 		end
 		C.TutorialController:Guide(flagPos)
-	else
+	elseif not ending then
 		setGoal("Egg", "Grab an egg!")
 		C.TutorialController:Guide(pilePos)
 	end
@@ -486,8 +510,15 @@ local function step(dt: number)
 	local left = math.max(0, endsAt - Workspace:GetServerTimeNow())
 	timeText.Text = Format.time(left)
 	timeText.TextColor3 = if left < 30 then Ui.Colors.Red else Color3.new(1, 1, 1)
-	-- The yeti spray only matters while the yeti is up.
-	sprayButton.Visible = state ~= nil and state ~= "Asleep"
+	if ending then
+		return
+	end
+	-- The Robux helpers only when they help: SLED HOME (every egg home now) once there's an
+	-- egg in your arms or more than one left, NO YETI (cheap, 10 minutes) only while the
+	-- yeti is up and coming for you.
+	local awake = state == "Wake" or state == "Chase" or state == "Return"
+	sprayButton.Visible = awake
+	sledButton.Visible = carrying or (f:GetAttribute("Left") or 0) > 1
 	sledButton.Position = if sprayButton.Visible then UDim2.fromOffset(0, 0) else UDim2.new(0.5, -135, 0, 0)
 	updateFlagSign(f, flagPos, me)
 end

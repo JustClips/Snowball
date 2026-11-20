@@ -147,7 +147,7 @@ local Products: { ProductDef } = {
 	-- Egg rescue (only in the rescue HUD, EggRescueService): sled every egg left home, or
 	-- keep the yeti away for Rescue.RepelMinutes.
 	p("SledHome", 25, "Sled Home", "SledHome", false),
-	p("YetiRepellent", 29, "Yeti Repellent", "YetiRepellent", false),
+	p("YetiRepellent", 9, "Yeti Repellent", "YetiRepellent", false),
 	-- Lucky Wheel spins (sold in the wheel window, not the Shop)
 	p("WheelSpin1", 19, "1 Wheel Spin", "WheelSpins", true, { Count = 1 }),
 	p("WheelSpin5", 79, "5 Wheel Spins", "WheelSpins", true, { Count = 5 }),

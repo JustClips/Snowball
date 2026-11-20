@@ -88,7 +88,53 @@ local function repelled(player: Player): boolean
 	return data ~= nil and (data.Flags.RepelUntil or 0) > os.time()
 end
 
--- The egg models in the pile match st.eggs (Egg1..EggN, best on top).
+-- Sits on top of the snow pile so it's never buried (Dev 2026-11-20: "can't see what's
+-- there to pick up"): rarity tag above it, a glow in the rarity colour, and an outline
+-- that shows through the snow.
+local function decorate(model: Model, rarity: string, top: boolean)
+	local def = Eggs.ByName[rarity]
+	local color = if def then def.Color else Color3.new(1, 1, 1)
+	local _, size = model:GetBoundingBox()
+	local anchor = model.PrimaryPart or model:FindFirstChildWhichIsA("BasePart", true)
+	if not anchor then
+		return
+	end
+	local tag = Instance.new("BillboardGui")
+	tag.Name = "Tag"
+	tag.Size = UDim2.fromOffset(150, 40)
+	tag.StudsOffsetWorldSpace = Vector3.new(0, size.Y / 2 + 1.6, 0)
+	tag.AlwaysOnTop = true
+	tag.LightInfluence = 0
+	tag.MaxDistance = 260
+	local label = Instance.new("TextLabel")
+	label.Size = UDim2.fromScale(1, 1)
+	label.BackgroundTransparency = 1
+	label.Font = Enum.Font.FredokaOne
+	label.TextScaled = true
+	label.Text = string.upper(rarity)
+	label.TextColor3 = if rarity == "Secret" then Color3.new(1, 1, 1) else color
+	local stroke = Instance.new("UIStroke")
+	stroke.Thickness = 3
+	stroke.Color = Color3.new(0, 0, 0)
+	stroke.Parent = label
+	label.Parent = tag
+	tag.Adornee = anchor
+	tag.Parent = model
+	local light = Instance.new("PointLight")
+	light.Color = color
+	light.Range = if top then 14 else 9
+	light.Brightness = 3
+	light.Parent = anchor
+	local outline = Instance.new("Highlight")
+	outline.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+	outline.FillTransparency = 1
+	outline.OutlineColor = color
+	outline.OutlineTransparency = 0.1
+	outline.Parent = model
+end
+
+-- The egg models on the pile match st.eggs (Egg1..EggN): the best one sits on the top,
+-- the rest in a ring on the shoulders of the pile.
 local function drawPile(st: State)
 	for _, c in st.pile:GetChildren() do
 		if string.sub(c.Name, 1, 3) == "Egg" then
@@ -99,13 +145,19 @@ local function drawPile(st: State)
 	for i, egg in st.eggs do
 		local model = EggLook.make(egg.Rarity)
 		model.Name = "Egg" .. i
-		model:ScaleTo(model:GetScale() * 0.75)
-		local a = (i - 1) / math.max(n, 1) * math.pi * 2
-		local r = if n == 1 then 0 else 2.2
-		local tilt = CFrame.Angles(math.rad(14), a, math.rad(10))
-		model:PivotTo(
-			st.pileCf * CFrame.new(math.cos(a) * r, 1.2 + (if i == 1 then 0.8 else 0), math.sin(a) * r) * tilt
-		)
+		model:ScaleTo(model:GetScale() * 0.85)
+		local cf
+		if i == 1 then
+			cf = st.pileCf * CFrame.new(0, 4.6, 0) * CFrame.Angles(0, math.rad(20), 0)
+		else
+			-- Ring facing the player first (they stand uphill = +Z of the pile frame).
+			local a = math.pi / 2 + (i - 2) / math.max(n - 1, 1) * math.pi * 2
+			cf = st.pileCf
+				* CFrame.new(math.cos(a) * 3.1, 2.9, math.sin(a) * 3.1)
+				* CFrame.Angles(math.rad(12), a, math.rad(8))
+		end
+		model:PivotTo(cf)
+		decorate(model, egg.Rarity, i == 1)
 		model.Parent = st.pile
 	end
 	st.folder:SetAttribute("Left", n)

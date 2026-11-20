@@ -50,6 +50,10 @@ function ResultsController:Close()
 	close()
 end
 
+function ResultsController:IsOpen(): boolean
+	return card ~= nil and card.Visible
+end
+
 function ResultsController:Show(result)
 	if not result then
 		return
