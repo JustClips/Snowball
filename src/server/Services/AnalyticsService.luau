@@ -46,6 +46,7 @@ local MAX_REBIRTH_STEP = 50
 -- Windows the client may report as opened (screen names in src/gui).
 local WINDOWS: { [string]: boolean } = {
 	Shop = true,
+	Leaderboards = true,
 	Upgrades = true,
 	Pets = true,
 	Index = true,

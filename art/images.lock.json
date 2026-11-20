@@ -59,6 +59,16 @@
   "id": 84007058150972,
   "sha": "872940bd78149d758eab435513b7923f61ae3e35a254d158ed4ddd2364178416"
  },
+ "CrownBronze": {
+  "granted": true,
+  "id": 79232462940964,
+  "sha": "68ff70946c0c0d2eb1b5680e9093b3bb3b16070dd4356f6ea31d912d612eae71"
+ },
+ "CrownSilver": {
+  "granted": true,
+  "id": 71406398671952,
+  "sha": "f06fd35c499d44a0a30005b7dad091e0180a1fdb6330cf9e66dfc2e143c5ffc9"
+ },
  "Daily": {
   "granted": true,
   "id": 103011423853638,

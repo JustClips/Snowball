@@ -39,6 +39,7 @@ Server-authoritative 2D sim: a ball is `(s, x)` on the track spline (`Config/Tra
 | Reward, Code | daily streak, playtime gifts, Lucky Wheel, tutorial reward, codes |
 | Shop, Offer | receipts (idempotent, gifts, regional price check), contextual offers |
 | Admin | chat test commands (see PLAYTEST.md) |
+| Leaderboard | global boards (OrderedDataStores `LB_<Key>_All_v1` + weekly `LB_<Key>_W<week>_v1`: FARTHEST, LUCKIEST, INCOME, RICHEST; Config/Leaderboards), the 4 Blender stands on the plaza (art/blender/leaderboard.py), leaderstats, name tag attributes (ServerRank crowns, WorldRank), "you passed X" (RankEvent) and server records (ServerRecord). Client: `LeaderboardController` (stands, window, cards), `NametagController` (overhead tag: crown, VIP, name, #rank, $/s). RollService calls `RollEnded` when a ball cracks. Render: `tools/ui_render/shot.sh lbwindow lbstand lbcard lbrecord nametag` |
 
 ## Remotes
 

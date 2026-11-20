@@ -13,6 +13,8 @@ return {
 	Codes = "rbxassetid://126254005582472",
 	Coin = "rbxassetid://88617075540548",
 	Crown = "rbxassetid://84007058150972",
+	CrownBronze = "rbxassetid://79232462940964",
+	CrownSilver = "rbxassetid://71406398671952",
 	Daily = "rbxassetid://103011423853638",
 	Egg = "rbxassetid://128270744466599",
 	Exclamation = "rbxassetid://133688058855210",

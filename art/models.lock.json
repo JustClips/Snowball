@@ -49,6 +49,11 @@
   "id": 114630480660864,
   "sha": "5596c3b77f2f8cb2c9522ab65a77d9a6b2e2faebc916632b4c4dd4001970c4d7"
  },
+ "Leaderboard": {
+  "granted": false,
+  "id": 91936742624927,
+  "sha": "65e9c9d1e0754b4d2c18aa75b103e6f2050d7de4c9d2e192d1dca4f008ec560c"
+ },
  "Obs_BigPine": {
   "granted": true,
   "id": 133252368684481,
@@ -290,7 +295,7 @@
   "sha": "d4936fa36b9b0d53c63f5c7aaf30ab7b948aa1abe27a196434ea2ff2d93a8ad9"
  },
  "Yeti": {
-  "granted": false,
+  "granted": true,
   "id": 132063031093967,
   "sha": "3ecf42e6f0f8cf605efa86ceefbf7581c5aa3c630fc2250a9a9418d42c95b5a8"
  }

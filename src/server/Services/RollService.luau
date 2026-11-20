@@ -408,6 +408,9 @@ local function finish(player: Player, run: Run)
 		data.BestDistance = math.floor(ball.s)
 		S.AnalyticsService:Custom(player, "RecordDistance", math.floor(ball.s))
 	end
+	if S.LeaderboardService then
+		S.LeaderboardService:RollEnded(player, math.floor(ball.s), run.luck or 1)
+	end
 	data.BestZone = math.max(data.BestZone, zone.Index)
 	data.BiggestRadius = math.max(data.BiggestRadius, ball.r)
 	local firstVillage = village and not data.ReachedVillage

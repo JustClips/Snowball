@@ -426,6 +426,124 @@ SCENARIOS.gifts = opener("RewardsController", "Open", "Gifts")
 SCENARIOS.wheel = opener("RewardsController", "Open", "Wheel")
 SCENARIOS.codes = opener("RewardsController", "Open", "Codes")
 
+-- Leaderboards (LeaderboardController / NametagController): fake top lists, then the
+-- window, a plaza stand (its SurfaceGui canvas moved into a ScreenGui), the passed card
+-- and name tags (billboards moved into a ScreenGui, 40 px per stud).
+local function fakeBoards()
+	local HttpService = services.HttpService or game:GetService("HttpService")
+	local f = services.ReplicatedStorage:FindFirstChild("Leaderboards") or Instance.new("Folder")
+	f.Name = "Leaderboards"
+	f:SetAttribute("WeekEndsAt", os.time() + 2 * 86400 + 4 * 3600)
+	local names = {
+		"SnowKing",
+		"xXFrostyXx",
+		"Lily_2015",
+		"BigBallBen",
+		"Pengu",
+		"IceQueen",
+		"RollerJoe",
+		"Mia",
+		"Toby",
+		"Zara",
+		"Kai",
+		"Noah",
+	}
+	local base = { Distance = 4200, Luck = 52000, Income = 0, Earned = 0 }
+	for _, key in { "Distance", "Luck", "Income", "Earned" } do
+		for _, p in { "All", "Week" } do
+			local rows = {}
+			for i, n in names do
+				local score
+				if key == "Distance" then
+					score = math.floor(4200 / (i ^ 0.35))
+				elseif key == "Luck" then
+					score = math.floor(52000 / (i ^ 0.9))
+				else
+					score = math.floor((9.2 - i * 0.31) * 1e10)
+				end
+				table.insert(rows, { U = 1000 + i, N = n, S = score })
+			end
+			local v = Instance.new("StringValue")
+			v.Name = key .. "_" .. p
+			v.Value = HttpService:JSONEncode(rows)
+			v.Parent = f
+		end
+	end
+	f.Parent = services.ReplicatedStorage
+	return f
+end
+SCENARIOS.lbwindow = function()
+	fakeBoards()
+	R.task.wait(0.3)
+	controllers.LeaderboardController:Open("Distance")
+end
+SCENARIOS.lbwindow2 = function()
+	fakeBoards()
+	R.task.wait(0.3)
+	controllers.LeaderboardController:Open("Income")
+end
+SCENARIOS.lbstand = function()
+	fakeBoards()
+	local Config = env.require(shared.Config.Leaderboards)
+	local stands = workspace:WaitForChild("Mountain"):WaitForChild("Summit"):WaitForChild("Leaderboards")
+	local stand = Instance.new("Model")
+	stand.Name = "Stand_Luck"
+	local screen = Instance.new("Part")
+	screen.Name = "Screen"
+	screen:SetAttribute("Board", "Luck")
+	screen.Parent = stand
+	stand.Parent = stands
+	R.task.wait(1)
+	local surface = playerGui:FindFirstChild("Stand_Luck")
+	local sg = Instance.new("ScreenGui")
+	sg.Name = "StandView"
+	local holder = Instance.new("Frame")
+	holder.BackgroundColor3 = R.Color3.fromRGB(40, 44, 54)
+	holder.Size = R.UDim2.fromOffset(Config.ScreenSize.X * 40, Config.ScreenSize.Y * 40)
+	holder.Position = R.UDim2.fromOffset(20, 10)
+	holder.Parent = sg
+	if surface then
+		surface:FindFirstChild("Canvas").Parent = holder
+	else
+		print("[lbstand] no SurfaceGui")
+	end
+	sg.Parent = playerGui
+	controllers.HudController:Mode()
+end
+SCENARIOS.lbcard = function()
+	fire(
+		"RankEvent",
+		{ Kind = "Passed", Board = "Distance", Scope = "World", UserId = 1003, Name = "Lily_2015", Rank = 7 }
+	)
+end
+SCENARIOS.lbrecord = function()
+	fire("ServerRecord", { Board = "Luck", UserId = 1004, Name = "BigBallBen", Score = 523000 })
+end
+SCENARIOS.nametag = function()
+	player:SetAttribute("VIP", true)
+	player:SetAttribute("ServerRank", 1)
+	player:SetAttribute("WorldRank", 7)
+	player:SetAttribute("WorldBoard", "Distance")
+	player:SetAttribute("IncomePerSec", 12400)
+	R.task.wait(0.3)
+	local tags = playerGui:FindFirstChild("Nametags")
+	local sg = Instance.new("ScreenGui")
+	sg.Name = "TagView"
+	local y = 20
+	for _, b in (tags and tags:GetChildren() or {}) do
+		local holder = Instance.new("Frame")
+		holder.BackgroundColor3 = R.Color3.fromRGB(120, 170, 220)
+		holder.Size = R.UDim2.fromOffset(9 * 40, 2.7 * 40)
+		holder.Position = R.UDim2.fromOffset(20, y)
+		holder.Parent = sg
+		for _, c in b:GetChildren() do
+			c.Parent = holder
+		end
+		y += 130
+	end
+	sg.Parent = playerGui
+end
+
 -------------------------------------------------------------------------- run
 
 R.autoWorld = true

@@ -45,6 +45,8 @@ local ORDER = {
 	"HatchController",
 	"TutorialController",
 	"RescueController",
+	"NametagController",
+	"LeaderboardController",
 }
 
 local folder = Client:WaitForChild("Controllers")

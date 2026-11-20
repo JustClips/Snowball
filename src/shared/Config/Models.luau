@@ -13,6 +13,7 @@ return {
 	Egg_Rare = { Id = 139597283537047, Center = Vector3.new(-0.1156, 2.21, -0.1892) },
 	Egg_Secret = { Id = 119903079220409, Center = Vector3.new(0.0613, 2.21, -0.0544) },
 	Egg_Uncommon = { Id = 114630480660864, Center = Vector3.new(-0.1271, 2.21, 0.0483) },
+	Leaderboard = { Id = 91936742624927, Center = Vector3.new(-0.0, 15.9975, -0.15) },
 	Obs_BigPine = { Id = 133252368684481, Center = Vector3.new(-0.0, 17.2096, 0.0) },
 	Obs_Boulder = { Id = 72339584068469, Center = Vector3.new(-0.7936, 5.76, 0.3723) },
 	Obs_Crystal = { Id = 95931843558073, Center = Vector3.new(-0.0, 6.0473, -0.0778) },

@@ -35,6 +35,9 @@ local EVENTS: { [string]: number } = {
 	WelcomeBack = 0, -- server -> owner: offline income payload
 	-- Egg rescue (EggRescueService)
 	RescueEvent = 0, -- server -> owner: (kind, data) Start / Grab / Saved / Knocked / Wake / Ended
+	-- Leaderboards (LeaderboardService)
+	RankEvent = 0, -- server -> owner: { Kind = "Passed", Board, Scope = World|Week|Server, UserId, Name, Rank? }
+	ServerRecord = 0, -- server -> all: { Board, UserId, Name, Score } new best roll / luckiest roll in this server
 	Analytics = 6, -- client: ("Loaded") loading screen gone, ("Open", screenName) a window opened
 }
 
@@ -53,6 +56,7 @@ local FUNCTIONS: { [string]: number } = {
 	Pets = 10, -- (action, arg?) -> ok, message: see PetService / HatchService ACTIONS
 	Admin = 8, -- (action, payload) -> ok, message: admins only, see AdminService
 	Rescue = 3, -- ("Leave" | "Sled") -> ok, message: see EggRescueService
+	Leaderboards = 2, -- () -> { All = { key = score }, Week = {...} } your own scores (window "you" row)
 }
 
 local FOLDER_NAME = "Remotes"
