@@ -16,9 +16,17 @@ local function fetch(name: string): Model?
 	if not entry or entry.Id == 0 then
 		return nil
 	end
-	local ok, result = pcall(function()
-		return InsertService:LoadAsset(entry.Id)
-	end)
+	-- A fresh upload can fail for a little while (permission or processing), so retry.
+	local ok, result
+	for attempt = 1, 3 do
+		ok, result = pcall(function()
+			return InsertService:LoadAsset(entry.Id)
+		end)
+		if ok then
+			break
+		end
+		task.wait(4 * attempt)
+	end
 	if not ok then
 		warn(`[ModelLoader] couldn't load {name} ({entry.Id}): {result}`)
 		return nil

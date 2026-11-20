@@ -12,7 +12,7 @@ local EggLook = {
 
 function EggLook.make(rarity: string): Model
 	local model = Instance.new("Model")
-	model.Name = rarity .. "Egg"
+	model.Name = rarity .. " Egg" -- shown as is wherever a name shows (Dev: not "EpicEgg")
 	local folder = ReplicatedStorage:FindFirstChild("EggModels")
 	local source = folder and folder:FindFirstChild(rarity)
 	if source and source:IsA("BasePart") then
