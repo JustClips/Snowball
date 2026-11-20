@@ -1,23 +1,33 @@
 --!strict
--- The HUD, icon first (Dev 2026-11-20: kids don't read). Zones follow the vault's HUD
--- Design note:
---   top centre    cash + Power pills, boost chips, the Avalanche bar
---   left edge     a 2-wide rail of square icon tiles (menus) with red badges
---   bottom centre one giant ROLL tile (+ a smaller BASE tile)
---   centre        kept clear for the world
--- During a roll the pills make room for the live distance bar (BallController).
--- Never shows how far the ball WILL roll (Dev): only what happened.
+-- The HUD, laid out like Steal an Egg / Throw Food For Animals (Dev 2026-11-20,
+-- reference-study.md). Every position comes from Config/HudLayout (tools/hud_preview.py
+-- renders the same numbers on phone and PC screens to check for overlaps):
+--   bottom-left   Power + cash numbers with no panel
+--   left rail     Shop / Pets / Upgrade / Home / Rebirth tiles, word under each tile
+--   right rail    Daily / Gifts / Spin / Codes (RewardsController adds them)
+--   top-right     Avalanche bar + boost chips
+--   top centre    the tutorial goal line (TutorialController), toasts under it
+--   bottom centre ONE contextual button: ROLL (snowball) normally, red STOP while training
+-- Modes: Normal, Training (STOP), Packing (meter only), Rolling (LUCK + zone, nothing else).
+-- Never shows a distance (Dev: "why does it show go far"): during a roll the top shows the
+-- luck multiplier rising and the zone you are in, like Throw Food.
+local Players = game:GetService("Players")
+local ProximityPromptService = game:GetService("ProximityPromptService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local AvalancheConfig = require(Shared.Config.Avalanche)
 local BigNum = require(Shared.BigNum)
 local Format = require(Shared.Format)
+local L = require(Shared.Config.HudLayout)
 local Net = require(Shared.Net)
 local Zones = require(Shared.Config.Zones)
 local State = require(script.Parent.Parent.State)
 local Ui = require(script.Parent.Parent.Ui)
+
+local player = Players.LocalPlayer
 
 local HudController = {}
 
@@ -25,33 +35,52 @@ local C: any
 local gui: ScreenGui
 local cashLabel: TextLabel
 local powerLabel: TextLabel
+local stats: Frame
 local chips: Frame
-local rail: Frame
+local topRight: Frame
+local leftRail: Frame
+local rightRail: Frame
 local action: Frame
-local avaBar: Frame
+local rollButton: TextButton
+local stopButton: TextButton
 local avaFill: Frame
 local avaText: TextLabel
-local zoneBar: Frame
-local zoneFill: Frame
-local zoneText: TextLabel
-local zoneBest: Frame
-local tiles: { [string]: TextButton } = {}
-local onDeck = false
-local packingOn = false
+local luckBox: Frame
+local luckValue: TextLabel
+local luckScale: UIScale
+local zonePill: Frame
+local zoneName: TextLabel
+local tiles: { [string]: GuiObject } = {}
+local mode = "Normal"
+local rolling = false
+local runLuck = 1
+local lastZone = 0
+
+local function place(object: GuiObject, def: any)
+	object.AnchorPoint = def.Anchor
+	object.Position = def.Pos
+	object.Size = UDim2.fromOffset(def.Size.X, def.Size.Y)
+end
 
 -------------------------------------------------------------------------- chips
 
 local function chip(name: string, icon: string, text: string, color: Color3)
 	local c = chips:FindFirstChild(name) :: Frame?
 	if not c then
-		local f = Ui.frame({ Name = name, Size = UDim2.fromOffset(112, 36), BackgroundColor3 = color })
+		local f = Ui.frame({ Name = name, Size = UDim2.fromOffset(L.Chip.X, L.Chip.Y), BackgroundColor3 = color })
+		Ui.corner(f, L.Chip.Y // 2)
 		Ui.gradient(f, color)
 		Ui.stroke(f, 3)
-		Ui.icon(icon, { Size = UDim2.fromOffset(34, 34), Position = UDim2.fromOffset(1, 1), ZIndex = 2 }).Parent = f
+		Ui.icon(icon, {
+			Size = UDim2.fromOffset(L.Chip.Y + 6, L.Chip.Y + 6),
+			Position = UDim2.fromOffset(-6, -3),
+			ZIndex = 2,
+		}).Parent =
+			f
 		Ui.label({
 			Name = "Text",
-			Size = UDim2.new(1, -40, 1, -8),
-			Position = UDim2.fromOffset(36, 4),
+			Size = UDim2.new(1, -L.Chip.Y - 4, 1, -8),
+			Position = UDim2.fromOffset(L.Chip.Y, 4),
 			Text = text,
 			ZIndex = 2,
 		}).Parent =
@@ -81,7 +110,7 @@ local function updateChips()
 			"Pop",
 			"Bolt",
 			`x{pop.Mult} {Format.time(pop.EndsAt - now)}`,
-			if pop.Mult >= 25 then Color3.fromRGB(255, 110, 200) else Ui.Colors.Ice
+			if pop.Mult >= 25 then Color3.fromRGB(255, 110, 200) else Ui.Colors.Blue
 		)
 	else
 		clearChip("Pop")
@@ -124,7 +153,7 @@ local function updateAvalanche()
 	else
 		local m = State.server("AvalancheMeter") or 0
 		avaFill.Size = UDim2.fromScale(math.clamp(m, 0, 1), 1)
-		avaFill.BackgroundColor3 = Ui.Colors.Ice
+		avaFill.BackgroundColor3 = Ui.Colors.Blue
 		avaText.Text = `{math.floor(m * 100)}%`
 	end
 end
@@ -135,62 +164,111 @@ local function render(data)
 	updateChips()
 end
 
+-------------------------------------------------------------------------- modes
+
+local function applyMode(m: string)
+	if m == mode then
+		return
+	end
+	mode = m
+	local normal = m == "Normal"
+	-- Prompts only when you are free to walk around (Dev: training turns them all off).
+	ProximityPromptService.Enabled = normal
+	leftRail.Visible = normal or m == "Training"
+	rightRail.Visible = normal or m == "Training"
+	topRight.Visible = normal or m == "Training"
+	action.Visible = normal or m == "Training"
+	rollButton.Visible = normal
+	stopButton.Visible = m == "Training"
+	luckBox.Visible = m == "Rolling"
+	zonePill.Visible = m == "Rolling"
+	-- While rolling only Power stays (Throw Food hides everything else during the flight).
+	stats.Visible = true
+	local cashRow = stats:FindFirstChild("Cash") :: GuiObject?
+	if cashRow then
+		cashRow.Visible = m ~= "Rolling"
+	end
+	if m == "Training" then
+		local scale = stopButton:FindFirstChildOfClass("UIScale")
+		if scale then
+			scale.Scale = 0.5
+			TweenService:Create(scale, TweenInfo.new(0.25, Enum.EasingStyle.Back), { Scale = 1 }):Play()
+		end
+	end
+end
+
+local function currentMode(): string
+	local phase = player:GetAttribute("RollPhase")
+	if rolling or phase == "Rolling" or phase == "Cracking" then
+		return "Rolling"
+	elseif phase == "Packing" then
+		return "Packing"
+	elseif player:GetAttribute("Training") then
+		return "Training"
+	end
+	return "Normal"
+end
+
+function HudController:Mode(): string
+	return mode
+end
+
+-- Luck during a roll: your roll luck times how rich the ground under the ball is (the zone
+-- income multiplier, blended between zones). It only ever goes up, like Throw Food's.
+local function luckAt(s: number): number
+	local list = Zones.List
+	for i = #list, 1, -1 do
+		local z = list[i]
+		if s >= z.Start then
+			local nextZone = list[i + 1]
+			if not nextZone then
+				return z.IncomeMult
+			end
+			local t = math.clamp((s - z.Start) / (nextZone.Start - z.Start), 0, 1)
+			return z.IncomeMult + (nextZone.IncomeMult - z.IncomeMult) * t
+		end
+	end
+	return 1
+end
+
 -------------------------------------------------------------------------- public
 
--- On the deck the ROLL tile turns into a green GO! tile in the same spot.
-function HudController:SetDeck(on: boolean)
-	if on == onDeck then
-		return
+-- Compatibility for older callers: the mode now follows the player's state by itself.
+function HudController:SetDeck(_on: boolean) end
+function HudController:SetPacking(_on: boolean) end
+
+function HudController:ShowZoneBar(on: boolean, info: any?)
+	rolling = on
+	if on then
+		runLuck = if info and type(info.Luck) == "number" then info.Luck else 1
+		lastZone = 0
 	end
-	onDeck = on
-	local roll = tiles.Roll
-	if not roll then
-		return
-	end
-	local color = if on then Ui.Colors.Green else Color3.fromRGB(60, 190, 255)
-	roll.BackgroundColor3 = color
-	local grad = roll:FindFirstChildOfClass("UIGradient")
-	if grad then
-		grad:Destroy()
-	end
-	Ui.gradient(roll, color)
-	Ui.setText(roll, if on then "GO!" else "ROLL!")
+	applyMode(currentMode())
 end
 
--- While the power meter runs, the HUD buttons get out of its way.
-function HudController:SetPacking(on: boolean)
-	if on == packingOn then
-		return
-	end
-	packingOn = on
-	local show = not on and not zoneBar.Visible
-	action.Visible = show
-	rail.Visible = show
-end
-
-function HudController:ShowZoneBar(on: boolean)
-	zoneBar.Visible = on
-	avaBar.Visible = not on
-	action.Visible = not on
-	rail.Visible = not on
-end
-
--- Live distance during a roll: what the ball HAS done (never a prediction).
 function HudController:SetZoneProgress(s: number)
-	local length = Zones.VillageWall
-	zoneFill.Size = UDim2.fromScale(math.clamp(s / length, 0, 1), 1)
-	zoneText.Text = `{math.floor(s)}`
-	local best = State.data and State.data.BestDistance or 0
-	zoneBest.Visible = best > 0
-	zoneBest.Position = UDim2.new(math.clamp(best / length, 0, 1), -2, 0, -6)
+	local value = runLuck * luckAt(s)
+	luckValue.Text = `{Format.big(math.floor(value * 100) / 100)}X`
+	local zone = Zones.at(s)
+	if zone.Index ~= lastZone then
+		lastZone = zone.Index
+		zoneName.Text = zone.Name
+		zonePill.BackgroundColor3 = zone.Color
+		luckScale.Scale = 1.35
+		TweenService:Create(luckScale, TweenInfo.new(0.35, Enum.EasingStyle.Back), { Scale = 1 }):Play()
+	end
 end
 
 function HudController:Buttons(): Frame
-	return rail
+	return leftRail
 end
 
-function HudController:Tile(name: string): TextButton?
+function HudController:Tile(name: string): GuiObject?
 	return tiles[name]
+end
+
+function HudController:RollButton(): GuiObject
+	return rollButton
 end
 
 function HudController:Badge(name: string, count: number)
@@ -200,7 +278,7 @@ function HudController:Badge(name: string, count: number)
 	end
 end
 
--- Other controllers add their tiles to the rail (order = LayoutOrder).
+-- Other controllers add tiles: order 1-4 go on the left rail, 5+ on the right rail.
 function HudController:AddTile(
 	name: string,
 	icon: string,
@@ -209,184 +287,205 @@ function HudController:AddTile(
 	order: number,
 	fn: () -> ()
 ): TextButton
-	local t = Ui.tile(name, icon, word, color, fn)
+	local t = Ui.tile(name, icon, word, color, fn, L.Tile)
 	t.LayoutOrder = order
-	t.Parent = rail
+	t.Parent = if order >= 5 then rightRail else leftRail
 	tiles[name] = t
 	return t
 end
 
 -------------------------------------------------------------------------- build
 
+local function rail(name: string, def: any): Frame
+	local f = Ui.frame({ Name = name, BackgroundTransparency = 1 })
+	place(f, def)
+	Ui.autoScale(f)
+	local grid = Instance.new("UIGridLayout")
+	grid.CellSize = UDim2.fromOffset(L.Tile, L.Tile + L.TileWord)
+	grid.CellPadding = UDim2.fromOffset(L.TileGap, L.TileGap)
+	grid.SortOrder = Enum.SortOrder.LayoutOrder
+	grid.HorizontalAlignment = def.Anchor.X > 0.5 and Enum.HorizontalAlignment.Right or Enum.HorizontalAlignment.Left
+	grid.VerticalAlignment = Enum.VerticalAlignment.Center
+	grid.FillDirectionMaxCells = 2
+	grid.Parent = f
+	return f
+end
+
 function HudController:Init(controllers)
 	C = controllers
 	gui = Ui.screen("Hud", 5)
 	local root = Ui.root(gui)
 
-	-- Top centre: cash + Power pills.
-	local top = Ui.frame({
-		Name = "Top",
-		Size = UDim2.fromOffset(460, 150),
-		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.new(0.5, 0, 0, 8),
-		BackgroundTransparency = 1,
-	})
-	Ui.autoScale(top)
-	top.Parent = root
-	local cash, cv = Ui.pill("Cash", "Cash", Ui.Colors.Green, 220, function()
+	-- Bottom-left: Power and cash, no panels (Steal an Egg).
+	stats = Ui.frame({ Name = "Stats", BackgroundTransparency = 1 })
+	place(stats, L.Stats)
+	Ui.autoScale(stats)
+	stats.Parent = root
+	local cash, cv = Ui.stat("Cash", "Cash", Color3.fromRGB(110, 235, 90), L.Stats.Size.X)
+	cash.Position = UDim2.fromOffset(0, 0)
+	cash.Parent = stats
+	cashLabel = cv
+	local cashButton = Instance.new("TextButton")
+	cashButton.Name = "Open"
+	cashButton.BackgroundTransparency = 1
+	cashButton.Text = ""
+	cashButton.Size = UDim2.fromScale(1, 1)
+	cashButton.ZIndex = 5
+	cashButton.Activated:Connect(function()
 		C.ShopController:Toggle("Cash")
 	end)
-	cash.Position = UDim2.fromOffset(10, 6)
-	cash.Parent = top
-	cashLabel = cv
-	local power, pv = Ui.pill("Power", "Power", Ui.Colors.Power, 190)
-	power.Position = UDim2.fromOffset(262, 6)
-	power.Parent = top
+	cashButton.Parent = cash
+	local power, pv = Ui.stat("Power", "Power", Color3.fromRGB(120, 210, 255), L.Stats.Size.X)
+	power.Position = UDim2.fromOffset(0, L.StatRow)
+	power.Parent = stats
 	powerLabel = pv
 
-	-- Boost chips under the pills.
-	chips = Ui.frame({
-		Name = "Chips",
-		Size = UDim2.fromOffset(460, 36),
-		Position = UDim2.fromOffset(0, 60),
-		BackgroundTransparency = 1,
-	})
-	local chipList = Instance.new("UIListLayout")
-	chipList.FillDirection = Enum.FillDirection.Horizontal
-	chipList.HorizontalAlignment = Enum.HorizontalAlignment.Center
-	chipList.Padding = UDim.new(0, 6)
-	chipList.Parent = chips
-	chips.Parent = top
-
-	-- Avalanche bar under the chips.
-	avaBar = Ui.frame({
+	-- Top-right: Avalanche bar, boost chips under it.
+	topRight = Ui.frame({ Name = "TopRight", BackgroundTransparency = 1 })
+	place(topRight, L.TopRight)
+	Ui.autoScale(topRight)
+	topRight.Parent = root
+	local avaBar = Ui.frame({
 		Name = "Avalanche",
-		Size = UDim2.fromOffset(240, 26),
-		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.new(0.5, 14, 0, 104),
+		Size = UDim2.new(1, -24, 0, 30),
+		Position = UDim2.fromOffset(24, 6),
 		BackgroundColor3 = Ui.Colors.PanelDark,
 	})
+	Ui.corner(avaBar, 15)
 	Ui.stroke(avaBar, 3)
-	avaFill = Ui.frame({ Name = "Fill", Size = UDim2.fromScale(0, 1), BackgroundColor3 = Ui.Colors.Ice })
+	avaFill = Ui.frame({ Name = "Fill", Size = UDim2.fromScale(0, 1), BackgroundColor3 = Ui.Colors.Blue })
+	Ui.corner(avaFill, 15)
+	Ui.gradient(avaFill)
 	avaFill.Parent = avaBar
 	avaText = Ui.label({
 		Name = "Text",
-		Size = UDim2.new(1, -8, 1, -4),
-		Position = UDim2.fromOffset(4, 2),
+		Size = UDim2.new(1, -40, 1, -6),
+		Position = UDim2.fromOffset(32, 3),
 		Text = "",
 		ZIndex = 2,
 	})
 	avaText.Parent = avaBar
 	Ui.icon("Storm", {
-		Size = UDim2.fromOffset(44, 44),
+		Size = UDim2.fromOffset(50, 50),
 		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.new(0, -6, 0.5, 0),
+		Position = UDim2.new(0, 0, 0.5, 0),
 		ZIndex = 3,
 	}).Parent =
 		avaBar
-	avaBar.Parent = top
-
-	-- Live distance bar during a roll (replaces the top cluster's lower part).
-	zoneBar = Ui.frame({
-		Name = "ZoneBar",
-		Size = UDim2.fromOffset(440, 30),
-		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.new(0.5, 0, 0, 64),
-		BackgroundColor3 = Ui.Colors.PanelDark,
-		Visible = false,
-	})
-	Ui.stroke(zoneBar, 3)
-	zoneFill = Ui.frame({ Name = "Fill", Size = UDim2.fromScale(0, 1), BackgroundColor3 = Ui.Colors.Ice })
-	Ui.gradient(zoneFill, Ui.Colors.Ice)
-	zoneFill.Parent = zoneBar
-	for _, z in Zones.List do
-		if z.Start > 0 then
-			Ui.frame({
-				Name = "Mark" .. z.Id,
-				Size = UDim2.new(0, 4, 1, 0),
-				Position = UDim2.fromScale(z.Start / Zones.VillageWall, 0),
-				BackgroundColor3 = z.Color,
-			}).Parent =
-				zoneBar
-		end
-	end
-	zoneBest = Ui.frame({ Name = "Best", Size = UDim2.new(0, 4, 1, 12), BackgroundColor3 = Ui.Colors.Gold })
-	zoneBest.Parent = zoneBar
-	Ui.icon(
-		"Trophy",
-		{ Size = UDim2.fromOffset(26, 26), AnchorPoint = Vector2.new(0.5, 1), Position = UDim2.new(0.5, 0, 0, 0) }
-	).Parent =
-		zoneBest
-	-- The live number, big, under the bar: it counts up as the ball rolls.
-	zoneText = Ui.label({
-		Name = "Text",
-		Size = UDim2.new(1, 0, 0, 56),
-		Position = UDim2.new(0, 0, 1, 6),
-		Text = "",
-		TextColor3 = Ui.Colors.Snow,
-	})
-	zoneText.Parent = zoneBar
-	zoneBar.Parent = top
-
-	-- Left rail: 2-wide grid of icon tiles.
-	rail = Ui.frame({
-		Name = "Rail",
-		Size = UDim2.fromOffset(172, 360),
-		AnchorPoint = Vector2.new(0, 0.5),
-		Position = UDim2.new(0, 10, 0.5, 20),
+	avaBar.Parent = topRight
+	chips = Ui.frame({
+		Name = "Chips",
+		Size = UDim2.new(1, 0, 0, L.Chip.Y * 2 + 8),
+		Position = UDim2.fromOffset(0, 46),
 		BackgroundTransparency = 1,
 	})
-	Ui.autoScale(rail)
-	local grid = Instance.new("UIGridLayout")
-	grid.CellSize = UDim2.fromOffset(78, 78)
-	grid.CellPadding = UDim2.fromOffset(10, 10)
-	grid.SortOrder = Enum.SortOrder.LayoutOrder
-	grid.Parent = rail
-	rail.Parent = root
-	HudController:AddTile("Shop", "Shop", "SHOP", Color3.fromRGB(255, 80, 100), 1, function()
+	local chipGrid = Instance.new("UIGridLayout")
+	chipGrid.CellSize = UDim2.fromOffset(L.Chip.X, L.Chip.Y)
+	chipGrid.CellPadding = UDim2.fromOffset(8, 8)
+	chipGrid.HorizontalAlignment = Enum.HorizontalAlignment.Right
+	chipGrid.Parent = chips
+	chips.Parent = topRight
+
+	-- Rails.
+	leftRail = rail("LeftRail", L.LeftRail)
+	leftRail.Parent = root
+	rightRail = rail("RightRail", L.RightRail)
+	rightRail.Parent = root
+	HudController:AddTile("Shop", "Shop", "Shop", Color3.fromRGB(255, 70, 90), 1, function()
 		C.ShopController:Toggle()
 	end)
-	HudController:AddTile("Pets", "Pets", "PETS", Color3.fromRGB(255, 170, 60), 2, function()
+	HudController:AddTile("Pets", "Pets", "Pets", Color3.fromRGB(255, 160, 40), 2, function()
 		C.PetsController:Toggle()
 	end)
-	HudController:AddTile("Upgrades", "Upgrade", "UPGRADE", Color3.fromRGB(80, 200, 90), 3, function()
+	HudController:AddTile("Upgrades", "Upgrade", "Upgrade", Color3.fromRGB(70, 200, 80), 3, function()
 		C.UpgradesController:Toggle()
 	end)
-	HudController:AddTile("Rebirth", "Rebirth", "REBIRTH", Color3.fromRGB(180, 100, 255), 4, function()
+	HudController:AddTile("Base", "Base", "Home", Color3.fromRGB(70, 130, 255), 4, function()
+		Net.func("Teleport"):InvokeServer("Base")
+	end)
+	local reb = HudController:AddTile("Rebirth", "Rebirth", "Rebirth", Color3.fromRGB(180, 90, 255), 4, function()
 		C.RebirthController:Toggle()
-	end).Visible =
-		false
+	end)
+	reb.LayoutOrder = 10
+	reb.Visible = false
 
-	-- Bottom centre: the giant ROLL tile and a smaller BASE tile.
-	action = Ui.frame({
-		Name = "Action",
-		Size = UDim2.fromOffset(240, 130),
-		AnchorPoint = Vector2.new(0.5, 1),
-		Position = UDim2.new(0.5, 0, 1, -12),
-		BackgroundTransparency = 1,
-	})
+	-- Bottom centre: ONE button. ROLL (snowball) takes you onto your lane pad, which starts
+	-- the launch. While training it is a red STOP.
+	action = Ui.frame({ Name = "Action", BackgroundTransparency = 1 })
+	place(action, L.Action)
 	Ui.autoScale(action)
 	action.Parent = root
-	local roll = Ui.tile("Roll", "Roll", "ROLL!", Color3.fromRGB(60, 190, 255), function()
-		if onDeck then
-			-- On the launch deck the same tile is the GO button (one obvious action).
-			local ok, why = Net.func("StartPack"):InvokeServer()
-			if not ok and why then
-				Ui.toast(why, "Bad")
-			end
-		else
-			Net.func("Teleport"):InvokeServer("Deck")
+	rollButton = Ui.bigButton("Roll", "Icon_Snowball", "ROLL", Ui.Colors.Blue, function()
+		local ok, why = Net.func("Teleport"):InvokeServer("Deck")
+		if not ok and why then
+			Ui.toast(why, "Bad")
 		end
-	end, 124)
-	roll.Position = UDim2.fromOffset(0, 4)
-	roll.Parent = action
-	tiles.Roll = roll
-	local base = Ui.tile("Base", "Base", "HOME", Color3.fromRGB(90, 140, 255), function()
-		Net.func("Teleport"):InvokeServer("Base")
-	end, 92)
-	base.Position = UDim2.fromOffset(140, 36)
-	base.Parent = action
-	tiles.Base = base
+	end, L.Action.Size)
+	rollButton.Parent = action
+	tiles.Roll = rollButton
+	stopButton = Ui.bigButton("Stop", nil, "STOP", Ui.Colors.Red, function()
+		Net.func("StopTraining"):InvokeServer()
+	end, L.Action.Size)
+	stopButton.Visible = false
+	stopButton.Parent = action
+	tiles.Stop = stopButton
+
+	-- Top centre during a roll: the big LUCK multiplier and the zone you are in.
+	luckBox = Ui.frame({ Name = "Luck", BackgroundTransparency = 1, Visible = false })
+	place(luckBox, L.Luck)
+	Ui.autoScale(luckBox)
+	luckBox.Parent = root
+	local luckPill = Ui.frame({
+		Name = "Pill",
+		Size = UDim2.new(1, 0, 0, 74),
+		BackgroundColor3 = Color3.new(0, 0, 0),
+		BackgroundTransparency = 0.55,
+	})
+	Ui.corner(luckPill, 37)
+	luckPill.Parent = luckBox
+	luckScale = Instance.new("UIScale")
+	luckScale.Parent = luckPill
+	luckValue = Ui.label({
+		Name = "Value",
+		Size = UDim2.new(1, -20, 0, 58),
+		Position = UDim2.fromOffset(10, 2),
+		Text = "1X",
+		TextColor3 = Color3.fromRGB(255, 220, 70),
+		ZIndex = 2,
+	})
+	local lg = Instance.new("UIGradient")
+	lg.Color = ColorSequence.new(Color3.fromRGB(255, 255, 255), Color3.fromRGB(255, 200, 40))
+	lg.Rotation = 90
+	lg.Parent = luckValue
+	luckValue.Parent = luckPill
+	Ui.label({
+		Name = "Word",
+		Size = UDim2.new(1, 0, 0, 22),
+		Position = UDim2.new(0, 0, 1, -16),
+		Text = "LUCK",
+		ZIndex = 2,
+	}).Parent =
+		luckPill
+	zonePill = Ui.frame({
+		Name = "Zone",
+		Size = UDim2.new(1, 0, 0, 40),
+		Position = UDim2.fromOffset(0, 90),
+		BackgroundColor3 = Ui.Colors.Blue,
+		Visible = false,
+	})
+	Ui.corner(zonePill, 20)
+	Ui.gradient(zonePill)
+	Ui.stroke(zonePill, 3)
+	zoneName = Ui.label({
+		Name = "Text",
+		Size = UDim2.new(1, -20, 1, -8),
+		Position = UDim2.fromOffset(10, 4),
+		Text = "",
+	})
+	zoneName.Parent = zonePill
+	zonePill.Parent = luckBox
+	mode = ""
+	applyMode("Normal")
 end
 
 function HudController:Start()
@@ -403,11 +502,20 @@ function HudController:Start()
 	end)
 	local acc = 0
 	RunService.Heartbeat:Connect(function(dt)
+		applyMode(currentMode())
 		acc += dt
 		if acc >= 0.5 then
 			acc = 0
 			updateChips()
 			updateAvalanche()
+		end
+		if mode == "Normal" then
+			-- The ROLL button breathes so it reads as THE thing to press.
+			local s = 1 + 0.035 * math.sin(os.clock() * 4)
+			local scale = rollButton:FindFirstChildOfClass("UIScale")
+			if scale and math.abs(scale.Scale - 1) < 0.05 then
+				scale.Scale = s
+			end
 		end
 	end)
 end

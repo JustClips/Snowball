@@ -1,7 +1,8 @@
 --!strict
--- UI helpers. Every placeholder element is made here so the look follows the project UI
--- rules (Montserrat, solid button backgrounds, NO rounded corners, mobile first) and so the
--- ForgeUI art can replace it in one place later (controllers find elements by name).
+-- UI helpers. Every element is made here so the whole game shares one look, copied from
+-- Steal an Egg / Throw Food For Animals (Dev 2026-11-20, reference-study.md): a round
+-- cartoon font with thick dark outlines, rounded gradient tiles with the word UNDER the
+-- tile, numbers with no panel, windows with a bright gradient header and a red X.
 local GuiService = game:GetService("GuiService")
 local Players = game:GetService("Players")
 local SoundService = game:GetService("SoundService")
@@ -18,9 +19,13 @@ local Ui = {}
 
 Ui.ROBUX = utf8.char(0xE002)
 Ui.Colors = {
-	Ink = Color3.fromRGB(20, 32, 58),
-	Panel = Color3.fromRGB(28, 46, 84),
-	PanelDark = Color3.fromRGB(16, 27, 52),
+	Ink = Color3.fromRGB(22, 20, 38),
+	Panel = Color3.fromRGB(30, 38, 78),
+	PanelDark = Color3.fromRGB(20, 24, 54),
+	Header = Color3.fromRGB(196, 60, 230),
+	HeaderDark = Color3.fromRGB(120, 50, 220),
+	Blue = Color3.fromRGB(60, 170, 255),
+	Orange = Color3.fromRGB(255, 150, 40),
 	Snow = Color3.fromRGB(240, 247, 255),
 	Ice = Color3.fromRGB(110, 200, 255),
 	Green = Color3.fromRGB(70, 205, 95),
@@ -31,8 +36,9 @@ Ui.Colors = {
 	Robux = Color3.fromRGB(40, 190, 90),
 }
 
-local FONT = Font.new("rbxasset://fonts/families/Montserrat.json", Enum.FontWeight.Bold)
-local FONT_BLACK = Font.new("rbxasset://fonts/families/Montserrat.json", Enum.FontWeight.Heavy)
+local FONT = Font.fromEnum(Enum.Font.FredokaOne)
+local FONT_BLACK = Font.fromEnum(Enum.Font.FredokaOne)
+local OUTLINE = Color3.fromRGB(22, 20, 38)
 Ui.Font = FONT
 Ui.FontBlack = FONT_BLACK
 
@@ -83,10 +89,19 @@ function Ui.label(props: { [string]: any }): TextLabel
 		(l :: any)[k] = v
 	end
 	local stroke = Instance.new("UIStroke")
-	stroke.Thickness = 2
-	stroke.Color = Ui.Colors.Ink
+	stroke.Thickness = 2.5
+	stroke.Color = OUTLINE
+	stroke.LineJoinMode = Enum.LineJoinMode.Round
 	stroke.Parent = l
 	return l
+end
+
+-- Rounded corners (px).
+function Ui.corner(parent: GuiObject, radius: number?): UICorner
+	local c = Instance.new("UICorner")
+	c.CornerRadius = UDim.new(0, radius or 12)
+	c.Parent = parent
+	return c
 end
 
 -- A solid button with a child "Label" (text) and a dark outline. No rounded corners.
@@ -99,6 +114,8 @@ function Ui.button(props: { [string]: any }, text: string, onClick: (() -> ())?)
 	for k, v in props do
 		(b :: any)[k] = v
 	end
+	Ui.corner(b, 12)
+	Ui.gradient(b, b.BackgroundColor3)
 	Ui.stroke(b, 3)
 	local l =
 		Ui.label({ Name = "Label", Size = UDim2.new(1, -10, 1, -8), Position = UDim2.fromOffset(5, 4), Text = text })
@@ -171,38 +188,37 @@ function Ui.sound(name: string, speed: number?)
 	SoundService:PlayLocalSound(sound)
 end
 
--- Short toast at the top of the screen.
+-- One small toast pill near the top (Steal an Egg's green success toast). A new toast
+-- replaces the old one (Dev 2026-11-20: stacked toasts covered the windows).
 local toastGui: ScreenGui? = nil
 local toastSerial = 0
 function Ui.toast(text: string, kind: string?)
-	-- ONE small toast pill under the top status bar. A new toast replaces the old one
-	-- (Dev 2026-11-20: stacked toasts covered the windows).
 	local gui = toastGui or Ui.screen("Toasts", 50)
 	toastGui = gui
-	local color = if kind == "Bad" then Ui.Colors.Red elseif kind == "Info" then Ui.Colors.Ice else Ui.Colors.Green
+	local color = if kind == "Bad" then Ui.Colors.Red elseif kind == "Info" then Ui.Colors.Blue else Ui.Colors.Green
 	local item = gui:FindFirstChild("Toast") :: Frame?
 	if not item then
 		local f = Ui.frame({
 			Name = "Toast",
 			AutomaticSize = Enum.AutomaticSize.X,
-			Size = UDim2.fromOffset(0, 34),
+			Size = UDim2.fromOffset(0, 40),
 			AnchorPoint = Vector2.new(0.5, 0),
-			Position = UDim2.new(0.5, 0, 0, 96),
-			BackgroundColor3 = Ui.Colors.PanelDark,
+			Position = UDim2.new(0.5, 0, 0, 78),
 			Visible = false,
 		})
+		Ui.corner(f, 20)
+		Ui.stroke(f, 3)
 		local pad = Instance.new("UIPadding")
-		pad.PaddingLeft = UDim.new(0, 14)
-		pad.PaddingRight = UDim.new(0, 14)
+		pad.PaddingLeft = UDim.new(0, 18)
+		pad.PaddingRight = UDim.new(0, 18)
 		pad.Parent = f
-		Ui.stroke(f, 3, color)
 		local l = Ui.label({
 			Name = "Text",
 			AutomaticSize = Enum.AutomaticSize.X,
-			Size = UDim2.fromOffset(0, 26),
-			Position = UDim2.fromOffset(0, 4),
+			Size = UDim2.fromOffset(0, 30),
+			Position = UDim2.fromOffset(0, 5),
 			TextScaled = false,
-			TextSize = 20,
+			TextSize = 24,
 			Text = "",
 		})
 		l.Parent = f
@@ -211,13 +227,13 @@ function Ui.toast(text: string, kind: string?)
 		item = f
 	end
 	local toast = item :: Frame
-	local stroke = toast:FindFirstChildOfClass("UIStroke")
-	if stroke then
-		stroke.Color = color
+	toast.BackgroundColor3 = color
+	local grad = toast:FindFirstChildOfClass("UIGradient")
+	if not grad then
+		Ui.gradient(toast, color)
 	end
 	local label = toast:FindFirstChild("Text") :: TextLabel
 	label.Text = text
-	label.TextColor3 = if kind == "Bad" then Color3.fromRGB(255, 150, 150) else Ui.Colors.Snow
 	toast.Visible = true
 	toastSerial += 1
 	local mine = toastSerial
@@ -301,54 +317,98 @@ function Ui.closeWindow(window: GuiObject)
 	end
 end
 
--- A centred window sized to its content: header with a title and a close button.
+-- A centred window sized to its content (Steal an Egg chrome): a bright magenta/purple
+-- gradient header with the white title on the left, a red rounded X, a dark navy body.
 function Ui.window(gui: ScreenGui, name: string, title: string, size: Vector2): (Frame, Frame)
 	local window = Ui.frame({
 		Name = name,
 		Size = UDim2.fromOffset(size.X, size.Y),
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.5),
-		BackgroundColor3 = Ui.Colors.Panel,
+		BackgroundColor3 = Ui.Colors.PanelDark,
 		Visible = false,
 		ZIndex = 20,
 	})
+	Ui.corner(window, 16)
 	Ui.stroke(window, 4)
 	Ui.autoScale(window)
 	local header = Ui.frame({
 		Name = "Header",
-		Size = UDim2.new(1, 0, 0, 52),
-		BackgroundColor3 = Ui.Colors.PanelDark,
+		Size = UDim2.new(1, 0, 0, 56),
+		BackgroundColor3 = Color3.new(1, 1, 1),
 		ZIndex = 21,
 	})
+	Ui.corner(header, 16)
+	local hg = Instance.new("UIGradient")
+	hg.Color = ColorSequence.new(Ui.Colors.Header, Ui.Colors.HeaderDark)
+	hg.Parent = header
+	-- Square off the header's bottom corners.
+	local foot = Ui.frame({
+		Name = "Foot",
+		Size = UDim2.new(1, 0, 0, 16),
+		Position = UDim2.new(0, 0, 1, -16),
+		BackgroundColor3 = Color3.new(1, 1, 1),
+		ZIndex = 21,
+	})
+	local fg = hg:Clone()
+	fg.Parent = foot
+	foot.Parent = header
+	-- Diagonal sheen stripes.
+	for k = 0, 3 do
+		local stripe = Ui.frame({
+			Name = "Sheen" .. k,
+			Size = UDim2.fromOffset(18, 90),
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.new(0.55 + k * 0.09, 0, 0.5, 0),
+			Rotation = 30,
+			BackgroundColor3 = Color3.new(1, 1, 1),
+			BackgroundTransparency = 0.88,
+			ZIndex = 22,
+		})
+		stripe.Parent = header
+	end
+	header.ClipsDescendants = true
 	header.Parent = window
 	local t = Ui.label({
 		Name = "Title",
-		Size = UDim2.new(1, -80, 1, -12),
-		Position = UDim2.fromOffset(14, 6),
+		Size = UDim2.new(1, -90, 1, -14),
+		Position = UDim2.fromOffset(18, 7),
 		Text = title,
 		TextXAlignment = Enum.TextXAlignment.Left,
-		ZIndex = 22,
+		ZIndex = 23,
 	})
 	t.Parent = header
-	local close = Ui.button(
-		{
-			Name = "Close",
-			Size = UDim2.fromOffset(44, 44),
-			Position = UDim2.new(1, -48, 0, 4),
-			BackgroundColor3 = Ui.Colors.Red,
-			ZIndex = 22,
-		},
-		"X",
-		function()
-			Ui.closeWindow(window)
-		end
-	)
-	close.Parent = header
+	local close = Instance.new("TextButton")
+	close.Name = "Close"
+	close.Text = ""
+	close.AutoButtonColor = true
+	close.BorderSizePixel = 0
+	close.BackgroundColor3 = Ui.Colors.Red
+	close.Size = UDim2.fromOffset(46, 46)
+	close.AnchorPoint = Vector2.new(0.5, 0.5)
+	close.Position = UDim2.new(1, -14, 0, 14)
+	close.ZIndex = 24
+	Ui.corner(close, 10)
+	Ui.gradient(close, Ui.Colors.Red)
+	Ui.stroke(close, 3)
+	Ui.label({
+		Name = "Label",
+		Size = UDim2.new(1, -12, 1, -12),
+		Position = UDim2.fromOffset(6, 6),
+		Text = "X",
+		ZIndex = 25,
+	}).Parent =
+		close
+	close.Activated:Connect(function()
+		Ui.sound("Click")
+		Ui.closeWindow(window)
+	end)
+	close.Parent = window
 	local body = Ui.frame({
 		Name = "Body",
 		BackgroundTransparency = 1,
-		Size = UDim2.new(1, -24, 1, -64),
-		Position = UDim2.fromOffset(12, 58),
+		Size = UDim2.new(1, -24, 1, -68),
+		Position = UDim2.fromOffset(12, 62),
 		ZIndex = 21,
 	})
 	body.Parent = window
@@ -375,17 +435,17 @@ function Ui.icon(name: string, props: { [string]: any }?): ImageLabel
 	return i
 end
 
--- A vertical two-tone gradient: lighter top, base colour bottom (the chunky toy look).
-function Ui.gradient(parent: GuiObject, color: Color3)
+-- A vertical gradient: full colour on top, darker at the bottom (the chunky toy look).
+-- It multiplies the background, so changing BackgroundColor3 later keeps working.
+function Ui.gradient(parent: GuiObject, _color: Color3?)
 	local g = Instance.new("UIGradient")
-	local h, sat, v = color:ToHSV()
-	g.Color = ColorSequence.new(Color3.fromHSV(h, sat * 0.75, math.min(1, v * 1.18)), Color3.fromHSV(h, sat, v * 0.82))
+	g.Color = ColorSequence.new(Color3.new(1, 1, 1), Color3.fromRGB(175, 175, 185))
 	g.Rotation = 90
 	g.Parent = parent
 	return g
 end
 
--- Red square badge with a count (hidden at 0).
+-- Round red badge with a count (hidden at 0).
 function Ui.badge(parent: GuiObject, count: number)
 	local b = parent:FindFirstChild("Badge") :: TextLabel?
 	if not b then
@@ -399,6 +459,7 @@ function Ui.badge(parent: GuiObject, count: number)
 			Text = "",
 			ZIndex = 8,
 		})
+		Ui.corner(nb, 13)
 		Ui.stroke(nb, 2)
 		nb.Parent = parent
 		b = nb
@@ -408,32 +469,7 @@ function Ui.badge(parent: GuiObject, count: number)
 	bb.Text = if count > 9 then "9+" else tostring(count)
 end
 
--- A square icon tile (left rail): big icon, one short word under it, solid gradient body.
-function Ui.tile(name: string, icon: string, word: string, color: Color3, onClick: () -> (), size: number?): TextButton
-	local s = size or 78
-	local b = Instance.new("TextButton")
-	b.Name = name
-	b.Text = ""
-	b.AutoButtonColor = false
-	b.BorderSizePixel = 0
-	b.BackgroundColor3 = color
-	b.Size = UDim2.fromOffset(s, s)
-	Ui.gradient(b, color)
-	Ui.stroke(b, 3)
-	Ui.icon(icon, {
-		Size = UDim2.new(1, -10, 1, -24),
-		Position = UDim2.fromOffset(5, 3),
-		ZIndex = 2,
-	}).Parent =
-		b
-	local l = Ui.label({
-		Name = "Label",
-		Size = UDim2.new(1, -4, 0, 20),
-		Position = UDim2.new(0, 2, 1, -22),
-		Text = word,
-		ZIndex = 3,
-	})
-	l.Parent = b
+local function press(b: GuiButton, onClick: () -> ())
 	local scale = Instance.new("UIScale")
 	scale.Parent = b
 	b.Activated:Connect(function()
@@ -448,6 +484,101 @@ function Ui.tile(name: string, icon: string, word: string, color: Color3, onClic
 	b.MouseLeave:Connect(function()
 		TweenService:Create(scale, TweenInfo.new(0.1), { Scale = 1 }):Play()
 	end)
+end
+
+-- A rounded icon tile (Steal an Egg rail): the icon fills the tile, one short outlined word
+-- sits UNDER the tile (outside it), so a grid cell is size wide and size + 20 tall.
+function Ui.tile(name: string, icon: string, word: string, color: Color3, onClick: () -> (), size: number?): TextButton
+	local s = size or 64
+	local b = Instance.new("TextButton")
+	b.Name = name
+	b.Text = ""
+	b.AutoButtonColor = false
+	b.BorderSizePixel = 0
+	b.BackgroundColor3 = color
+	b.Size = UDim2.fromOffset(s, s)
+	Ui.corner(b, math.floor(s * 0.22))
+	Ui.gradient(b, color)
+	Ui.stroke(b, 3)
+	Ui.icon(icon, {
+		Size = UDim2.new(1, -8, 1, -8),
+		Position = UDim2.fromOffset(4, 4),
+		ZIndex = 2,
+	}).Parent = b
+	local l = Ui.label({
+		Name = "Label",
+		Size = UDim2.new(1, 24, 0, math.max(18, math.floor(s * 0.3))),
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.new(0.5, 0, 1, -6),
+		Text = word,
+		ZIndex = 3,
+	})
+	l.Parent = b
+	press(b, onClick)
+	return b
+end
+
+-- A number with no panel (bottom-left Power / cash): icon, then a big outlined number.
+function Ui.stat(name: string, icon: string, color: Color3, width: number?): (Frame, TextLabel)
+	local f = Ui.frame({ Name = name, Size = UDim2.fromOffset(width or 240, 50), BackgroundTransparency = 1 })
+	Ui.icon(icon, { Size = UDim2.fromOffset(50, 50), ZIndex = 2 }).Parent = f
+	local value = Ui.label({
+		Name = "Value",
+		Size = UDim2.new(1, -58, 0, 42),
+		Position = UDim2.fromOffset(56, 4),
+		Text = "0",
+		TextColor3 = color,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		ZIndex = 2,
+	})
+	local st = value:FindFirstChildOfClass("UIStroke")
+	if st then
+		st.Thickness = 3
+	end
+	value.Parent = f
+	return f, value
+end
+
+-- A big rounded pill button (bottom centre ROLL / STOP): icon on the left, one word.
+function Ui.bigButton(
+	name: string,
+	icon: string?,
+	word: string,
+	color: Color3,
+	onClick: () -> (),
+	size: Vector2?
+): TextButton
+	local sz = size or Vector2.new(230, 78)
+	local b = Instance.new("TextButton")
+	b.Name = name
+	b.Text = ""
+	b.AutoButtonColor = false
+	b.BorderSizePixel = 0
+	b.BackgroundColor3 = color
+	b.Size = UDim2.fromOffset(sz.X, sz.Y)
+	Ui.corner(b, math.floor(sz.Y / 2))
+	Ui.gradient(b, color)
+	Ui.stroke(b, 4)
+	local iconSize = sz.Y + 14
+	if icon then
+		Ui.icon(icon, {
+			Size = UDim2.fromOffset(iconSize, iconSize),
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.new(0, sz.Y * 0.42, 0.5, -4),
+			ZIndex = 3,
+		}).Parent =
+			b
+	end
+	local left = if icon then math.floor(sz.Y * 0.95) else 14
+	Ui.label({
+		Name = "Label",
+		Size = UDim2.new(1, -left - 14, 0, sz.Y * 0.62),
+		Position = UDim2.new(0, left, 0.5, -sz.Y * 0.31),
+		Text = word,
+		ZIndex = 3,
+	}).Parent =
+		b
+	press(b, onClick)
 	return b
 end
 

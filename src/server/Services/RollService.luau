@@ -81,11 +81,11 @@ local function setAnchored(player: Player, anchored: boolean)
 	end
 end
 
-local function standAtDeck(player: Player, lane: number)
+local function standAtDeck(player: Player, lane: number, back: number?)
 	local root = rootOf(player)
 	local character = player.Character
 	if root and character then
-		local pos = World.DeckStand + Vector3.new(World.laneX(lane), 0, 0)
+		local pos = World.DeckStand + Vector3.new(World.laneX(lane), 0, -(back or 0))
 		character:PivotTo(CFrame.lookAt(pos, pos + Vector3.zAxis))
 		root.Anchored = true
 	end
@@ -212,6 +212,7 @@ local function launch(player: Player, run: Run, quality: string)
 		Golden = run.golden,
 		Quality = quality,
 		Lucky = run.lucky,
+		Luck = luck,
 	})
 	S.AnalyticsService:Funnel(player, "FirstPush")
 end
@@ -392,10 +393,42 @@ local function finish(player: Player, run: Run)
 		if runs[player] == run then
 			setPhase(player, run, "Idle")
 			runs[player] = nil
-			standAtDeck(player, run.lane)
+			-- A few steps behind your pad: step forward onto it (or press ROLL) to go again.
+			standAtDeck(player, run.lane, 9)
 			setAnchored(player, false)
 		end
 	end)
+end
+
+-- Stepping onto your own lane pad starts the launch (Dev 2026-11-20: no GO button; like
+-- Throw Food's throw circle). Only on the step ON, so standing there after a roll waits.
+local PAD_RADIUS = 3.8
+local onPadBefore: { [Player]: boolean } = {}
+local function onOwnPad(player: Player): boolean
+	local root = rootOf(player)
+	local lane = player:GetAttribute("BaseIndex")
+	if not root or type(lane) ~= "number" then
+		return false
+	end
+	local pad = World.DeckStand + Vector3.new(World.laneX(lane), 0, 0)
+	local d = root.Position - pad
+	return Vector3.new(d.X, 0, d.Z).Magnitude <= PAD_RADIUS and math.abs(d.Y) < 6
+end
+
+local function checkPads()
+	for player in S.DataService:GetSessions() do
+		local on = onOwnPad(player)
+		local was = onPadBefore[player]
+		onPadBefore[player] = on
+		local run = runs[player]
+		local idle = run == nil or run.phase == "Idle"
+		if on and not was and idle and not (S.TrainService and S.TrainService:IsTraining(player)) then
+			local ok, why = startPack(player)
+			if not ok and why then
+				Net.fire("Notify", player, why, "Bad")
+			end
+		end
+	end
 end
 
 local function simulate(dt: number)
@@ -465,9 +498,11 @@ function RollService:Init(services)
 	Net.onEvent("Steer", onSteer)
 	S.DataService.ProfileReleasing:Connect(function(player)
 		runs[player] = nil
+		onPadBefore[player] = nil
 	end)
 	Players.PlayerRemoving:Connect(function(player)
 		runs[player] = nil
+		onPadBefore[player] = nil
 	end)
 end
 
@@ -481,6 +516,7 @@ function RollService:Start()
 			local dt = math.min(0.2, now - last)
 			last = now
 			simulate(dt)
+			checkPads()
 			snapAcc += dt
 			if snapAcc >= 1 / SNAP_HZ then
 				snapAcc = 0

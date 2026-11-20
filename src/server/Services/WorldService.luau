@@ -337,6 +337,28 @@ local function dressPlaza(summit: Folder)
 	end
 end
 
+-- Small client-side models (the tutorial's ground arrow) go to ReplicatedStorage.Assets:
+-- clients can't load models themselves.
+local function shareAssets()
+	local assets = folder("Assets", ReplicatedStorage)
+	for _, name in { "Chevron" } do
+		local model = ModelLoader.clone(name, CFrame.new())
+		local part = model and model:FindFirstChildWhichIsA("BasePart", true)
+		if part then
+			part.Name = name
+			part.Anchored = true
+			part.CanCollide = false
+			part.CanQuery = false
+			part.CanTouch = false
+			part.CastShadow = false
+			part.Parent = assets
+		end
+		if model then
+			model:Destroy()
+		end
+	end
+end
+
 function WorldService:Init()
 	local root = folder("Mountain", Workspace)
 	buildSummit(root)
@@ -345,6 +367,7 @@ function WorldService:Init()
 	task.spawn(dressBases, summit:FindFirstChild("Bases"))
 	task.spawn(dressDeck, summit)
 	task.spawn(dressPlaza, summit)
+	task.spawn(shareAssets)
 	setLighting()
 	-- Spare the default template's baseplate/spawn if the place still has them.
 	for _, name in { "Baseplate", "SpawnLocation" } do

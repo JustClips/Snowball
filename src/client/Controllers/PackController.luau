@@ -1,9 +1,9 @@
 --!strict
--- The launch (GAME_PLAN §5.5; Dev 2026-11-20: show it like Throw Food For Animals). On the
--- deck the HUD's ROLL tile turns into GO! (same spot, HudController:SetDeck). While packing
--- the HUD buttons hide, a tall power bar stands at the right with its needle running on the
--- server's clock, and a big pulsing PUSH! tile sits bottom-centre; a tap anywhere also counts.
--- Green + star = Perfect, yellow = Good, red = Weak. Then a big PERFECT!/GOOD!/WEAK! banner.
+-- The launch, like Throw Food For Animals (Dev 2026-11-20, reference-study.md): stepping onto
+-- your lane pad starts it (RollService, no GO button). A vertical capsule meter stands BESIDE
+-- the player: red ends, yellow, a green middle with a star; a white slider runs up and down
+-- on the server's clock. "TAP!" under it and a pointing hand for the first rolls. A tap
+-- anywhere (or Space / A) stops it. Then a big PERFECT! / GOOD! / WEAK! word pops.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -12,9 +12,10 @@ local UserInputService = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
+local L = require(Shared.Config.HudLayout)
 local Net = require(Shared.Net)
 local RollMath = require(Shared.RollMath)
-local World = require(Shared.Config.World)
+local State = require(script.Parent.Parent.State)
 local Fx = require(script.Parent.Parent.Fx)
 local Ui = require(script.Parent.Parent.Ui)
 
@@ -22,29 +23,18 @@ local player = Players.LocalPlayer
 
 local PackController = {}
 
-local C: any
 local gui: ScreenGui
-local pushTile: TextButton
-local pushScale: UIScale
-local quality: TextLabel
-local qualityScale: UIScale
 local meter: Frame
-local needle: Frame
+local slider: Frame
 local green: Frame
 local yellow: Frame
-local packing: { start: number, green: number, yellow: number }? = nil
+local tapWord: TextLabel
+local tapScale: UIScale
+local hand: ImageLabel
+local quality: TextLabel
+local qualityScale: UIScale
+local packing: { start: number }? = nil
 local tapped = false
-
-local function nearDeck(): boolean
-	local character = player.Character
-	local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
-	if not root then
-		return false
-	end
-	local d = root.Position - World.Deck.Center
-	local half = World.Deck.Size / 2
-	return math.abs(d.X) <= half.X + 10 and math.abs(d.Z) <= half.Z + 10 and math.abs(d.Y) < 12
-end
 
 local function push()
 	if not packing or tapped then
@@ -59,31 +49,42 @@ function PackController:IsPacking(): boolean
 	return packing ~= nil
 end
 
-function PackController:Init(controllers)
-	C = controllers
+local function hide()
+	packing = nil
+	meter.Visible = false
+end
+
+function PackController:Init()
 	gui = Ui.screen("Pack", 9)
 	local root = Ui.root(gui)
-	-- The power meter (Throw Food style): a tall bar, the needle runs up and down, the
-	-- target zone glows in the middle. Tap anywhere or the big PUSH tile.
-	meter = Ui.frame({
-		Name = "Meter",
-		Size = UDim2.fromOffset(170, 360),
-		AnchorPoint = Vector2.new(1, 0.5),
-		Position = UDim2.new(1, -24, 0.5, 20),
-		BackgroundTransparency = 1,
-		Visible = false,
-	})
+	meter = Ui.frame({ Name = "Meter", BackgroundTransparency = 1, Visible = false })
+	meter.AnchorPoint = L.Meter.Anchor
+	meter.Position = L.Meter.Pos
+	meter.Size = UDim2.fromOffset(L.Meter.Size.X, L.Meter.Size.Y)
 	Ui.autoScale(meter)
 	meter.Parent = root
-	local bar = Ui.frame({
-		Name = "Bar",
-		Size = UDim2.fromOffset(70, 340),
-		Position = UDim2.fromOffset(40, 0),
+	local w = 66
+	local h = L.Meter.Size.Y - 70
+	-- The capsule: white outline tube, red at both ends, yellow, green in the middle.
+	local tube = Ui.frame({
+		Name = "Tube",
+		Size = UDim2.fromOffset(w, h),
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.new(0.5, 0, 0, 0),
 		BackgroundColor3 = Ui.Colors.Red,
+		ClipsDescendants = true,
 	})
-	Ui.gradient(bar, Ui.Colors.Red)
-	Ui.stroke(bar, 4)
-	bar.Parent = meter
+	Ui.corner(tube, w // 2)
+	local outline = Ui.stroke(tube, 5, Color3.new(1, 1, 1))
+	outline.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	tube.Parent = meter
+	local shade = Instance.new("UIGradient")
+	shade.Color = ColorSequence.new({
+		ColorSequenceKeypoint.new(0, Color3.fromRGB(200, 200, 210)),
+		ColorSequenceKeypoint.new(0.35, Color3.new(1, 1, 1)),
+		ColorSequenceKeypoint.new(1, Color3.fromRGB(170, 170, 185)),
+	})
+	shade.Parent = tube
 	yellow = Ui.frame({
 		Name = "Yellow",
 		AnchorPoint = Vector2.new(0, 0.5),
@@ -91,7 +92,7 @@ function PackController:Init(controllers)
 		Size = UDim2.fromScale(1, 0.4),
 		BackgroundColor3 = Ui.Colors.Yellow,
 	})
-	yellow.Parent = bar
+	yellow.Parent = tube
 	green = Ui.frame({
 		Name = "Green",
 		AnchorPoint = Vector2.new(0, 0.5),
@@ -99,47 +100,61 @@ function PackController:Init(controllers)
 		Size = UDim2.fromScale(1, 0.14),
 		BackgroundColor3 = Ui.Colors.Green,
 	})
-	Ui.gradient(green, Ui.Colors.Green)
-	green.Parent = bar
-	Ui.icon(
-		"Star",
-		{ Size = UDim2.fromOffset(54, 54), AnchorPoint = Vector2.new(0, 0.5), Position = UDim2.new(1, 6, 0.5, 0) }
-	).Parent =
-		green
-	needle = Ui.frame({
-		Name = "Needle",
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 1),
-		Size = UDim2.new(1, 26, 0, 10),
-		BackgroundColor3 = Ui.Colors.Snow,
-	})
-	Ui.stroke(needle, 3)
-	needle.Parent = bar
-	-- Big PUSH! tile where the ROLL/GO tile was, so the thumb is already there.
-	local pushHolder = Ui.frame({
-		Name = "PushHolder",
-		Size = UDim2.fromOffset(160, 160),
-		AnchorPoint = Vector2.new(0.5, 1),
-		Position = UDim2.new(0.5, 0, 1, -12),
+	green.Parent = tube
+	-- Star beside the green band (outside the clipped tube so it is not cut).
+	local starHolder = Ui.frame({
+		Name = "StarHolder",
 		BackgroundTransparency = 1,
-		Visible = false,
+		Size = UDim2.fromOffset(52, 52),
+		AnchorPoint = Vector2.new(0, 0.5),
+		Position = UDim2.new(0.5, w / 2 + 6, 0, h / 2),
 	})
-	Ui.autoScale(pushHolder)
-	pushHolder.Parent = root
-	pushTile = Ui.tile("Push", "Tap", "PUSH!", Ui.Colors.Power, push, 160)
-	pushTile.Parent = pushHolder
-	pushScale = Instance.new("UIScale")
-	pushScale.Parent = pushHolder
+	Ui.icon("Star", { Size = UDim2.fromScale(1, 1) }).Parent = starHolder
+	starHolder.Parent = meter
+	-- The slider: a white bar wider than the tube with a dark outline.
+	slider = Ui.frame({
+		Name = "Slider",
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.new(0.5, 0, 0, h),
+		Size = UDim2.fromOffset(w + 26, 14),
+		BackgroundColor3 = Color3.new(1, 1, 1),
+		ZIndex = 4,
+	})
+	Ui.corner(slider, 7)
+	Ui.stroke(slider, 3)
+	slider.Parent = meter
+	tapWord = Ui.label({
+		Name = "Tap",
+		Size = UDim2.new(1, 40, 0, 52),
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.new(0.5, 0, 0, h + 12),
+		Text = "TAP!",
+		TextColor3 = Ui.Colors.Yellow,
+	})
+	tapScale = Instance.new("UIScale")
+	tapScale.Parent = tapWord
+	tapWord.Parent = meter
+	hand = Ui.icon("Tap", {
+		Name = "Hand",
+		Size = UDim2.fromOffset(84, 84),
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.new(0.5, 96, 0, h + 30),
+		ZIndex = 5,
+	})
+	hand.Parent = meter
 
-	-- PERFECT! / GOOD! / WEAK! banner.
 	quality = Ui.label({
 		Name = "Quality",
-		Size = UDim2.fromOffset(600, 90),
+		Size = UDim2.fromOffset(600, 96),
 		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.32),
+		Position = UDim2.fromScale(0.5, 0.3),
 		Text = "",
 		Visible = false,
 	})
+	local qs = quality:FindFirstChildOfClass("UIStroke")
+	if qs then
+		qs.Thickness = 4
+	end
 	qualityScale = Instance.new("UIScale")
 	qualityScale.Parent = quality
 	quality.Parent = root
@@ -148,74 +163,71 @@ end
 function PackController:Start()
 	Net.event("PackStart").OnClientEvent
 		:Connect(function(start: number, _period: number, greenWidth: number, yellowWidth: number)
-			packing = { start = start, green = greenWidth, yellow = yellowWidth }
+			packing = { start = start }
 			tapped = false
 			green.Size = UDim2.fromScale(1, greenWidth)
 			yellow.Size = UDim2.fromScale(1, greenWidth + yellowWidth * 2)
+			local runs = State.data and State.data.Stats and State.data.Stats.Runs or 0
+			hand.Visible = runs < 3
 			meter.Visible = true
-			pushTile.Parent.Visible = true
-			C.HudController:SetPacking(true)
 		end)
 	Net.event("RunStarted").OnClientEvent:Connect(function(userId: number, info)
-		if userId == player.UserId then
-			packing = nil
-			meter.Visible = false
-			pushTile.Parent.Visible = false
-			quality.Text = `{string.upper(info.Quality)}!`
-			Ui.sound(if info.Quality == "Perfect" then "Perfect" elseif info.Quality == "Good" then "Good" else "Weak")
-			local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart") :: BasePart?
-			if root then
-				Fx.burst("Puff", root.Position + root.CFrame.LookVector * 4, 1.4)
-				Fx.burst("Ring", root.Position - Vector3.yAxis * 2.5, 1)
-				if info.Quality == "Perfect" then
-					Fx.burst("Sparkle", root.Position, 2)
-				end
-			end
-			quality.TextColor3 = if info.Quality == "Perfect"
-				then Ui.Colors.Green
-				elseif info.Quality == "Good" then Ui.Colors.Yellow
-				else Ui.Colors.Red
-			quality.TextTransparency = 0
-			quality.Visible = true
-			qualityScale.Scale = 0.4
-			TweenService:Create(qualityScale, TweenInfo.new(0.3, Enum.EasingStyle.Back), { Scale = 1.15 }):Play()
-			task.delay(1, function()
-				TweenService:Create(quality, TweenInfo.new(0.3), { TextTransparency = 1 }):Play()
-			end)
+		if userId ~= player.UserId then
+			return
 		end
+		hide()
+		quality.Text = `{string.upper(info.Quality)}!`
+		Ui.sound(if info.Quality == "Perfect" then "Perfect" elseif info.Quality == "Good" then "Good" else "Weak")
+		local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart") :: BasePart?
+		if hrp then
+			Fx.burst("Puff", hrp.Position + hrp.CFrame.LookVector * 4, 1.4)
+			Fx.burst("Ring", hrp.Position - Vector3.yAxis * 2.5, 1)
+			if info.Quality == "Perfect" then
+				Fx.burst("Sparkle", hrp.Position, 2)
+			end
+		end
+		quality.TextColor3 = if info.Quality == "Perfect"
+			then Ui.Colors.Green
+			elseif info.Quality == "Good" then Ui.Colors.Yellow
+			else Ui.Colors.Red
+		quality.TextTransparency = 0
+		quality.Visible = true
+		qualityScale.Scale = 0.4
+		TweenService:Create(qualityScale, TweenInfo.new(0.3, Enum.EasingStyle.Back), { Scale = 1.15 }):Play()
+		task.delay(1, function()
+			TweenService:Create(quality, TweenInfo.new(0.3), { TextTransparency = 1 }):Play()
+		end)
 	end)
 	UserInputService.InputBegan:Connect(function(input, processed)
-		if processed or not packing then
+		if not packing then
 			return
 		end
 		local t = input.UserInputType
+		-- Any tap counts while the meter is up (a tap on a HUD button too: nothing else
+		-- is on screen then).
 		if
 			t == Enum.UserInputType.Touch
 			or t == Enum.UserInputType.MouseButton1
-			or input.KeyCode == Enum.KeyCode.Space
-			or input.KeyCode == Enum.KeyCode.ButtonA
+			or (not processed and (input.KeyCode == Enum.KeyCode.Space or input.KeyCode == Enum.KeyCode.ButtonA))
 		then
 			push()
 		end
 	end)
 	RunService.RenderStepped:Connect(function()
+		if not packing then
+			return
+		end
 		local phase = player:GetAttribute("RollPhase")
-		if packing then
-			if phase ~= "Packing" and phase ~= nil then
-				packing = nil
-				meter.Visible = false
-				pushTile.Parent.Visible = false
-			else
-				local t = Workspace:GetServerTimeNow() - packing.start
-				needle.Position = UDim2.fromScale(0.5, 1 - RollMath.needle(math.max(0, t)))
-				pushScale.Scale = if tapped then 0.9 else 1 + 0.06 * math.sin(os.clock() * 10)
-			end
+		if phase ~= "Packing" and phase ~= nil then
+			hide()
+			return
 		end
-		-- The HUD buttons come back once the pack is over (BallController hides them while rolling).
-		if packing == nil then
-			C.HudController:SetPacking(false)
-		end
-		C.HudController:SetDeck(phase == nil and packing == nil and nearDeck())
+		local t = Workspace:GetServerTimeNow() - packing.start
+		local h = L.Meter.Size.Y - 70
+		slider.Position = UDim2.new(0.5, 0, 0, h * (1 - RollMath.needle(math.max(0, t))))
+		local pulse = 1 + 0.08 * math.abs(math.sin(os.clock() * 6))
+		tapScale.Scale = if tapped then 0.9 else pulse
+		hand.Position = UDim2.new(0.5, 96, 0, h + 30 - 10 * math.abs(math.sin(os.clock() * 6)))
 	end)
 end
 

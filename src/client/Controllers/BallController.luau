@@ -77,7 +77,7 @@ local function onStarted(userId: number, info)
 		cameraBall = d
 		C.SteerController:SetActive(true)
 		C.TrackFxController:BeginRun(info)
-		C.HudController:ShowZoneBar(true)
+		C.HudController:ShowZoneBar(true, info)
 		Ui.sound("Launch")
 		Ui.loop("Roll", true)
 		local cam = Workspace.CurrentCamera

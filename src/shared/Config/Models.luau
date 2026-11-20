@@ -4,6 +4,7 @@
 -- pivot the loaded model on its bounding box and place it at origin * Center.
 return {
 	Base = { Id = 100921593962689, Center = Vector3.new(0.0, 7.8745, -0.358) },
+	Chevron = { Id = 137398976321369, Center = Vector3.new(-0.0, 0.25, -0.4828) },
 	Deck = { Id = 123888722656689, Center = Vector3.new(-0.0, 17.2, 0.4263) },
 	Prop_Bench = { Id = 77511546535111, Center = Vector3.new(-0.0, 2.2009, 0.1075) },
 	Prop_Crystal = { Id = 114190881370558, Center = Vector3.new(-0.0, 2.587, 0.0) },

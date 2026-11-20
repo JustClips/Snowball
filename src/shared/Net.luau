@@ -35,6 +35,7 @@ local EVENTS: { [string]: number } = {
 local FUNCTIONS: { [string]: number } = {
 	GetState = 2,
 	BuyRoller = 4, -- () -> ok, message: buy the next cash Snow Roller
+	StopTraining = 2, -- () -> ok: the STOP button, steps you off your roller
 	Rewards = 4, -- (action, arg?) -> ok, message, extra: see RewardService
 	RedeemCode = 2, -- (code) -> ok, message
 	Rebirth = 2, -- () -> ok, message: see RebirthService

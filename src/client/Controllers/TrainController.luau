@@ -1,7 +1,8 @@
 --!strict
--- Training on your Snow Roller (GAME_PLAN §5.1): automatic while you stand near your
--- roller (Dev, 2026-11-20); tapping is only for Snow Pops (PopController). "+N" floaters
--- are pooled. Every roller's ball spins while its owner trains.
+-- Training on your Snow Roller (GAME_PLAN §5.1). Step onto the roller's deck and training
+-- runs by itself (Dev, 2026-11-20): you are locked in place pushing the ball, every prompt
+-- is off, and the HUD's bottom-centre button turns into a red STOP. A "+N" pops over your
+-- head on every rep (Steal an Egg's training floaters). Every owner's ball spins.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -34,30 +35,84 @@ local function training(): boolean
 	return player:GetAttribute("Training") == true
 end
 
-local function floater(text: string, at: Vector2, color: Color3?)
+local headBoard: BillboardGui? = nil
+local function board(): BillboardGui?
+	local character = player.Character
+	local head = character and character:FindFirstChild("Head") :: BasePart?
+	if not head then
+		return nil
+	end
+	if headBoard and headBoard.Adornee == head and headBoard.Parent then
+		return headBoard
+	end
+	local b = Instance.new("BillboardGui")
+	b.Name = "RepFloaters"
+	b.Size = UDim2.fromOffset(260, 220)
+	b.StudsOffsetWorldSpace = Vector3.new(0, 4.5, 0)
+	b.AlwaysOnTop = true
+	b.LightInfluence = 0
+	b.Adornee = head
+	b.Parent = gui
+	for _, label in pool do
+		label.Parent = b
+	end
+	headBoard = b
+	return b
+end
+
+-- "+N" rising from above your head.
+local function floater(text: string, color: Color3?)
+	if not board() then
+		return
+	end
 	poolIndex = poolIndex % POOL_SIZE + 1
 	local label = pool[poolIndex]
 	label.Text = text
-	label.TextColor3 = color or Ui.Colors.Snow
-	local jitter = Vector2.new(math.random(-40, 40), math.random(-20, 10))
-	local start = at + jitter
-	label.Position = UDim2.fromOffset(start.X, start.Y)
+	label.TextColor3 = color or Color3.fromRGB(120, 210, 255)
+	local x = 130 + math.random(-30, 30)
+	label.Position = UDim2.fromOffset(x, 190)
 	label.TextTransparency = 0
 	label.Visible = true
 	local stroke = label:FindFirstChildOfClass("UIStroke")
 	if stroke then
 		stroke.Transparency = 0
-		TweenService:Create(stroke, TweenInfo.new(0.8), { Transparency = 1 }):Play()
+		TweenService:Create(stroke, TweenInfo.new(0.9), { Transparency = 1 }):Play()
 	end
-	TweenService:Create(label, TweenInfo.new(0.8, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-		Position = UDim2.fromOffset(start.X, start.Y - 90),
+	local scale = label:FindFirstChildOfClass("UIScale")
+	if scale then
+		scale.Scale = 0.5
+		TweenService:Create(scale, TweenInfo.new(0.2, Enum.EasingStyle.Back), { Scale = 1 }):Play()
+	end
+	TweenService:Create(label, TweenInfo.new(0.9, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+		Position = UDim2.fromOffset(x, 40),
 		TextTransparency = 1,
 	}):Play()
 end
 
-local function screenCenter(): Vector2
-	local cam = Workspace.CurrentCamera
-	return if cam then cam.ViewportSize / 2 else Vector2.new(400, 300)
+-- Locked in place while training: no walking, no jumping, no prompts.
+local saved: { speed: number, jump: number, usePower: boolean, power: number }? = nil
+local function lock(on: boolean)
+	local character = player.Character
+	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+	if not humanoid then
+		return
+	end
+	if on and not saved then
+		saved = {
+			speed = humanoid.WalkSpeed,
+			jump = humanoid.JumpHeight,
+			usePower = humanoid.UseJumpPower,
+			power = humanoid.JumpPower,
+		}
+		humanoid.WalkSpeed = 0
+		humanoid.JumpHeight = 0
+		humanoid.JumpPower = 0
+	elseif not on and saved then
+		humanoid.WalkSpeed = saved.speed
+		humanoid.JumpHeight = saved.jump
+		humanoid.JumpPower = saved.power
+		saved = nil
+	end
 end
 
 -- The push animation (art/anim/push.py): standing still at your roller you walk up behind
@@ -91,10 +146,7 @@ local function updatePush()
 		end
 		return
 	end
-	local still = humanoid.MoveDirection.Magnitude < 0.1
-	if pushing and not still then
-		stopPush()
-	elseif not pushing and still and Anims.Player_Push then
+	if not pushing and Anims.Player_Push then
 		local pad = myRollerPad()
 		if not pad then
 			return
@@ -159,11 +211,12 @@ function TrainController:Init()
 	for i = 1, POOL_SIZE do
 		local l = Ui.label({
 			Name = "Float" .. i,
-			Size = UDim2.fromOffset(260, 64),
+			Size = UDim2.fromOffset(220, 52),
 			AnchorPoint = Vector2.new(0.5, 0.5),
 			Text = "",
 			Visible = false,
 		})
+		Instance.new("UIScale").Parent = l
 		l.Parent = root
 		pool[i] = l
 	end
@@ -209,17 +262,22 @@ function TrainController:Start()
 		local popMult = State.data and State.data.PopMult or 1
 		floater(
 			"+" .. Format.big(amount),
-			screenCenter() + Vector2.new(0, 60),
-			if popMult >= 25 then Color3.fromRGB(255, 130, 220) elseif popMult > 1 then Ui.Colors.Ice else nil
+			if popMult >= 25 then Color3.fromRGB(255, 130, 220) elseif popMult > 1 then Ui.Colors.Gold else nil
 		)
 	end)
-	player:GetAttributeChangedSignal("Training"):Connect(updateReadout)
+	player:GetAttributeChangedSignal("Training"):Connect(function()
+		updateReadout()
+		lock(training())
+	end)
 	State.observe(updateReadout)
 	RunService.RenderStepped:Connect(spinRollers)
 	RunService.Heartbeat:Connect(updatePush)
 	player.CharacterAdded:Connect(function()
 		pushTrack = nil
 		pushing = false
+		saved = nil
+		headBoard = nil
+		task.defer(lock, training())
 	end)
 end
 

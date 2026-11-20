@@ -108,7 +108,8 @@ local function teleport(player: Player, where: any): (boolean, string?)
 		local spot = World.rollerSpot(index)
 		character:PivotTo(CFrame.lookAt(spot + Vector3.yAxis * 4, Vector3.new(0, spot.Y + 4, spot.Z)))
 	elseif where == "Deck" then
-		local pos = World.DeckStand + Vector3.new(World.laneX(index), 2, -10)
+		-- Straight onto your lane pad: standing on it starts the launch (RollService).
+		local pos = World.DeckStand + Vector3.new(World.laneX(index), 2, 0)
 		character:PivotTo(CFrame.lookAt(pos, pos + Vector3.zAxis))
 	else
 		return false, nil

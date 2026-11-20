@@ -12,7 +12,7 @@ local Economy = {
 	TrainRepsPerSecond = 0.8,
 	FastTrainMult = 2,
 	AutoTrainTapsPerSecond = 0.8, -- reps/s used to value Training Time products
-	RollerRadius = 14, -- studs (flat) from the roller pad centre that count as "on the roller"
+	RollerDeck = 16, -- the roller's square deck (studs): standing on it = training
 	RollerHeight = 8,
 
 	-- Rebirth (GAME_PLAN §5.11)

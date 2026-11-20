@@ -89,21 +89,27 @@ function TrainService:Grant(player: Player, taps: number, quiet: boolean?): numb
 	return gain
 end
 
-local function onRoller(player: Player): boolean
+local function rollerPad(player: Player): BasePart?
 	local index = player:GetAttribute("BaseIndex")
+	local base = type(index) == "number" and S.WorldService:GetBase(index)
+	return base and base:FindFirstChild("RollerPad") :: BasePart?
+end
+
+-- On the roller = standing on its 16 x 16 deck (Dev 2026-11-20: "when I step on the
+-- training thing"), not anywhere near it.
+local function onRoller(player: Player): boolean
 	local character = player.Character
 	local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
-	if type(index) ~= "number" or not root then
+	local pad = rollerPad(player)
+	if not root or not pad then
 		return false
 	end
 	if S.RollService and S.RollService:IsBusy(player) then
 		return false
 	end
-	local spot = World.rollerSpot(index)
-	local offset = root.Position - spot
-	return Vector3.new(offset.X, 0, offset.Z).Magnitude <= Economy.RollerRadius
-		and offset.Y > -2
-		and offset.Y < Economy.RollerHeight
+	local p = pad.CFrame:PointToObjectSpace(root.Position)
+	local half = Economy.RollerDeck / 2
+	return math.abs(p.X) <= half and math.abs(p.Z) <= half and p.Y > -1 and p.Y < Economy.RollerHeight
 end
 
 local function setTraining(player: Player, on: boolean)
@@ -338,9 +344,23 @@ function TrainService:RefreshRoller(player: Player)
 	model.Parent = base
 end
 
+-- STOP (bottom centre while training): step off the roller onto the plaza side.
+local function stopTraining(player: Player): (boolean, string?)
+	local pad = rollerPad(player)
+	local character = player.Character
+	if not pad or not character or not TrainService:IsTraining(player) then
+		return false, nil
+	end
+	setTraining(player, false)
+	local spot = pad.CFrame * CFrame.new(0, 4, -(Economy.RollerDeck / 2 + 6))
+	character:PivotTo(CFrame.lookAt(spot.Position, spot.Position + spot.LookVector))
+	return true, nil
+end
+
 function TrainService:Init(services)
 	S = services
 	Net.onInvoke("BuyRoller", buyRoller)
+	Net.onInvoke("StopTraining", stopTraining)
 	S.BaseService.BaseAssigned:Connect(function(player)
 		TrainService:RefreshRoller(player)
 	end)

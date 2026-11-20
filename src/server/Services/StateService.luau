@@ -28,9 +28,9 @@ function StateService:GetServerState(): Folder
 	return serverState
 end
 
--- The tutorial: Train -> Roll -> Egg (place + hatch) -> Roller (free Stone Roller) ->
--- Pine (reach the Pine Forest). The player does every step. Never steps back.
-local ORDER = { Train = 1, Roll = 2, Egg = 3, Roller = 4, Pine = 5, Done = 6 }
+-- The tutorial: Train -> Roll -> Egg (place + hatch) -> Roller (free Stone Roller). The
+-- player does every step. Never steps back. (The old "GO FAR!" Pine step confused Dev.)
+local ORDER = { Train = 1, Roll = 2, Egg = 3, Roller = 4, Done = 6 }
 
 local function tutorialStep(player: Player, session: any): string
 	local data = session.Data
@@ -44,13 +44,11 @@ local function tutorialStep(player: Player, session: any): string
 		step = "Egg"
 	elseif data.Roller < 2 then
 		step = "Roller"
-	elseif data.BestZone < 2 then
-		step = "Pine"
 	else
 		step = "Done"
 	end
 	local best = session.Runtime.TutorialMax
-	if best and ORDER[best] > ORDER[step] then
+	if best and ORDER[best] and ORDER[best] > ORDER[step] then
 		step = best
 	end
 	session.Runtime.TutorialMax = step
