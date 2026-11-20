@@ -32,14 +32,45 @@ local function service(name, cls)
 	services[name] = s
 	return s
 end
-for _, n in {
-	"ReplicatedStorage", "Players", "Workspace", "TweenService", "RunService", "UserInputService", "GuiService",
-	"SoundService", "ProximityPromptService", "MarketplaceService", "ContentProvider", "HttpService", "Lighting",
-	"Debris", "CollectionService", "TextService", "StarterGui", "SocialService", "BadgeService", "StarterPlayer",
-	"ContextActionService", "PhysicsService", "VRService", "PolicyService", "LocalizationService", "Teams",
-	"AvatarEditorService", "AssetService", "TeleportService", "GroupService", "AnalyticsService", "Chat",
-	"TextChatService", "HapticService", "ExperienceNotificationService",
-} do
+for _, n in
+	{
+		"ReplicatedStorage",
+		"Players",
+		"Workspace",
+		"TweenService",
+		"RunService",
+		"UserInputService",
+		"GuiService",
+		"SoundService",
+		"ProximityPromptService",
+		"MarketplaceService",
+		"ContentProvider",
+		"HttpService",
+		"Lighting",
+		"Debris",
+		"CollectionService",
+		"TextService",
+		"StarterGui",
+		"SocialService",
+		"BadgeService",
+		"StarterPlayer",
+		"ContextActionService",
+		"PhysicsService",
+		"VRService",
+		"PolicyService",
+		"LocalizationService",
+		"Teams",
+		"AvatarEditorService",
+		"AssetService",
+		"TeleportService",
+		"GroupService",
+		"AnalyticsService",
+		"Chat",
+		"TextChatService",
+		"HapticService",
+		"ExperienceNotificationService",
+	}
+do
 	service(n)
 end
 -- Waiting for something the server would make (EggModels, Bases...): an empty Folder.
@@ -166,7 +197,10 @@ local env = {
 	end,
 	DateTime = {
 		now = function()
-			return { UnixTimestamp = 1795000000 + math.floor(R.now()), UnixTimestampMillis = (1795000000 + R.now()) * 1000 }
+			return {
+				UnixTimestamp = 1795000000 + math.floor(R.now()),
+				UnixTimestampMillis = (1795000000 + R.now()) * 1000,
+			}
 		end,
 	},
 	os = setmetatable({
@@ -259,11 +293,29 @@ local data = {
 		Funnel = {},
 		OffersShown = {},
 	},
-	Stats = { Taps = 10, PopsClaimed = 1, Runs = 3, TotalDistance = 500, Smashes = 4, EggsFound = 2, Hatches = 1, Playtime = 600 },
+	Stats = {
+		Taps = 10,
+		PopsClaimed = 1,
+		Runs = 3,
+		TotalDistance = 500,
+		Smashes = 4,
+		EggsFound = 2,
+		Hatches = 1,
+		Playtime = 600,
+	},
 	Settings = { Music = 0.6, Sfx = 0.8, Steer = 1, FreePops = true },
 	IncomePerSec = 84,
 	Luck = 1,
-	Rewards = { DailyIndex = 3, DailyReady = true, DailyNextAt = 0, PlaytimeClaimed = { true }, Playtime = 400, Spins = 0, FreeSpin = true, CashOf = {} },
+	Rewards = {
+		DailyIndex = 3,
+		DailyReady = true,
+		DailyNextAt = 0,
+		PlaytimeClaimed = { true },
+		Playtime = 400,
+		Spins = 0,
+		FreeSpin = true,
+		CashOf = {},
+	},
 	Spins = 1,
 	CashMult = 1,
 	CashPacks = nil,
@@ -372,7 +424,12 @@ SCENARIOS.keeprolling = function()
 	})
 end
 SCENARIOS.results = function()
-	controllers.ResultsController:Show({ Zone = 2, Cash = big(2400), Eggs = { "Common", "Rare", "Epic", "Legendary" }, Record = true })
+	controllers.ResultsController:Show({
+		Zone = 2,
+		Cash = big(2400),
+		Eggs = { "Common", "Rare", "Epic", "Legendary" },
+		Record = true,
+	})
 end
 SCENARIOS.starter = function()
 	controllers.StarterPackController:Open()
@@ -447,9 +504,12 @@ R.advance(tonumber(process.args[4]) or 1.2)
 local screens = {}
 for _, g in playerGui:GetChildren() do
 	if g.ClassName == "ScreenGui" then
-		table.insert(screens, Dump.node(g, R.typeof, function(x, k)
-			return x[k]
-		end))
+		table.insert(
+			screens,
+			Dump.node(g, R.typeof, function(x, k)
+				return x[k]
+			end)
+		)
 	end
 end
 fs.writeFile(outPath, serde.encode("json", screens))

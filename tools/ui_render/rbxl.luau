@@ -30,7 +30,12 @@ end
 local rs = game:FindFirstChild("ReplicatedStorage")
 if rs then
 	for _, d in rs:GetDescendants() do
-		if (d.ClassName == "Frame" or d.ClassName == "ImageLabel") and d.Parent and not d.Parent:IsA("GuiObject") and not d:FindFirstAncestorWhichIsA("ScreenGui") then
+		if
+			(d.ClassName == "Frame" or d.ClassName == "ImageLabel")
+			and d.Parent
+			and not d.Parent:IsA("GuiObject")
+			and not d:FindFirstAncestorWhichIsA("ScreenGui")
+		then
 			local node = Dump.node(d, typeof, get)
 			table.insert(screens, { c = "ScreenGui", n = "Template_" .. d.Name, p = { Enabled = false }, k = { node } })
 		end
