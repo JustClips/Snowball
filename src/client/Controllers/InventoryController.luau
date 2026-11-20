@@ -150,7 +150,9 @@ local function viewport(parent: GuiObject, item: Item, size: UDim2, pos: UDim2)
 		model = PetLook.make(item.pet.Id, item.pet.Mutation, item.pet.Huge)
 	end
 	if model then
-		model:PivotTo(CFrame.Angles(0, math.rad(200), 0))
+		-- Pets face -Z, where this camera sits: a small turn shows a 3/4 front view (200° showed
+		-- their backs, Dev 2026-11-20).
+		model:PivotTo(CFrame.Angles(0, math.rad(25), 0))
 		model.Parent = vp
 		local cam = Instance.new("Camera")
 		local box, sz = model:GetBoundingBox()
@@ -288,12 +290,35 @@ local function tile(item: Item, i: number): TextButton
 	b.LayoutOrder = i
 	local rarity = if item.kind == "Egg" then item.id else PetStats.rarity(item.pet)
 	local color = rarityColor(rarity)
-	b.BackgroundColor3 = color:Lerp(Ui.Colors.PanelDark, 0.6)
-	Ui.corner(b, 14)
-	Ui.gradient(b, b.BackgroundColor3)
-	local edge = Ui.stroke(b, 3, color)
+	-- Like the packs' index cards: the rarity colour as a bright-to-deep gradient, black
+	-- outline, rays behind the model, a dark strip with the name at the bottom.
+	b.BackgroundColor3 = Color3.new(1, 1, 1)
+	local paint = Instance.new("UIGradient")
+	paint.Color = ColorSequence.new(color:Lerp(Color3.new(1, 1, 1), 0.2), color:Lerp(Color3.new(0, 0, 0), 0.4))
+	paint.Rotation = 90
+	paint.Parent = b
+	local edge = Ui.stroke(b, 3)
 	edge.Name = "Edge"
+	Ui.icon("Fx_Rays", {
+		Name = "Rays",
+		Size = UDim2.fromScale(1.1, 1.1),
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.new(0.5, 0, 0.5, -16),
+		ImageTransparency = 0.6,
+		ZIndex = 1,
+	}).Parent =
+		b
 	viewport(b, item, UDim2.new(1, -8, 1, -44), UDim2.fromOffset(4, 4))
+	local strip = Ui.frame({
+		Name = "Strip",
+		Size = UDim2.new(1, 0, 0, 42),
+		AnchorPoint = Vector2.new(0, 1),
+		Position = UDim2.fromScale(0, 1),
+		BackgroundColor3 = Color3.new(0, 0, 0),
+		BackgroundTransparency = 0.5,
+		ZIndex = 2,
+	})
+	strip.Parent = b
 	local name = Ui.label({
 		Name = "Name",
 		Size = UDim2.new(1, -8, 0, 20),
@@ -301,7 +326,7 @@ local function tile(item: Item, i: number): TextButton
 		Text = if item.kind == "Egg" then `{rarity} Egg` else PetStats.name(item.pet),
 		ZIndex = 3,
 	})
-	colorText(name, rarity)
+	Ui.maxText(name, 18)
 	name.Parent = b
 	local sub = Ui.label({
 		Name = "Sub",
@@ -468,7 +493,7 @@ function InventoryController:Init(controllers)
 		b.Parent = hotbar
 		slots[i] = b
 	end
-	bagButton = Ui.tile("Bag", "Chest", "Bag", Ui.Colors.Orange, function()
+	bagButton = Ui.tile("Bag", "Backpack", "Bag", Ui.Colors.Orange, function()
 		InventoryController:Toggle()
 	end, L.Slot)
 	bagButton.LayoutOrder = 10
@@ -493,7 +518,10 @@ function InventoryController:Init(controllers)
 
 	-- Bag window.
 	local body
-	window, body = Ui.window(gui, "BagWindow", "BAG", Vector2.new(660, 500))
+	window, body = Ui.window(gui, "BagWindow", "BAG", Vector2.new(640, 440), {
+		Icon = "Backpack",
+		Color = Ui.Colors.Orange,
+	})
 	local top = Ui.frame({ Name = "Top", BackgroundTransparency = 1, Size = UDim2.new(1, 0, 0, 56) })
 	Ui.icon("Pets", { Size = UDim2.fromOffset(48, 48), Position = UDim2.fromOffset(0, 4) }).Parent = top
 	petsCount = Ui.label({
@@ -532,8 +560,9 @@ function InventoryController:Init(controllers)
 	grid.AutomaticCanvasSize = Enum.AutomaticSize.Y
 	grid.CanvasSize = UDim2.new()
 	local layout = Instance.new("UIGridLayout")
-	layout.CellSize = UDim2.fromOffset(116, 140)
+	layout.CellSize = UDim2.fromOffset(112, 140)
 	layout.CellPadding = UDim2.fromOffset(10, 10)
+	layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 	layout.SortOrder = Enum.SortOrder.LayoutOrder
 	layout.Parent = grid
 	local pad = Instance.new("UIPadding")

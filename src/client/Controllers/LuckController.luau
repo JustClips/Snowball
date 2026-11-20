@@ -52,7 +52,8 @@ local TIERS: { { At: number, Color: Color3? } } = {
 local gui: ScreenGui
 -- Roll counter
 local pill: Frame? = nil
-local cloverScale: UIScale? = nil
+local ringGrad: UIGradient? = nil
+local countLabel: TextLabel? = nil
 local pips: { Frame } = {}
 local glow: Frame? = nil
 local glowGrad: UIGradient
@@ -138,50 +139,48 @@ local function buildCounter()
 	g.Parent = action
 	glow = g
 
-	-- No box, no words (Dev 2026-11-20): a row of 10 round dots right above ROLL fills one
-	-- per roll, the last one is a clover. When the next roll is lucky every dot turns
-	-- rainbow, the clover grows and pulses, and ROLL gets the rainbow glow.
+	-- A round clover badge on ROLL's top-right corner (Dev 2026-11-20: the dots and the
+	-- pulsing looked weird). The small number = rolls until the free Lucky Roll. When the
+	-- next roll is lucky the badge turns gold, its ring spins rainbow and ROLL glows.
 	local p = Ui.frame({
-		Name = "LuckyCounter",
-		AnchorPoint = Vector2.new(0.5, 1),
-		Position = UDim2.new(0.5, 0, 0, -6),
-		Size = UDim2.fromOffset(236, 34),
-		BackgroundTransparency = 1,
+		Name = "LuckyBadge",
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.new(1, -6, 0, 4),
+		Size = UDim2.fromOffset(52, 52),
+		BackgroundColor3 = Color3.fromRGB(30, 34, 48),
+		ZIndex = roll.ZIndex + 3,
 	})
-	local layout = Instance.new("UIListLayout")
-	layout.FillDirection = Enum.FillDirection.Horizontal
-	layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-	layout.VerticalAlignment = Enum.VerticalAlignment.Center
-	layout.Padding = UDim.new(0, 5)
-	layout.SortOrder = Enum.SortOrder.LayoutOrder
-	layout.Parent = p
-	for i = 1, Economy.LuckyEvery - 1 do
-		local pip = Ui.frame({
-			Name = "Pip" .. i,
-			LayoutOrder = i,
-			Size = UDim2.fromOffset(15, 15),
-			BackgroundColor3 = Color3.fromRGB(60, 66, 96),
-		})
-		Ui.round(pip)
-		Ui.stroke(pip, 2.5)
-		local g = Instance.new("UIGradient")
-		g.Color = RAINBOW
-		g.Enabled = false
-		g.Parent = pip
-		pip.Parent = p
-		pips[i] = pip
-	end
-	-- The clover at the end (the lucky roll).
-	local clover = Ui.frame({
-		Name = "Clover",
-		LayoutOrder = 99,
-		Size = UDim2.fromOffset(34, 34),
-		BackgroundTransparency = 1,
+	Ui.round(p)
+	local ring = Ui.stroke(p, 3.5, Color3.new(1, 1, 1))
+	ringGrad = Instance.new("UIGradient")
+	ringGrad.Color = RAINBOW
+	ringGrad.Enabled = false
+	ringGrad.Parent = ring
+	Ui.icon("Luck", {
+		Size = UDim2.fromScale(0.78, 0.78),
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		ZIndex = roll.ZIndex + 4,
+	}).Parent =
+		p
+	countLabel = Ui.label({
+		Name = "Count",
+		Size = UDim2.fromOffset(26, 26),
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.new(1, 0, 1, -4),
+		BackgroundTransparency = 0,
+		BackgroundColor3 = Color3.fromRGB(30, 34, 48),
+		Text = "",
+		ZIndex = roll.ZIndex + 5,
 	})
-	cloverScale = Instance.new("UIScale")
-	cloverScale.Parent = clover
-	Ui.icon("Luck", { Size = UDim2.fromScale(1, 1), ZIndex = 3 }).Parent = clover
-	clover.Parent = p
+	Ui.round(countLabel)
+	Ui.maxText(countLabel, 18)
+	local cs = Instance.new("UIStroke")
+	cs.Color = Color3.new(1, 1, 1)
+	cs.Thickness = 2
+	cs.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	cs.Parent = countLabel
+	countLabel.Parent = p
 	p.Parent = roll
 	pill = p
 end
@@ -192,20 +191,14 @@ local function refreshCounter()
 	end
 	local left, charged = rollsLeft()
 	ready = left == 0 or charged
-	local done = Economy.LuckyEvery - 1 - left
-	for i, pip in pips do
-		local on = i <= done or ready
-		pip.BackgroundColor3 = if ready
-			then Color3.new(1, 1, 1)
-			elseif on then Color3.fromRGB(110, 235, 90)
-			else Color3.fromRGB(60, 66, 96)
-		local g = pip:FindFirstChildOfClass("UIGradient")
-		if g then
-			g.Enabled = ready
-		end
+	local badge = pill :: Frame
+	badge.BackgroundColor3 = if ready then Color3.fromRGB(255, 200, 40) else Color3.fromRGB(30, 34, 48)
+	if ringGrad then
+		ringGrad.Enabled = ready
 	end
-	if not ready and cloverScale then
-		cloverScale.Scale = 1
+	if countLabel then
+		countLabel.Text = if ready then "!" else tostring(left + 1)
+		countLabel.BackgroundColor3 = if ready then Color3.fromRGB(235, 30, 45) else Color3.fromRGB(30, 34, 48)
 	end
 end
 
@@ -485,16 +478,8 @@ local function step()
 		glowGrad.Rotation = r
 		glowGrad.Offset = Vector2.new(math.sin(t * 2) * 0.2, 0)
 	end
-	if ready then
-		for _, pip in pips do
-			local g = pip:FindFirstChildOfClass("UIGradient")
-			if g then
-				g.Rotation = r
-			end
-		end
-		if cloverScale then
-			cloverScale.Scale = 1.25 + math.sin(t * 6) * 0.15
-		end
+	if ready and ringGrad then
+		ringGrad.Rotation = r
 	end
 	if valueGrad.Enabled then
 		valueGrad.Offset = Vector2.new((t * 0.8) % 2 - 1, 0)

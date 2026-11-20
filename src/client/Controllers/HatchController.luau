@@ -62,6 +62,7 @@ local cardScale: UIScale
 local rarityLabel: TextLabel
 local nameLabel: TextLabel
 local infoLabel: TextLabel
+local cardBar: Frame
 local newBadge: GuiObject
 local hintLabel: TextLabel
 local confetti: Frame
@@ -297,14 +298,23 @@ end
 local function showCard(info)
 	local rarity = rarityOf(info.Rarity)
 	local lucky = info.EggRarity and orderOf(info.Rarity) > orderOf(info.EggRarity)
+	local color = if rarity.Name == "Secret" then WHITE else col(rarity)
 	rarityLabel.Text = (if lucky then "LUCKY! " else "")
 		.. string.upper((if info.Huge then "Huge " else "") .. info.Rarity)
-	C.InventoryController.colorText(rarityLabel, info.Rarity)
-	nameLabel.Text = "You hatched " .. petName(info) .. "!"
+	rarityLabel.BackgroundColor3 = color
+	rarityLabel.Size = UDim2.fromOffset(if lucky then 230 else 170, 30)
+	cardBar.BackgroundColor3 = color
+	nameLabel.Text = petName(info)
 	C.InventoryController.colorText(nameLabel, info.Rarity)
-	local kg = PetStats.kgText(info.Weight)
-	infoLabel.Text =
-		`<font color="#9FE0FF">{kg}</font>   <font color="#5CE07A">+{Format.cash(info.Income or 0)}/s</font>`
+	-- Only what we know (a skipped hatch can come without weight or income).
+	local parts = {}
+	if type(info.Weight) == "number" then
+		table.insert(parts, `<font color="#9FE0FF">{PetStats.kgText(info.Weight)}</font>`)
+	end
+	if type(info.Income) == "number" and info.Income > 0 then
+		table.insert(parts, `<font color="#5CE07A">+{Format.cash(info.Income)}/s</font>`)
+	end
+	infoLabel.Text = table.concat(parts, "    ")
 	newBadge.Visible = info.IsNew == true
 	hintLabel.Text = if UserInputService.GamepadEnabled
 		then "Press A to skip"
@@ -316,11 +326,6 @@ local function showCard(info)
 	TweenService:Create(cardScale, TweenInfo.new(0.28, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
 		Scale = s,
 	}):Play()
-	-- The ring glow behind the card takes the rarity colour.
-	local strokeObj = card:FindFirstChild("Edge") :: UIStroke?
-	if strokeObj then
-		strokeObj.Color = if rarity.Name == "Secret" then WHITE else col(rarity)
-	end
 end
 
 local function hideCard()
@@ -1386,70 +1391,87 @@ local function buildGui()
 
 	-- The card: rarity, "You hatched X!", kg and $/s, NEW!, and how to skip. It sits above
 	-- the ROLL button and the hotbar.
+	-- (Dev 2026-11-20: the old grey rounded card "looked like shit".) A dark square card with
+	-- a rarity-coloured bar on top: the rarity on a tag, the pet's name big in its colour,
+	-- kg + $/s as chips, NEW! tilted on the corner, a small tap hand under it.
 	card = Ui.frame({
 		Name = "Card",
-		Size = UDim2.fromOffset(460, 118),
+		Size = UDim2.fromOffset(440, 124),
 		AnchorPoint = Vector2.new(0.5, 1),
 		Position = UDim2.new(0.5, 0, 1, -190),
-		BackgroundColor3 = Ui.Colors.PanelDark,
-		BackgroundTransparency = 0.08,
+		BackgroundColor3 = Ui.Colors.Ink,
+		BackgroundTransparency = 0.2,
 		Visible = false,
 		ZIndex = 5,
 	})
-	Ui.corner(card, 18)
-	local edge = Instance.new("UIStroke")
+	local edge = Ui.stroke(card, 3)
 	edge.Name = "Edge"
-	edge.Thickness = 4
-	edge.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-	edge.Parent = card
 	cardScale = Instance.new("UIScale")
 	cardScale.Parent = card
-	rarityLabel = Ui.label({
-		Name = "Rarity",
-		Size = UDim2.new(1, -24, 0, 26),
-		Position = UDim2.fromOffset(12, 8),
-		Text = "",
+	cardBar = Ui.frame({
+		Name = "Bar",
+		Size = UDim2.new(1, 0, 0, 8),
+		BackgroundColor3 = Ui.Colors.Muted,
 		ZIndex = 6,
 	})
+	cardBar.Parent = card
+	rarityLabel = Ui.label({
+		Name = "Rarity",
+		Size = UDim2.fromOffset(170, 30),
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.new(0.5, 0, 0, 8),
+		BackgroundTransparency = 0,
+		BackgroundColor3 = Ui.Colors.Muted,
+		Text = "",
+		ZIndex = 7,
+	})
+	Ui.maxText(rarityLabel, 20)
+	Ui.stroke(rarityLabel, 3).ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 	rarityLabel.Parent = card
 	nameLabel = Ui.label({
 		Name = "Name",
-		Size = UDim2.new(1, -24, 0, 36),
-		Position = UDim2.fromOffset(12, 34),
+		Size = UDim2.new(1, -24, 0, 46),
+		Position = UDim2.fromOffset(12, 26),
 		Text = "",
 		ZIndex = 6,
 	})
+	Ui.maxText(nameLabel, 44)
+	local ns = nameLabel:FindFirstChildOfClass("UIStroke")
+	if ns then
+		ns.Thickness = 3
+	end
 	nameLabel.Parent = card
 	infoLabel = Ui.label({
 		Name = "Info",
-		Size = UDim2.new(1, -24, 0, 26),
-		Position = UDim2.fromOffset(12, 72),
+		Size = UDim2.new(1, -24, 0, 30),
+		Position = UDim2.fromOffset(12, 78),
 		Text = "",
 		RichText = true,
 		ZIndex = 6,
 	})
+	Ui.maxText(infoLabel, 26)
 	infoLabel.Parent = card
 	hintLabel = Ui.label({
 		Name = "Hint",
 		Size = UDim2.new(1, 0, 0, 18),
-		Position = UDim2.new(0, 0, 1, 4),
+		Position = UDim2.new(0, 0, 1, 6),
 		Text = "",
 		TextColor3 = Ui.Colors.Ice,
 		ZIndex = 6,
 	})
+	Ui.maxText(hintLabel, 16)
 	hintLabel.Parent = card
 	local new = Ui.frame({
 		Name = "New",
-		Size = UDim2.fromOffset(78, 32),
+		Size = UDim2.fromOffset(82, 34),
 		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.new(1, -18, 0, 2),
+		Position = UDim2.new(1, -14, 0, 4),
 		Rotation = 12,
 		BackgroundColor3 = Ui.Colors.Red,
-		ZIndex = 7,
+		ZIndex = 8,
 	})
-	Ui.corner(new, 10)
-	Ui.stroke(new, 3)
-	local newText = Ui.label({ Size = UDim2.fromScale(1, 1), Text = "NEW!", ZIndex = 8 })
+	Ui.block(new, nil, 3, 4)
+	local newText = Ui.label({ Size = UDim2.fromScale(1, 1), Text = "NEW!", ZIndex = 9 })
 	newText.Parent = new
 	new.Parent = card
 	newBadge = new

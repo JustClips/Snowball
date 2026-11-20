@@ -1,7 +1,6 @@
 --!strict
--- "You got it" right after any Robux purchase (Steal an Egg's big yellow "Bought X!" stamp):
--- a big outlined stamp in the middle of the screen with the product's picture, a pop and a
--- sound. Gifts say who sent / got it.
+-- "You got it" right after any Robux purchase: a card slides in top left (not the
+-- middle) with the product's picture and what you got ("+$424M"), then slides out. Gifts say who sent / got it.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 
@@ -14,6 +13,7 @@ local PurchaseController = {}
 
 local stamp: Frame
 local stampScale: UIScale
+local inner: Frame
 local icon: ImageLabel
 local title: TextLabel
 local sub: TextLabel
@@ -75,16 +75,29 @@ local function show(key: string, info: any)
 	serial += 1
 	local mine = serial
 	icon.Image = Ui.Images["Shop_" .. (KEY_PIC[key] or "")] or Ui.Images[KIND_ICON[def.Kind or ""] or "Gift"] or ""
-	title.Text = `{string.upper(def.Name)}!`
+	-- What you got, big ("+$424M", "+9.6K"); the product name small under it.
+	local got = info and info.Got
+	title.Text = if got then got else `{def.Name}!`
+	title.TextColor3 = if def.Kind == "CashPack" then Ui.Colors.Green else Color3.fromRGB(255, 220, 60)
 	sub.Text = if info and info.From
 		then `Gift from {info.From}`
 		elseif info and info.To then `Sent to {info.To}`
+		elseif got then def.Name
 		else "BOUGHT!"
+	-- Off centre (Dev 2026-11-20): slides in top left, clear of the rails and the chips.
 	stamp.Visible = true
-	stampScale.Scale = 0.3
-	TweenService:Create(stampScale, TweenInfo.new(0.35, Enum.EasingStyle.Back), { Scale = 1 }):Play()
-	Ui.sound("Pop")
-	task.delay(2.2, function()
+	stampScale.Scale = 1
+	inner.Position = UDim2.fromScale(-1.2, 0)
+	TweenService:Create(inner, TweenInfo.new(0.35, Enum.EasingStyle.Back), { Position = UDim2.fromScale(0, 0) }):Play()
+	Ui.sound("Cash")
+	task.delay(2.6, function()
+		if serial ~= mine then
+			return
+		end
+		TweenService:Create(inner, TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+			Position = UDim2.fromScale(-1.2, 0),
+		}):Play()
+		task.wait(0.27)
 		if serial == mine then
 			stamp.Visible = false
 		end
@@ -96,40 +109,51 @@ function PurchaseController:Init(_controllers)
 	local root = Ui.root(gui)
 	stamp = Ui.frame({
 		Name = "Stamp",
-		Size = UDim2.fromOffset(520, 150),
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.4),
+		Size = UDim2.fromOffset(380, 110),
+		AnchorPoint = Vector2.new(0, 0),
+		Position = UDim2.new(0, 16, 0, 6),
 		BackgroundTransparency = 1,
 		Visible = false,
 	})
 	Ui.autoScale(stamp)
-	local inner = Ui.frame({ Name = "Inner", Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1 })
+	inner = Ui.frame({
+		Name = "Inner",
+		Size = UDim2.fromScale(1, 1),
+		BackgroundColor3 = Ui.Colors.Ink,
+		BackgroundTransparency = 0.25,
+	})
+	Ui.stroke(inner, 3)
 	stampScale = Instance.new("UIScale")
 	stampScale.Parent = inner
 	inner.Parent = stamp
-	icon = Ui.icon("Gift", { Size = UDim2.fromOffset(130, 130), Position = UDim2.fromOffset(0, 10) })
+	icon = Ui.icon("Gift", {
+		Size = UDim2.fromOffset(96, 96),
+		AnchorPoint = Vector2.new(0, 0.5),
+		Position = UDim2.new(0, 6, 0.5, 0),
+	})
 	icon.Parent = inner
 	title = Ui.label({
 		Name = "Title",
-		Size = UDim2.new(1, -140, 0, 80),
-		Position = UDim2.fromOffset(136, 14),
+		Size = UDim2.new(1, -118, 0, 58),
+		Position = UDim2.fromOffset(108, 10),
 		Text = "",
 		TextColor3 = Color3.fromRGB(255, 220, 60),
 		TextXAlignment = Enum.TextXAlignment.Left,
 	})
+	Ui.maxText(title, 54)
 	local st = title:FindFirstChildOfClass("UIStroke")
 	if st then
-		st.Thickness = 5
+		st.Thickness = 3.5
 	end
 	title.Parent = inner
 	sub = Ui.label({
 		Name = "Sub",
-		Size = UDim2.new(1, -140, 0, 44),
-		Position = UDim2.fromOffset(136, 94),
+		Size = UDim2.new(1, -118, 0, 30),
+		Position = UDim2.fromOffset(108, 68),
 		Text = "",
-		TextColor3 = Color3.fromRGB(140, 255, 150),
 		TextXAlignment = Enum.TextXAlignment.Left,
 	})
+	Ui.maxText(sub, 24)
 	sub.Parent = inner
 	stamp.Parent = root
 end

@@ -478,38 +478,26 @@ local function buildHud()
 	})
 	Ui.autoScale(bottom)
 	bottom.Parent = root
-	local purple = Color3.fromRGB(150, 70, 240)
-	sledButton = Ui.bigButton("Sled", "Sled", "SLED HOME", purple, function()
+	-- Icon + price only (Dev 2026-11-20: the word buttons with a price pill on top looked
+	-- weird; kids read the picture). Purple = Robux.
+	local purple = Ui.Colors.Purple
+	sledButton = Ui.bigButton("Sled", "Sled", priceOf("SledHome"), purple, function()
 		local ok, msg = Net.func("Rescue"):InvokeServer("Sled")
 		if not ok and msg then
 			Ui.toast(msg, "Bad")
 		end
-	end, Vector2.new(270, 78))
-	sledButton.Position = UDim2.fromOffset(0, 0)
+	end, Vector2.new(200, 78))
+	sledButton.AnchorPoint = Vector2.new(1, 0)
+	sledButton.Position = UDim2.new(0.5, -8, 0, 0)
 	sledButton.Parent = bottom
-	sprayButton = Ui.bigButton("Spray", "YetiSpray", "NO YETI", purple, function()
+	sprayButton = Ui.bigButton("Spray", "YetiSpray", priceOf("YetiRepellent"), purple, function()
 		local ok, msg = Net.func("Rescue"):InvokeServer("Repel")
 		if not ok and msg then
 			Ui.toast(msg, "Bad")
 		end
-	end, Vector2.new(230, 78))
-	sprayButton.Position = UDim2.new(1, -230, 0, 0)
+	end, Vector2.new(200, 78))
+	sprayButton.Position = UDim2.new(0.5, 8, 0, 0)
 	sprayButton.Parent = bottom
-	for _, pair in { { sledButton, "SledHome" }, { sprayButton, "YetiRepellent" } } do
-		local price = Ui.label({
-			Name = "Price",
-			Size = UDim2.fromOffset(110, 30),
-			AnchorPoint = Vector2.new(0.5, 0.5),
-			Position = UDim2.new(0.5, 30, 0, -4),
-			BackgroundTransparency = 0,
-			BackgroundColor3 = Ui.Colors.Green,
-			Text = priceOf(pair[2]),
-			ZIndex = 6,
-		})
-		Ui.corner(price, 15)
-		Ui.stroke(price, 3)
-		price.Parent = pair[1]
-	end
 	-- LEAVE (top-left): go home now, the eggs left in the pile melt.
 	local leaveHolder = Ui.frame({
 		Name = "LeaveHolder",
@@ -726,7 +714,11 @@ local function step(dt: number)
 	local awake = state == "Wake" or state == "Chase" or state == "Return"
 	sprayButton.Visible = awake
 	sledButton.Visible = carrying or (f:GetAttribute("Left") or 0) > 1
-	sledButton.Position = if sprayButton.Visible then UDim2.fromOffset(0, 0) else UDim2.new(0.5, -135, 0, 0)
+	-- Side by side around the middle; alone, each sits in the middle.
+	sledButton.AnchorPoint = Vector2.new(if sprayButton.Visible then 1 else 0.5, 0)
+	sledButton.Position = UDim2.new(0.5, if sprayButton.Visible then -8 else 0, 0, 0)
+	sprayButton.AnchorPoint = Vector2.new(if sledButton.Visible then 0 else 0.5, 0)
+	sprayButton.Position = UDim2.new(0.5, if sledButton.Visible then 8 else 0, 0, 0)
 	updateFlagSign(f, flagPos, me)
 end
 

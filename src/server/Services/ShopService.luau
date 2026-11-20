@@ -170,7 +170,7 @@ local function applyPassEffects(player: Player)
 end
 
 -- What each product does. Runs without yielding so a receipt can't be granted twice.
-local GRANTS: { [string]: (product: any, buyer: Player, recipient: Player) -> () } = {
+local GRANTS: { [string]: (product: any, buyer: Player, recipient: Player) -> string? } = {
 	StarterPack = function(_product, _buyer, recipient)
 		local data = S.DataService:GetData(recipient)
 		local pack = Economy.StarterPack
@@ -226,11 +226,11 @@ local GRANTS: { [string]: (product: any, buyer: Player, recipient: Player) -> ()
 		-- That many minutes of training at Auto Train speed, at your current rate.
 		local taps = product.Minutes * 60 * Economy.AutoTrainTapsPerSecond
 		local gain = S.TrainService:Grant(recipient, taps, true)
-		notify(recipient, `+{Format.big(gain)} Power!`)
+		return `+{Format.big(gain)}`
 	end,
 	PowerPack = function(product, _buyer, recipient)
 		local gain = S.TrainService:Grant(recipient, product.Taps, true)
-		notify(recipient, `+{Format.big(gain)} Power!`)
+		return `+{Format.big(gain)}`
 	end,
 	Boost = function(product, _buyer, recipient)
 		S.BoostService:AddPersonal(recipient, product.Boost, product.Minutes)
@@ -239,7 +239,7 @@ local GRANTS: { [string]: (product: any, buyer: Player, recipient: Player) -> ()
 	LuckyRoll = function(product, _buyer, recipient)
 		local data = S.DataService:GetData(recipient)
 		data.Charges.LuckyRoll += product.Count
-		notify(recipient, `+{product.Count} Lucky Rolls!`)
+		return `+{product.Count}`
 	end,
 	SuperLucky = function(product, _buyer, recipient)
 		local data = S.DataService:GetData(recipient)
@@ -252,7 +252,7 @@ local GRANTS: { [string]: (product: any, buyer: Player, recipient: Player) -> ()
 	GoldenRuns = function(product, _buyer, recipient)
 		local data = S.DataService:GetData(recipient)
 		data.Charges.GoldenRuns += product.Count
-		notify(recipient, `+{product.Count} Golden Snowball runs!`)
+		return `+{product.Count}`
 	end,
 	EggPack = function(product, _buyer, recipient)
 		local data = S.DataService:GetData(recipient)
@@ -272,7 +272,7 @@ local GRANTS: { [string]: (product: any, buyer: Player, recipient: Player) -> ()
 	CashPack = function(product, _buyer, recipient)
 		local cash = cashPackAmount(recipient, product)
 		S.CashService:Give(recipient, cash, product.Key, Enum.AnalyticsEconomyTransactionType.IAP)
-		notify(recipient, `+{Format.cash(cash)}!`)
+		return "+" .. Format.cash(cash)
 	end,
 	Avalanche = function(_product, buyer)
 		S.AvalancheService:Trigger(buyer)
@@ -282,7 +282,7 @@ local GRANTS: { [string]: (product: any, buyer: Player, recipient: Player) -> ()
 	end,
 	WheelSpins = function(product, _buyer, recipient)
 		S.RewardService:AddSpins(recipient, product.Count)
-		notify(recipient, `+{product.Count} Lucky Wheel spins!`)
+		return `+{product.Count}`
 	end,
 	DoubleOffline = function(_product, _buyer, recipient)
 		S.PetService:DoubleOffline(recipient)
@@ -321,7 +321,10 @@ local function processReceipt(info): Enum.ProductPurchaseDecision
 		end
 	end
 
+	-- A grant may return what you got ("+$424M", "+9.6K"): the purchase stamp shows that
+	-- instead of the product name (Dev 2026-11-20).
 	local ok, err = pcall(GRANTS[product.Kind], product, buyer, recipient)
+	local got = if ok and type(err) == "string" then err else nil
 	if not ok then
 		warn(`[ShopService] grant {product.Key} failed: {err}`)
 		return Enum.ProductPurchaseDecision.NotProcessedYet
@@ -339,11 +342,11 @@ local function processReceipt(info): Enum.ProductPurchaseDecision
 	S.AnalyticsService:Purchased(buyer, product.Key, spent, product.Kind == "WheelSpins")
 	-- The purchase celebration (PurchaseController): instant "you got it" feedback.
 	if recipient ~= buyer then
-		Net.fire("Purchased", recipient, product.Key, { From = buyer.DisplayName })
-		Net.fire("Purchased", buyer, product.Key, { To = recipient.DisplayName })
+		Net.fire("Purchased", recipient, product.Key, { From = buyer.DisplayName, Got = got })
+		Net.fire("Purchased", buyer, product.Key, { To = recipient.DisplayName, Got = got })
 		S.DataService:SaveNow(recipient)
 	else
-		Net.fire("Purchased", buyer, product.Key, {})
+		Net.fire("Purchased", buyer, product.Key, { Got = got })
 	end
 	if S.DataService:SaveNow(buyer) then
 		return Enum.ProductPurchaseDecision.PurchaseGranted

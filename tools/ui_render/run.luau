@@ -244,8 +244,8 @@ local data = {
 	ReachedVillage = false,
 	BiggestRadius = 4,
 	InvVersion = 1,
-	Pets = {},
-	Eggs = {},
+	Pets = { p1 = { Id = "Chipmunk", Weight = 1.4 }, p2 = { Id = "Sheep", Weight = 2.2 } },
+	Eggs = { { Rarity = "Rare" }, { Rarity = "Uncommon" }, { Rarity = "Uncommon" }, { Rarity = "Common" } },
 	Hatching = {},
 	Index = {},
 	Boosts = { Cash2x = NOW + 299, Train2x = NOW + 552 },
@@ -387,6 +387,13 @@ local function opener(ctrl, method, ...)
 		local c = controllers[ctrl]
 		c[method](c, table.unpack(args, 1, args.n))
 	end
+end
+SCENARIOS.pack = function()
+	player:SetAttribute("RollPhase", "Packing")
+	fire("PackStart", workspace:GetServerTimeNow() - 0.45, 1.1, 0.14, 0.13)
+end
+SCENARIOS.bought = function()
+	fire("Purchased", "Cash3", { Got = "+$424M" })
 end
 SCENARIOS.shop = opener("ShopController", "Open")
 SCENARIOS.shop2 = opener("ShopController", "Open", "Boosts")

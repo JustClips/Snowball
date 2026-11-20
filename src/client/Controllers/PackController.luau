@@ -12,6 +12,7 @@ local UserInputService = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
+local Economy = require(Shared.Config.Economy)
 local L = require(Shared.Config.HudLayout)
 local Net = require(Shared.Net)
 local RollMath = require(Shared.RollMath)
@@ -31,6 +32,9 @@ local yellow: Frame
 local tapWord: TextLabel
 local tapScale: UIScale
 local hand: ImageLabel
+local greenShine: UIGradient
+local labels: { [string]: TextLabel } = {}
+local zones = { green = 0.14, yellow = 0.13 }
 local quality: TextLabel
 local qualityScale: UIScale
 local packing: { start: number }? = nil
@@ -63,34 +67,28 @@ function PackController:Init()
 	meter.Size = UDim2.fromOffset(L.Meter.Size.X, L.Meter.Size.Y)
 	Ui.autoScale(meter)
 	meter.Parent = root
-	local w = 66
+	-- The meter (Dev 2026-11-20: "boring... show luck values on each zone"): a square dark
+	-- tube with a black outline, zones red / yellow / green / yellow / red, and each zone's
+	-- luck on its right (x1, x1.2, x1.5 from Economy.PackLuck) with a clover by the best one.
+	-- A white pointer with an arrow rides up and down; the zone it is in lights up.
+	local w = 64
 	local h = L.Meter.Size.Y - 70
-	-- The capsule: white outline tube, red at both ends, yellow, green in the middle.
 	local tube = Ui.frame({
 		Name = "Tube",
 		Size = UDim2.fromOffset(w, h),
-		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.new(0.5, 0, 0, 0),
+		Position = UDim2.fromOffset(28, 0),
 		BackgroundColor3 = Ui.Colors.Red,
-		ClipsDescendants = true,
 	})
-	Ui.corner(tube, w // 2)
-	local outline = Ui.stroke(tube, 5, Color3.new(1, 1, 1))
-	outline.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	Ui.stroke(tube, 4)
+	Ui.gradient(tube)
 	tube.Parent = meter
-	local shade = Instance.new("UIGradient")
-	shade.Color = ColorSequence.new({
-		ColorSequenceKeypoint.new(0, Color3.fromRGB(200, 200, 210)),
-		ColorSequenceKeypoint.new(0.35, Color3.new(1, 1, 1)),
-		ColorSequenceKeypoint.new(1, Color3.fromRGB(170, 170, 185)),
-	})
-	shade.Parent = tube
 	yellow = Ui.frame({
 		Name = "Yellow",
 		AnchorPoint = Vector2.new(0, 0.5),
 		Position = UDim2.fromScale(0, 0.5),
 		Size = UDim2.fromScale(1, 0.4),
 		BackgroundColor3 = Ui.Colors.Yellow,
+		ZIndex = 2,
 	})
 	yellow.Parent = tube
 	green = Ui.frame({
@@ -99,35 +97,80 @@ function PackController:Init()
 		Position = UDim2.fromScale(0, 0.5),
 		Size = UDim2.fromScale(1, 0.14),
 		BackgroundColor3 = Ui.Colors.Green,
+		ZIndex = 3,
 	})
+	Ui.stroke(green, 2)
+	greenShine = Instance.new("UIGradient")
+	greenShine.Color = ColorSequence.new({
+		ColorSequenceKeypoint.new(0, Color3.fromRGB(190, 190, 190)),
+		ColorSequenceKeypoint.new(0.5, Color3.new(1, 1, 1)),
+		ColorSequenceKeypoint.new(1, Color3.fromRGB(190, 190, 190)),
+	})
+	greenShine.Parent = green
 	green.Parent = tube
-	-- Star beside the green band (outside the clipped tube so it is not cut).
-	local starHolder = Ui.frame({
-		Name = "StarHolder",
-		BackgroundTransparency = 1,
-		Size = UDim2.fromOffset(52, 52),
+	-- Zone luck labels (placed on PackStart, when the zone sizes are known).
+	local function zoneLabel(name: string, value: number, color: Color3): TextLabel
+		local l = Ui.label({
+			Name = name,
+			Size = UDim2.fromOffset(84, 34),
+			AnchorPoint = Vector2.new(0, 0.5),
+			Position = UDim2.fromOffset(28 + w + 8, 0),
+			Text = `x{value}`,
+			TextColor3 = color,
+			TextXAlignment = Enum.TextXAlignment.Left,
+			ZIndex = 4,
+		})
+		Ui.maxText(l, 30)
+		local st = l:FindFirstChildOfClass("UIStroke")
+		if st then
+			st.Thickness = 3
+		end
+		l.Parent = meter
+		return l
+	end
+	local luck = Economy.PackLuck
+	labels = {
+		Green = zoneLabel("LuckGreen", luck.Perfect, Ui.Colors.Lime),
+		YellowTop = zoneLabel("LuckYellowTop", luck.Good, Ui.Colors.Yellow),
+		YellowBottom = zoneLabel("LuckYellowBottom", luck.Good, Ui.Colors.Yellow),
+		RedTop = zoneLabel("LuckRedTop", luck.Weak, Color3.fromRGB(255, 110, 110)),
+		RedBottom = zoneLabel("LuckRedBottom", luck.Weak, Color3.fromRGB(255, 110, 110)),
+	}
+	labels.Green.Size = UDim2.fromOffset(84, 42)
+	Ui.maxText(labels.Green, 38)
+	Ui.icon("Luck", {
+		Size = UDim2.fromOffset(40, 40),
 		AnchorPoint = Vector2.new(0, 0.5),
-		Position = UDim2.new(0.5, w / 2 + 6, 0, h / 2),
-	})
-	Ui.icon("Star", { Size = UDim2.fromScale(1, 1) }).Parent = starHolder
-	starHolder.Parent = meter
-	-- The slider: a white bar wider than the tube with a dark outline.
+		Position = UDim2.new(0, 70, 0.5, 0),
+		ZIndex = 5,
+	}).Parent =
+		labels.Green
+	-- The pointer: a white bar across the tube with an arrow on its left.
 	slider = Ui.frame({
 		Name = "Slider",
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.new(0.5, 0, 0, h),
-		Size = UDim2.fromOffset(w + 26, 14),
+		AnchorPoint = Vector2.new(0, 0.5),
+		Position = UDim2.new(0, 28 - 8, 0, h),
+		Size = UDim2.fromOffset(w + 16, 12),
 		BackgroundColor3 = Color3.new(1, 1, 1),
-		ZIndex = 4,
+		ZIndex = 6,
 	})
-	Ui.corner(slider, 7)
 	Ui.stroke(slider, 3)
+	local arrow = Ui.label({
+		Name = "Arrow",
+		Size = UDim2.fromOffset(34, 40),
+		AnchorPoint = Vector2.new(1, 0.5),
+		Position = UDim2.new(0, 2, 0.5, 0),
+		Text = "\u{25B6}",
+		ZIndex = 7,
+	})
+	Ui.maxText(arrow, 34)
+	arrow.Parent = slider
 	slider.Parent = meter
 	tapWord = Ui.label({
 		Name = "Tap",
-		Size = UDim2.new(1, 40, 0, 52),
+		Size = UDim2.fromOffset(140, 52),
 		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.new(0.5, 0, 0, h + 12),
+		Position = UDim2.new(0, 28 + w / 2, 0, h + 12),
 		Text = "TAP!",
 		TextColor3 = Ui.Colors.Yellow,
 	})
@@ -138,7 +181,7 @@ function PackController:Init()
 		Name = "Hand",
 		Size = UDim2.fromOffset(84, 84),
 		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.new(0.5, 96, 0, h + 30),
+		Position = UDim2.new(0, 28 + w / 2 + 96, 0, h + 30),
 		ZIndex = 5,
 	})
 	hand.Parent = meter
@@ -167,6 +210,18 @@ function PackController:Start()
 			tapped = false
 			green.Size = UDim2.fromScale(1, greenWidth)
 			yellow.Size = UDim2.fromScale(1, greenWidth + yellowWidth * 2)
+			zones.green, zones.yellow = greenWidth, yellowWidth
+			local h = L.Meter.Size.Y - 70
+			local function at(label: TextLabel, f: number)
+				label.Position = UDim2.new(label.Position.X.Scale, label.Position.X.Offset, 0, h * f)
+			end
+			local half = greenWidth / 2
+			at(labels.Green, 0.5)
+			at(labels.YellowTop, 0.5 - half - yellowWidth / 2)
+			at(labels.YellowBottom, 0.5 + half + yellowWidth / 2)
+			local redEdge = half + yellowWidth
+			at(labels.RedTop, (0.5 - redEdge) / 2)
+			at(labels.RedBottom, 1 - (0.5 - redEdge) / 2)
 			local runs = State.data and State.data.Stats and State.data.Stats.Runs or 0
 			hand.Visible = runs < 3
 			meter.Visible = true
@@ -221,10 +276,28 @@ function PackController:Start()
 		end
 		local t = Workspace:GetServerTimeNow() - packing.start
 		local h = L.Meter.Size.Y - 70
-		slider.Position = UDim2.new(0.5, 0, 0, h * (1 - RollMath.needle(math.max(0, t))))
+		local v = RollMath.needle(math.max(0, t))
+		slider.Position = UDim2.new(0, slider.Position.X.Offset, 0, h * (1 - v))
+		-- The zone under the pointer grows a little; the green one always shimmers.
+		local d = math.abs(v - 0.5)
+		local inGreen = d <= zones.green / 2
+		local inYellow = not inGreen and d <= zones.green / 2 + zones.yellow
+		local function size(label: TextLabel?, on: boolean)
+			if label then
+				local sc = label:FindFirstChildOfClass("UIScale") or Instance.new("UIScale", label)
+				sc.Scale = if on then 1.25 else 1
+			end
+		end
+		size(labels.Green, inGreen)
+		size(labels.YellowTop, inYellow and v > 0.5)
+		size(labels.YellowBottom, inYellow and v < 0.5)
+		size(labels.RedTop, not inGreen and not inYellow and v > 0.5)
+		size(labels.RedBottom, not inGreen and not inYellow and v < 0.5)
+		greenShine.Offset = Vector2.new(0, math.sin(os.clock() * 5) * 0.5)
+		greenShine.Rotation = 90
 		local pulse = 1 + 0.08 * math.abs(math.sin(os.clock() * 6))
 		tapScale.Scale = if tapped then 0.9 else pulse
-		hand.Position = UDim2.new(0.5, 96, 0, h + 30 - 10 * math.abs(math.sin(os.clock() * 6)))
+		hand.Position = UDim2.new(0, 28 + 64 / 2 + 96, 0, h + 30 - 10 * math.abs(math.sin(os.clock() * 6)))
 	end)
 end
 
