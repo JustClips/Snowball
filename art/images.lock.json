@@ -339,6 +339,11 @@
   "id": 104888229087471,
   "sha": "fb27eec372b1f08926d36a891ee0faaf064f90e19efc827a56c3c02e8f3af849"
  },
+ "Sled": {
+  "granted": true,
+  "id": 73985330081754,
+  "sha": "1f3b4990290a9839e86b7f5627ce9a2d5722ddf74b750ca4c7a104774207dbe9"
+ },
  "SpinPointer": {
   "granted": true,
   "id": 125547311121820,
@@ -388,5 +393,15 @@
   "granted": true,
   "id": 88053052363856,
   "sha": "aa30e789d0585f4e4beb5e3a9866b4ed5bd86fdf47ca0a68a88b0b00f34c865d"
+ },
+ "Yeti": {
+  "granted": true,
+  "id": 126640411534466,
+  "sha": "8c33e2abde59379bf06ec288c7152018fb033a084eae6833bd710f37b4ceb208"
+ },
+ "YetiSpray": {
+  "granted": true,
+  "id": 137716460580320,
+  "sha": "02013888da6043c9b714ba4295b636761be9f3be2996c7af3db12e5fe65efab5"
  }
 }

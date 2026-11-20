@@ -17,6 +17,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Format = require(Shared.Format)
 local Net = require(Shared.Net)
 local Products = require(Shared.Config.Products)
+local Rescue = require(Shared.Config.Rescue)
 local Ui = require(script.Parent.Parent.Ui)
 
 local player = Players.LocalPlayer
@@ -266,7 +267,7 @@ local function buildHud()
 	Ui.autoScale(bottom)
 	bottom.Parent = root
 	local purple = Color3.fromRGB(150, 70, 240)
-	sledButton = Ui.bigButton("Sled", "Base", "SLED HOME", purple, function()
+	sledButton = Ui.bigButton("Sled", "Sled", "SLED HOME", purple, function()
 		local ok, msg = Net.func("Rescue"):InvokeServer("Sled")
 		if not ok and msg then
 			Ui.toast(msg, "Bad")
@@ -274,7 +275,7 @@ local function buildHud()
 	end, Vector2.new(270, 78))
 	sledButton.Position = UDim2.fromOffset(0, 0)
 	sledButton.Parent = bottom
-	sprayButton = Ui.bigButton("Spray", "Exclamation", "NO YETI", purple, function()
+	sprayButton = Ui.bigButton("Spray", "YetiSpray", "NO YETI", purple, function()
 		local ok, msg = Net.func("Rescue"):InvokeServer("Repel")
 		if not ok and msg then
 			Ui.toast(msg, "Bad")
@@ -406,6 +407,12 @@ local function onEvent(kind: string, data: any)
 			hum.PlatformStand = true
 			r.AssemblyLinearVelocity = away * 38 + Vector3.new(0, 34, 0)
 			r.AssemblyAngularVelocity = Vector3.new(away.Z, 0, -away.X) * 8
+			task.delay(Rescue.KnockSeconds, function()
+				if hum.Parent then
+					hum.PlatformStand = false
+					hum:ChangeState(Enum.HumanoidStateType.GettingUp)
+				end
+			end)
 		end
 		Ui.sound("Fall")
 		Ui.sound("Roar", 1.15)
@@ -464,7 +471,11 @@ local function step(dt: number)
 	local carrying = phase == "Carry"
 	local state = f:GetAttribute("YetiState")
 	if carrying then
-		setGoal("Pin", "Run to the flag!", Color3.fromRGB(110, 235, 90))
+		if state == "Chase" or state == "Wake" then
+			setGoal("Yeti", "RUN to the flag!", Color3.fromRGB(255, 120, 110))
+		else
+			setGoal("Pin", "Run to the flag!", Color3.fromRGB(110, 235, 90))
+		end
 		C.TutorialController:Guide(flagPos)
 	else
 		setGoal("Egg", "Grab an egg!")
