@@ -930,6 +930,7 @@ local function render()
 	if not data then
 		return
 	end
+	holder:SetAttribute("Built", true)
 	local scroll = list.CanvasPosition
 	for _, object in built do
 		object:Destroy()
@@ -1472,7 +1473,9 @@ function ShopController:Start()
 		}, "|")
 		if signature ~= last then
 			last = signature
-			if isOpen() then
+			-- Redraw even while hidden: a buy hides the Shop (Buy.prompt) and shows it again
+			-- after, and the card must already say OWNED then (Dev 2026-11-20).
+			if isOpen() or holder:GetAttribute("Built") then
 				render()
 			end
 		end
