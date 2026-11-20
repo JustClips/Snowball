@@ -31,6 +31,10 @@ local pickupParts: { [number]: BasePart } = {}
 local taken: { [number]: boolean } = {}
 local pool: { [string]: { BasePart } } = {}
 local combo = 0
+-- The obstacles' size badges only while you roll (Dev 2026-11-20: on the egg run they were
+-- "random billboard texts on the map").
+local badges: { BillboardGui } = {}
+local badgesOn = false
 local lastSmash = 0
 local AHEAD = 520
 local BEHIND = 40
@@ -107,6 +111,9 @@ local function buildObstacles()
 		p.Parent = folder
 		-- Size badge so players learn the SMASH rule.
 		local gui = Instance.new("BillboardGui")
+		gui.Name = "SizeBadge"
+		gui.Enabled = badgesOn
+		table.insert(badges, gui)
 		gui.Size = UDim2.fromOffset(60, 26)
 		gui.StudsOffsetWorldSpace = Vector3.new(0, p.Size.Y / 2 + 2, 0)
 		gui.MaxDistance = 140
@@ -323,6 +330,16 @@ function TrackFxController:Init(controllers)
 end
 
 function TrackFxController:Start()
+	local player = game:GetService("Players").LocalPlayer
+	local function refreshBadges()
+		local phase = player:GetAttribute("RollPhase")
+		badgesOn = phase == "Packing" or phase == "Rolling" or phase == "Stopped"
+		for _, b in badges do
+			b.Enabled = badgesOn
+		end
+	end
+	player:GetAttributeChangedSignal("RollPhase"):Connect(refreshBadges)
+	refreshBadges()
 	task.spawn(buildObstacles)
 	Net.event("RunEvent").OnClientEvent:Connect(onEvent)
 end
