@@ -44,6 +44,7 @@ local rightRail: Frame
 local action: Frame
 local rollButton: TextButton
 local stopButton: TextButton
+local crackButton: TextButton
 local avaFill: Frame
 local avaText: TextLabel
 local luckBox: Frame
@@ -178,9 +179,12 @@ local function applyMode(m: string)
 	leftRail.Visible = normal or m == "Training"
 	rightRail.Visible = normal or m == "Training"
 	topRight.Visible = normal or m == "Training"
-	action.Visible = normal or m == "Training"
+	-- While rolling: a red STOP that cracks the ball where it is (only while it moves).
+	local canCrack = m == "Rolling" and player:GetAttribute("RollPhase") == "Rolling"
+	action.Visible = normal or m == "Training" or canCrack
 	rollButton.Visible = normal
 	stopButton.Visible = m == "Training"
+	crackButton.Visible = canCrack
 	luckBox.Visible = m == "Rolling"
 	zonePill.Visible = m == "Rolling"
 	-- While rolling only Power stays (Throw Food hides everything else during the flight).
@@ -452,6 +456,11 @@ function HudController:Init(controllers)
 	end, L.Action.Size)
 	stopButton.Visible = false
 	stopButton.Parent = action
+	crackButton = Ui.bigButton("Crack", "Icon_Snowball", "STOP", Ui.Colors.Red, function()
+		Net.func("CrackNow"):InvokeServer()
+	end, L.Action.Size)
+	crackButton.Visible = false
+	crackButton.Parent = action
 	tiles.Stop = stopButton
 
 	-- Top centre during a roll: the big LUCK multiplier and the zone you are in.

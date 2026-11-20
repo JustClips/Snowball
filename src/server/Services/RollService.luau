@@ -53,6 +53,7 @@ type Run = {
 	luck: number,
 	golden: boolean,
 	lucky: boolean,
+	crackedEarly: boolean?, -- the player pressed STOP: no Keep Rolling offer
 	longRoll: boolean?,
 	startedAt: number,
 	limit: number, -- pickups exist up to here
@@ -703,7 +704,7 @@ local function simulate(dt: number)
 			setFocus(player, spline:position(math.min(run.ball.s + 120, spline.Length), run.ball.x))
 			checkHits(player, run)
 			if run.ball.done then
-				local miss = nearMiss(player, run)
+				local miss = if run.crackedEarly then nil else nearMiss(player, run)
 				if miss then
 					stopForContinue(player, run, miss)
 				else
@@ -762,6 +763,17 @@ function RollService:Init(services)
 	end)
 	Net.onInvoke("StartPack", startPack)
 	Net.onInvoke("CancelPack", cancelPack)
+	-- STOP while rolling (Dev 2026-11-20): the ball cracks right where it is; you keep the
+	-- cash and eggs picked up so far.
+	Net.onInvoke("CrackNow", function(player)
+		local run = runs[player]
+		if run and run.phase == "Rolling" and run.ball and not run.ball.done then
+			run.crackedEarly = true
+			run.ball.done = true
+			return true
+		end
+		return false
+	end)
 	Net.onEvent("PackTap", onPackTap)
 	Net.onEvent("Steer", onSteer)
 	Net.onEvent("DeclineContinue", function(player)
