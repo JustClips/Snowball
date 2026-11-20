@@ -18,6 +18,7 @@ yet confirmed in Studio, `[ ]` = to do. Owner = the thread that does it.
 - [ ] Tutorial never softlocks (leave mid-step, rejoin, die, reset)
 
 ### Core systems (Build thread)
+- [~] Egg strip while rolling: eggs in the ball as tiles under STOP, tap one to drop it, red flash when full
 - [~] Lucky roll every 10th roll (x5), rainbow ball; counter above ROLL (UI thread restyled it)
 - [ ] Upgrades sign, rebirth, zones 1-6, Village bonus
 - [ ] Avalanche event

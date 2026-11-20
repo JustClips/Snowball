@@ -774,6 +774,23 @@ function RollService:Init(services)
 		end
 		return false
 	end)
+	-- Drop an egg while rolling (Dev 2026-11-20): tap it in the strip to free its slot for a
+	-- better one further down. Returns the eggs still in the ball.
+	Net.onInvoke("DropEgg", function(player, i: any)
+		local run = runs[player]
+		if not run or run.phase ~= "Rolling" or not run.ball or run.ball.done then
+			return false
+		end
+		if type(i) ~= "number" or i ~= i or not run.eggs[math.floor(i)] then
+			return false
+		end
+		table.remove(run.eggs, math.floor(i))
+		local list = {}
+		for _, egg in run.eggs do
+			table.insert(list, egg.Rarity)
+		end
+		return true, list
+	end)
 	Net.onEvent("PackTap", onPackTap)
 	Net.onEvent("Steer", onSteer)
 	Net.onEvent("DeclineContinue", function(player)
