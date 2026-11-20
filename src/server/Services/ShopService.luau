@@ -370,8 +370,9 @@ local function checkPasses(player: Player)
 		return
 	end
 	for _, pass in Products.Gamepasses do
-		if pass.Id == 0 and not data.GiftedPasses[pass.Key] then
-			-- Never keep a Studio test buy of a pass that doesn't exist yet.
+		if pass.Id == 0 and not data.GiftedPasses[pass.Key] and not RunService:IsStudio() then
+			-- Live servers never keep a Studio test buy of a pass that doesn't exist yet.
+			-- Studio keeps it, so a test-bought pass stays OWNED across test sessions.
 			data.Gamepasses[pass.Key] = nil
 		end
 		if pass.Id ~= 0 then
