@@ -56,6 +56,7 @@ local FUNCTIONS: { [string]: number } = {
 	Pets = 10, -- (action, arg?) -> ok, message: see PetService / HatchService ACTIONS
 	Admin = 8, -- (action, payload) -> ok, message: admins only, see AdminService
 	Rescue = 3, -- ("Leave" | "Sled" | "Repel" | "Drop" i | "Pick" i) -> ok, message: see EggRescueService
+	CrackNow = 2, -- () -> ok: stop the rolling ball where it is (cash + eggs from here)
 	Leaderboards = 2, -- () -> { All = { key = score }, Week = {...} } your own scores (window "you" row)
 }
 
