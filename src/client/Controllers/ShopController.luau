@@ -34,20 +34,20 @@ local ShopController = {}
 
 -------------------------------------------------------------------------- look (gen_ui.py)
 
-local INK = Color3.fromRGB(23, 25, 30)
+local INK = Ui.Colors.Ink
 local WHITE = Color3.new(1, 1, 1)
-local BODY = Color3.fromRGB(58, 62, 73) -- SHOP_BODY
-local BODY_STUDS = Color3.fromRGB(74, 79, 92)
-local GREEN = Color3.fromRGB(76, 209, 55) -- SHOP_GREEN: header + Robux buttons
-local GIFT = Color3.fromRGB(178, 77, 255) -- SHOP_GIFT
-local RED = Color3.fromRGB(255, 77, 94) -- DANGER
+local BODY = Ui.Colors.Panel -- slate window body (stud kit)
+local BODY_STUDS = Ui.Colors.PanelStud
+local GREEN = Ui.Colors.Green -- header + Robux buttons
+local GIFT = Ui.Colors.Purple
+local RED = Ui.Colors.Red
 local BADGE_RED = Color3.fromRGB(255, 46, 77)
 local GREY = Color3.fromRGB(166, 174, 194)
 local LIGHT = Color3.fromRGB(200, 208, 232)
 local YELLOW = "#FFE34D"
--- Sweep's own stud texture and white glow (same uploader, so they load here too).
-local STUD = "rbxassetid://117181516497135"
-local GLOW = "rbxassetid://139963628852518"
+-- The kit's see-through stud overlay and white glow (UI polish 2026-11-20: the shop now
+-- uses the same stud style as every other window).
+local GLOW = Ui.GLOW
 
 local WIN = Vector2.new(820, 520) -- WIN_W x WIN_H
 local PANEL_W = 720
@@ -153,58 +153,23 @@ end
 
 -------------------------------------------------------------------------- kit (gen_ui.py primitives)
 
-local function studs(parent: GuiObject, tint: Color3, tile: number?, transparency: number?): ImageLabel
-	local s = Instance.new("ImageLabel")
-	s.Name = "Studs"
-	s.BackgroundTransparency = 1
-	s.Image = STUD
-	s.ScaleType = Enum.ScaleType.Tile
-	s.TileSize = UDim2.fromOffset(tile or 40, tile or 40)
-	s.ImageColor3 = tint
-	s.ImageTransparency = transparency or 0
-	s.Size = UDim2.fromScale(1, 1)
-	s.ZIndex = parent.ZIndex
-	s.Parent = parent
-	return s
+-- Thin wrappers over the Ui kit (stud style), kept so the Sweep layout code below stays as is.
+local function studs(parent: GuiObject, tint: Color3, tile: number?, _transparency: number?): ImageLabel
+	-- Window bodies get faint studs (the slate stays calm), cards and buttons full ones.
+	return Ui.studs(parent, nil, tile or 40, if tint == BODY_STUDS then 0.75 else nil)
 end
 
 local function border(parent: GuiObject, thickness: number?, color: Color3?): UIStroke
-	local s = Instance.new("UIStroke")
+	local s = Ui.stroke(parent, math.min(thickness or 3, 3))
 	s.Color = color or INK
-	s.Thickness = thickness or 4
-	s.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-	s.LineJoinMode = Enum.LineJoinMode.Round
-	s.Parent = parent
 	return s
 end
 
-local function shine(parent: GuiObject, dark: Color3?)
-	local g = Instance.new("UIGradient")
-	g.Name = "Shine"
-	g.Color = ColorSequence.new(WHITE, dark or Color3.fromRGB(188, 196, 212))
-	g.Rotation = 90
-	g.Parent = parent
+local function shine(parent: GuiObject, _dark: Color3?)
+	Ui.gradient(parent)
 end
 
-local function bevel(parent: GuiObject, inset: number, transparency: number)
-	local f = Ui.frame({
-		Name = "Bevel",
-		Size = UDim2.new(1, -inset, 1, -inset),
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.5),
-		BackgroundTransparency = 1,
-		ZIndex = parent.ZIndex,
-	})
-	local s = Instance.new("UIStroke")
-	s.Color = WHITE
-	s.Thickness = 2
-	s.Transparency = transparency
-	s.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-	s.Parent = f
-	f.Parent = parent
-end
-
--- A label (Fredoka, outlined) that fits its box: never bigger than maxSize.
+-- A label (Montserrat, outlined) that fits its box: never bigger than maxSize.
 local function text(props: { [string]: any }, maxSize: number, strokeWidth: number?): TextLabel
 	props.ZIndex = props.ZIndex or 3
 	local l = Ui.label(props)
@@ -235,11 +200,7 @@ local function plate(props: { [string]: any }, stroke: number?): Frame
 end
 
 local function tint(object: GuiObject, color: Color3)
-	object.BackgroundColor3 = color
-	local s = object:FindFirstChild("Studs") :: ImageLabel?
-	if s then
-		s.ImageColor3 = color
-	end
+	Ui.tint(object, color)
 end
 
 -- A raised stud button (square, outlined, lighter top edge) with a "Label" or an icon.
@@ -251,10 +212,7 @@ local function button(props: { [string]: any }, label: string?, iconName: string
 	for k, v in props do
 		(b :: any)[k] = v
 	end
-	border(b, 3)
-	shine(b)
-	studs(b, b.BackgroundColor3, 64, 0.45)
-	bevel(b, 6, 0.55)
+	Ui.block(b, nil, 3, 4)
 	if iconName then
 		Ui.icon(iconName, {
 			Size = UDim2.fromOffset(34, 34),
@@ -333,7 +291,7 @@ local function addHeading(section: Section)
 	text({
 		Name = "Title",
 		Size = UDim2.fromScale(1, 1),
-		Text = `-- {string.upper(section.Title)} --`,
+		Text = string.upper(section.Title),
 		TextColor3 = section.Heading,
 	}, 40, 4).Parent =
 		row
@@ -356,10 +314,7 @@ local function buildCard(item: Tile, color: Color3): Frame
 	local enabled = not item.Owned and canBuy(def)
 	local col = if item.Owned then GREY else color
 	local card = Ui.frame({ Name = item.Key, Size = UDim2.fromOffset(CELL.X, CELL.Y), ZIndex = 2 })
-	border(card, 4)
-	studs(card, col, 40)
-	tint(card, col)
-	bevel(card, 8, 0.6)
+	Ui.block(card, col, 3, 5)
 	glow(card, 230, UDim2.new(0.5, 0, 0, 78), 0.25)
 	Ui.icon(item.Pic or "Shop", {
 		Name = "Icon",
@@ -1286,7 +1241,7 @@ function ShopController:Init(controllers)
 		Name = "Title",
 		Size = UDim2.new(0, 300, 1, 0),
 		Position = UDim2.fromOffset(18, 0),
-		Text = "Shop",
+		Text = "SHOP",
 		TextXAlignment = Enum.TextXAlignment.Left,
 		ZIndex = 4,
 	}, 44, 4).Parent =
@@ -1338,8 +1293,7 @@ function ShopController:Init(controllers)
 		Position = UDim2.fromOffset(PANEL_W + 4, 76),
 		BackgroundColor3 = BODY,
 	})
-	border(nav, 4)
-	studs(nav, BODY_STUDS, 40)
+	border(nav, 3)
 	local navPad = Instance.new("UIPadding")
 	navPad.PaddingTop = UDim.new(0, 6)
 	navPad.Parent = nav

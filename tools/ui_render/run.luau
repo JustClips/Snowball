@@ -15,6 +15,8 @@ local deviceName = process.args[2] or "PC"
 local outPath = process.args[3] or "/tmp/ui_dump.json"
 local ROOT = process.cwd:gsub("/$", "")
 local VIEW = if deviceName == "Phone" then R.Vector2.new(844, 390) else R.Vector2.new(1280, 720)
+-- ScreenGuis report the safe area (CoreUISafeInsets) as their AbsoluteSize, like Roblox.
+R.DEFAULTS.ScreenGui.AbsoluteSize = if deviceName == "Phone" then R.Vector2.new(750, 329) else R.Vector2.new(1280, 662)
 
 local Instance, Enum = R.Instance, R.Enum
 

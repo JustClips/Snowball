@@ -1675,4 +1675,5 @@ function R.mountFolder(path, name, parent)
 	return folder
 end
 
+R.DEFAULTS = DEFAULTS
 return R
