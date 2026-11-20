@@ -11,6 +11,7 @@ local World = {
 	BaseSize = Vector3.new(64, 1, 56),
 	LaneCount = 8,
 	LaneSpacing = 13,
+	WheelStand = Vector3.new(0, 1000, -240), -- Lucky Wheel stand at the back of the plaza
 }
 
 -- Base i (1-8): left side 1-4, right side 5-8, front to back.

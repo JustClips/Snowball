@@ -206,6 +206,10 @@ local GRANTS: { [string]: (product: any, buyer: Player, recipient: Player) -> ()
 	SkipRebirth = function(_product, _buyer, recipient)
 		S.RebirthService:Rebirth(recipient, true)
 	end,
+	WheelSpins = function(product, _buyer, recipient)
+		S.RewardService:AddSpins(recipient, product.Count)
+		notify(recipient, `+{product.Count} Lucky Wheel spins!`)
+	end,
 	DoubleOffline = function(_product, _buyer, recipient)
 		S.PetService:DoubleOffline(recipient)
 	end,

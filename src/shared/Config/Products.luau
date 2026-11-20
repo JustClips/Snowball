@@ -126,6 +126,10 @@ local Products: { ProductDef } = {
 	p("Cash4", 399, "Vault of Cash", "CashPack", true, { Seconds = 18_000, FloorFactor = 5 }),
 	-- Server events and the rest
 	p("TriggerAvalanche", 149, "Avalanche Now", "Avalanche", false),
+	-- Lucky Wheel spins (sold in the wheel window, not the Shop)
+	p("WheelSpin1", 19, "1 Wheel Spin", "WheelSpins", true, { Count = 1 }),
+	p("WheelSpin5", 79, "5 Wheel Spins", "WheelSpins", true, { Count = 5 }),
+	p("WheelSpin10", 149, "10 Wheel Spins", "WheelSpins", true, { Count = 10 }),
 	p("SkipRebirth", 79, "Skip Rebirth", "SkipRebirth", false),
 	p("DoubleOffline", 49, "Double Offline Cash", "DoubleOffline", false),
 }

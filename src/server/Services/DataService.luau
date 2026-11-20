@@ -43,6 +43,9 @@ local TEMPLATE: Types.ProfileData = {
 	Boosts = {}, -- name -> EndsAt (Train2x, Cash2x...), Pop = { Mult, EndsAt }
 	Charges = { LuckyRoll = 0, SuperLucky = 0, GoldenRuns = 0, LuckPop = 0 },
 	Trails = {},
+	Daily = { Streak = 0, LastClaim = 0, Weeks = 0 },
+	Spins = 0,
+	CodesRedeemed = {}, -- code -> unix time used
 	Gamepasses = {},
 	GiftedPasses = {},
 	ReceiptsGranted = {},
@@ -56,6 +59,8 @@ local TEMPLATE: Types.ProfileData = {
 		Funnel = {},
 		OffersShown = {},
 		FavoriteAsked = false,
+		FirstSpinDone = false,
+		TutorialRewarded = false,
 	},
 	Stats = {
 		Taps = 0,

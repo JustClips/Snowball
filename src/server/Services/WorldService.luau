@@ -77,6 +77,32 @@ local function buildSummit(root: Folder)
 			Parent = summit,
 		})
 	end
+	-- Lucky Wheel stand (graybox): the client opens the wheel window from its prompt.
+	local wheel = part({
+		Name = "LuckyWheel",
+		Shape = Enum.PartType.Cylinder,
+		Size = Vector3.new(2, 22, 22),
+		CFrame = CFrame.new(World.WheelStand + Vector3.yAxis * 14) * CFrame.Angles(0, math.pi / 2, 0),
+		Material = Enum.Material.SmoothPlastic,
+		Color = Color3.fromRGB(255, 194, 46),
+		Parent = summit,
+	})
+	part({
+		Name = "LuckyWheelPost",
+		Size = Vector3.new(3, 4, 3),
+		CFrame = CFrame.new(World.WheelStand + Vector3.yAxis * 2),
+		Material = Enum.Material.WoodPlanks,
+		Color = Color3.fromRGB(150, 110, 70),
+		Parent = summit,
+	})
+	local prompt = Instance.new("ProximityPrompt")
+	prompt.Name = "WheelPrompt"
+	prompt.ActionText = "Lucky Wheel"
+	prompt.ObjectText = "Spin"
+	prompt.HoldDuration = 0
+	prompt.MaxActivationDistance = 16
+	prompt.RequiresLineOfSight = false
+	prompt.Parent = wheel
 	local bases = folder("Bases", summit)
 	for i = 1, World.BaseCount do
 		local cf = World.baseCFrame(i)

@@ -116,6 +116,8 @@ function StateService:Build(player: Player, full: boolean?): Types.PlayerSnapsho
 		Settings = data.Settings,
 		IncomePerSec = if S.PetService then S.PetService:GetIncomePerSec(player) else 0,
 		Luck = S.BoostService:GetLuck(player),
+		Rewards = if S.RewardService then S.RewardService:Snapshot(player) else nil,
+		Spins = data.Spins,
 		CashMult = S.BoostService:GetCashMult(player),
 		TutorialStep = step,
 		BaseIndex = session.Runtime.BaseIndex or 0,
