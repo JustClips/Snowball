@@ -14,6 +14,8 @@ local Ui = require(script.Parent.Parent.Ui)
 
 local UpgradesController = {}
 
+local C: any
+
 local window: Frame
 local cards: { [string]: { title: TextLabel, info: TextLabel, buy: TextButton } } = {}
 
@@ -152,7 +154,8 @@ function UpgradesController:Toggle()
 	end
 end
 
-function UpgradesController:Init()
+function UpgradesController:Init(controllers)
+	C = controllers
 	local gui = Ui.screen("Upgrades", 20)
 	local body
 	window, body = Ui.window(gui, "Window", "UPGRADES", Vector2.new(560, 560), {
@@ -173,6 +176,14 @@ function UpgradesController:Init()
 	layout.Parent = list
 	list.Parent = body
 	card(list :: any, "Roller", 1, function()
+		-- A rebirth-locked roller opens the Rebirth window, which shows how to unlock it.
+		local data = State.data :: any
+		local nextRoller = data and Rollers.get(data.Roller + 1)
+		if nextRoller and (data.Rebirths or 0) < nextRoller.RebirthsNeeded and C and C.RebirthController then
+			Ui.closeWindow(window)
+			C.RebirthController:Toggle()
+			return
+		end
 		invoke("BuyRoller")
 	end)
 	card(list :: any, "RobuxRoller", 2, function()
