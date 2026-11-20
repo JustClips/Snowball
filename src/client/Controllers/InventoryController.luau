@@ -435,6 +435,19 @@ end
 
 function InventoryController:Init(controllers)
 	C = controllers
+	-- Our hotbar + Bag replace Roblox's backpack (its grey 1-0 slots and the Search window
+	-- that ` opened). SetCoreGuiEnabled can fail right at join, so retry a few times.
+	task.spawn(function()
+		for _ = 1, 10 do
+			local ok = pcall(function()
+				game:GetService("StarterGui"):SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, false)
+			end)
+			if ok then
+				break
+			end
+			task.wait(0.5)
+		end
+	end)
 	gui = Ui.screen("Bag", 12)
 
 	-- Hotbar.
