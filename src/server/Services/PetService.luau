@@ -155,8 +155,10 @@ function PetService:RefreshBase(player: Player)
 			entry:Destroy()
 		end
 	end
+	local total = 0 -- income of every pet out on the base, for the HUD's "+$X/s" (Dev 2026-11-20)
 	for uid, pet in data.Pets do
 		if pet.Placed then
+			total += PetStats.income(pet) * cashMult
 			local entry = f:FindFirstChild(uid)
 			if not entry then
 				local e = Instance.new("Folder")
@@ -180,6 +182,7 @@ function PetService:RefreshBase(player: Player)
 			end
 		end
 	end
+	player:SetAttribute("IncomePerSec", total)
 	S.StateService:Mark(player)
 end
 

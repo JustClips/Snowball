@@ -225,7 +225,8 @@ function HatchService:Open(player: Player, spot: any, force: boolean?): (boolean
 			local huge = order >= Eggs.HugeMinOrder and rng:NextNumber() < luck / Eggs.HugeChance
 			-- The pet pops out where the egg was (or goes in the bag when the park is full).
 			local at = if h.X and h.Z then Vector2.new(h.X, h.Z) else nil
-			local uid = S.PetService:GivePet(player, petId, { Zone = h.Zone, Mutation = mutation, Huge = huge or nil }, at)
+			local uid =
+				S.PetService:GivePet(player, petId, { Zone = h.Zone, Mutation = mutation, Huge = huge or nil }, at)
 			data.Stats.Hatches += 1
 			S.AnalyticsService:Funnel(player, "FirstHatch")
 			S.AnalyticsService:Custom(

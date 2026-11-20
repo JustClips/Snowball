@@ -34,6 +34,7 @@ local HudController = {}
 local C: any
 local gui: ScreenGui
 local cashLabel: TextLabel
+local incomeLabel: TextLabel
 local powerLabel: TextLabel
 local stats: Frame
 local chips: Frame
@@ -343,6 +344,30 @@ function HudController:Init(controllers)
 		C.ShopController:Toggle("Cash")
 	end)
 	cashButton.Parent = cash
+	-- Steal an Egg: what your pets earn, small and green under the cash (Dev 2026-11-20).
+	incomeLabel = Ui.label({
+		Name = "Income",
+		Size = UDim2.new(1, -58, 0, 22),
+		Position = UDim2.fromOffset(58, 44),
+		Text = "+$0/s",
+		TextColor3 = Color3.fromRGB(150, 255, 120),
+		TextXAlignment = Enum.TextXAlignment.Left,
+		ZIndex = 2,
+	})
+	incomeLabel.Parent = cash
+	local function showIncome()
+		local rate = player:GetAttribute("IncomePerSec") or 0
+		incomeLabel.Text = `+{Format.cash(rate)}/s`
+		incomeLabel.Visible = rate > 0
+	end
+	player:GetAttributeChangedSignal("IncomePerSec"):Connect(function()
+		showIncome()
+		local sc = incomeLabel:FindFirstChildOfClass("UIScale") or Instance.new("UIScale")
+		sc.Parent = incomeLabel
+		sc.Scale = 1.25
+		TweenService:Create(sc, TweenInfo.new(0.3, Enum.EasingStyle.Back), { Scale = 1 }):Play()
+	end)
+	showIncome()
 	local power, pv = Ui.stat("Power", "Power", Color3.fromRGB(120, 210, 255), L.Stats.Size.X)
 	power.Position = UDim2.fromOffset(0, L.StatRow)
 	power.Parent = stats

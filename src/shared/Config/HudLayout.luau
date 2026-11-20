@@ -7,9 +7,9 @@ return {
 	Tile = 64, -- rail tile size
 	TileWord = 24, -- the word under a tile
 	TileGap = 10,
-	StatRow = 54,
+	StatRow = 70, -- cash row is taller: the "+$X/s" pet income sits under the number
 	Chip = Vector2.new(116, 38),
-	Stats = { Anchor = Vector2.new(0, 1), Pos = UDim2.new(0, 24, 1, -14), Size = Vector2.new(250, 104) },
+	Stats = { Anchor = Vector2.new(0, 1), Pos = UDim2.new(0, 24, 1, -14), Size = Vector2.new(250, 120) },
 	LeftRail = { Anchor = Vector2.new(0, 0.5), Pos = UDim2.new(0, 24, 0.5, -16), Size = Vector2.new(138, 290) },
 	RightRail = { Anchor = Vector2.new(1, 0.5), Pos = UDim2.new(1, -24, 0.5, -16), Size = Vector2.new(138, 290) },
 	TopRight = { Anchor = Vector2.new(1, 0), Pos = UDim2.new(1, -24, 0, 18), Size = Vector2.new(260, 130) },

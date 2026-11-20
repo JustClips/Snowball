@@ -238,6 +238,8 @@ class Hud:
         for name, color, val, oy in rows:
             self.c.icon(name, x, y + oy * s, 50 * s, 50 * s)
             self.c.text(x + 56 * s, y + (oy + 4) * s, (w - 58) * s, 42 * s, val, color, align="l", stroke=3)
+            if name == "Cash":
+                self.c.text(x + 58 * s, y + (oy + 44) * s, (w - 58) * s, 22 * s, "+$42K/s", (150, 255, 120), align="l")
         self.c.outline("Stats", x, y, w * s, d["Size"][1] * s)
 
     def top_right(self):
