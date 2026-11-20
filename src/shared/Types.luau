@@ -95,4 +95,4 @@ export type ProfileData = {
 
 export type PlayerSnapshot = { [string]: any }
 
-return nil
+return {}

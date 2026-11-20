@@ -21,6 +21,9 @@ local Pickups = {
 	Margin = 160, -- pickups are made this far past the ball's target distance
 }
 
+-- Fixed order so server and client draw the same random numbers.
+local ORDER = { "Snow", "Coin", "Egg", "Present", "Ramp" }
+
 -- All pickups for one run, up to `limit` studs. widthAt(s) gives the track width.
 function Pickups.generate(seed: number, limit: number, widthAt: (number) -> number, firstEgg: boolean): { Pickup }
 	local rng = Random.new(seed)
@@ -33,7 +36,8 @@ function Pickups.generate(seed: number, limit: number, widthAt: (number) -> numb
 	if firstEgg then
 		add("Egg", Pickups.FirstEggAt, 0)
 	end
-	for kind, every in Pickups.Every do
+	for _, kind in ORDER do
+		local every = Pickups.Every[kind]
 		local s = 40 + rng:NextNumber(0, every)
 		while s < limit do
 			local half = widthAt(s) / 2 - 6

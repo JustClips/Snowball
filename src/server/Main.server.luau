@@ -17,6 +17,8 @@ local ORDER = {
 	"CashService",
 	"BoostService",
 	"InventoryService",
+	"PetService",
+	"HatchService",
 	"TrainService",
 	"PopService",
 	"RollService",

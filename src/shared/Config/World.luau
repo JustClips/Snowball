@@ -36,4 +36,19 @@ function World.laneX(i: number): number
 	return (i - (World.LaneCount + 1) / 2) * World.LaneSpacing
 end
 
+World.HatchSpots = 4
+World.PetSpotsMax = 10
+
+-- Hatch spot i (1-4) on base b: a row along the plaza side of the base.
+function World.eggSpot(b: number, i: number): CFrame
+	return World.baseCFrame(b) * CFrame.new(-24 + (i - 1) * 8, 1, -16)
+end
+
+-- Pet slot i (1-10) on base b: two rows of five behind the eggs, facing the plaza.
+function World.petSpot(b: number, i: number): CFrame
+	local row = math.floor((i - 1) / 5)
+	local col = (i - 1) % 5
+	return World.baseCFrame(b) * CFrame.new(-24 + col * 11, 1, 2 + row * 12)
+end
+
 return World
