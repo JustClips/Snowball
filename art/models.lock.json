@@ -14,6 +14,121 @@
   "id": 123888722656689,
   "sha": "08574a820aa56ec389ef242037382c36681c3d324ad94ba9b132579035bcfe06"
  },
+ "Egg_Common": {
+  "granted": true,
+  "id": 122273844265163,
+  "sha": "1d36b4f03a9e4da9ac74bb527d4fabe5ca5c06ba0c3e5cbfc8fb341aa887d69d"
+ },
+ "Egg_Epic": {
+  "granted": true,
+  "id": 112784003407551,
+  "sha": "b2dbb779070eff748d1b272e4228c67533728db1e45ee223caadccd0f790023f"
+ },
+ "Egg_Legendary": {
+  "granted": true,
+  "id": 122507356757714,
+  "sha": "7efb78f6017fb99f59d3cac440c56fa0724591dcdf904e6c30f3c51946568f4f"
+ },
+ "Egg_Mythic": {
+  "granted": true,
+  "id": 114150337852925,
+  "sha": "f8b1134e2b7c8091a2ba92405e42c61920b3168bd974bf8348357277d0456874"
+ },
+ "Egg_Rare": {
+  "granted": true,
+  "id": 139597283537047,
+  "sha": "34faf2a3f4f5085e0b4f3a1974041fc907e34e5ee7dc33ce95c192749b594f87"
+ },
+ "Egg_Secret": {
+  "granted": true,
+  "id": 119903079220409,
+  "sha": "e4fe0190609f541959175e592fa0a0e4cc529b3a288c23d1c7534b78e7a27eb9"
+ },
+ "Egg_Uncommon": {
+  "granted": true,
+  "id": 114630480660864,
+  "sha": "5596c3b77f2f8cb2c9522ab65a77d9a6b2e2faebc916632b4c4dd4001970c4d7"
+ },
+ "Obs_BigPine": {
+  "granted": true,
+  "id": 133252368684481,
+  "sha": "d52497190d6c43bd9bda40090d6cd6058e0724cd8ab3849f05a5f6cd1e254976"
+ },
+ "Obs_Boulder": {
+  "granted": true,
+  "id": 72339584068469,
+  "sha": "56bef954697827c02fbcc51697f60306d3b91df75867ba08668dd763d791ee5a"
+ },
+ "Obs_Crystal": {
+  "granted": true,
+  "id": 95931843558073,
+  "sha": "0b99b303c3b764e598e8c09ca3cdaaeaabafe294a8f6f8c85a088663effb70c0"
+ },
+ "Obs_Fence": {
+  "granted": true,
+  "id": 100793632892662,
+  "sha": "a0ff8ffd669ca2ed88b9ed296b1948d4e578a6c7dcd22688d6d5be23b7697316"
+ },
+ "Obs_FishingHut": {
+  "granted": true,
+  "id": 120332992758334,
+  "sha": "497885d05052752c18b54ad2ee491569b8c3e174b168cc408a0bb21a7252b229"
+ },
+ "Obs_IceBlock": {
+  "granted": true,
+  "id": 136549736704016,
+  "sha": "fdef7bbf0ab18be7af7a4b003a4ff8a53f8c9bd0a244a70dc69575e0563b227b"
+ },
+ "Obs_Log": {
+  "granted": true,
+  "id": 75542176703516,
+  "sha": "c08152f56f3d44905c48880d556e16b9fea35acf92293cc19a2c68e93f4090e7"
+ },
+ "Obs_Pine": {
+  "granted": true,
+  "id": 124391164604210,
+  "sha": "24258d4a47ff35f68ea2d767e9507a12c0b1201a7348776620affe7c8a2a4fb1"
+ },
+ "Obs_Snowman": {
+  "granted": true,
+  "id": 122708440930386,
+  "sha": "3c97cb5f3985f5b271bfaa39456a737e8c38e4472079c8d77e1d46be20cce27b"
+ },
+ "Obs_SnowmanWall": {
+  "granted": true,
+  "id": 104671980230465,
+  "sha": "6ee5a4379da6388a4b56ef433b08387460a2ad6d56d4ef47e68960584f2246cd"
+ },
+ "Obs_Stalagmite": {
+  "granted": true,
+  "id": 100417607832154,
+  "sha": "f01873e3a1744f59c2e96d1d006b828f0f928f96e88ab691713b23e3bfd638f4"
+ },
+ "Pick_Coin": {
+  "granted": true,
+  "id": 127489297124383,
+  "sha": "c441f74d9d2a74400068c9ca68b21d416da594a22e6341e16bb51dbb9d0abeca"
+ },
+ "Pick_Egg": {
+  "granted": true,
+  "id": 114516035777993,
+  "sha": "5a2aeb00df2e7e550d804e83d2f32bb4cd75406e2a0fdd5ef0b96cedc7028bee"
+ },
+ "Pick_Present": {
+  "granted": true,
+  "id": 96134821572821,
+  "sha": "ba21266604c775f33ebd91cde8da79c8f4626c9bf7112b20fd6d70435e1cba2d"
+ },
+ "Pick_Ramp": {
+  "granted": true,
+  "id": 90690382971664,
+  "sha": "e1262ac9fcb533802d6b5af74f4a03b619bd69f70d3077a36da8e5179b974e8f"
+ },
+ "Pick_Snow": {
+  "granted": true,
+  "id": 76851630363949,
+  "sha": "14d9dca44d4f5669fb6ac3b1cdced7c43d1094a7f41d5c7d533744339c381535"
+ },
  "Prop_Bench": {
   "granted": true,
   "id": 77511546535111,

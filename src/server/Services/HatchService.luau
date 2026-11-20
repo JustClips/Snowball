@@ -11,6 +11,7 @@ local Eggs = require(Shared.Config.Eggs)
 local Net = require(Shared.Net)
 local Pets = require(Shared.Config.Pets)
 local World = require(Shared.Config.World)
+local ModelLoader = require(script.Parent.Parent.Lib.ModelLoader)
 
 local HatchService = {}
 
@@ -57,16 +58,22 @@ function HatchService:RefreshEggs(player: Player)
 	folder.Name = "Eggs"
 	for _, h in data.Hatching do
 		local rarity = Eggs.ByName[h.Rarity]
-		local egg = Instance.new("Part")
+		-- The Blender egg for this rarity (art/blender/track.py), graybox until it loads.
+		local spotCf = World.eggSpot(index :: number, h.Spot)
+		local egg = ModelLoader.part("Egg_" .. h.Rarity, spotCf)
+		if not egg then
+			local p = Instance.new("Part")
+			p.Shape = Enum.PartType.Ball
+			p.Size = Vector3.new(3.4, 4.4, 3.4)
+			p.Material = Enum.Material.Glass
+			p.Transparency = 0.15
+			p.Color = if rarity then rarity.Color else Color3.new(1, 1, 1)
+			p.CFrame = spotCf * CFrame.new(0, 2.2, 0)
+			egg = p
+		end
 		egg.Name = "Egg" .. h.Spot
-		egg.Shape = Enum.PartType.Ball
-		egg.Size = Vector3.new(3.4, 4.4, 3.4)
 		egg.Anchored = true
 		egg.CanCollide = false
-		egg.Material = Enum.Material.Glass
-		egg.Transparency = 0.15
-		egg.Color = if rarity then rarity.Color else Color3.new(1, 1, 1)
-		egg.CFrame = World.eggSpot(index :: number, h.Spot) * CFrame.new(0, 2.2, 0)
 		egg:SetAttribute("EndsAt", h.EndsAt)
 		egg:SetAttribute("Rarity", h.Rarity)
 		egg:SetAttribute("Owner", player.UserId)

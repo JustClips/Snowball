@@ -186,17 +186,14 @@ function PackController:Start()
 				Fx.burst("Sparkle", hrp.Position, 2)
 			end
 		end
-		quality.TextColor3 = if info.Quality == "Perfect"
-			then Ui.Colors.Green
-			elseif info.Quality == "Good" then Ui.Colors.Yellow
-			else Ui.Colors.Red
-		quality.TextTransparency = 0
-		quality.Visible = true
-		qualityScale.Scale = 0.4
-		TweenService:Create(qualityScale, TweenInfo.new(0.3, Enum.EasingStyle.Back), { Scale = 1.15 }):Play()
-		task.delay(1, function()
-			TweenService:Create(quality, TweenInfo.new(0.3), { TextTransparency = 1 }):Play()
-		end)
+		Ui.word(
+			quality.Text,
+			if info.Quality == "Perfect"
+				then Ui.Colors.Green
+				elseif info.Quality == "Good" then Ui.Colors.Yellow
+				else Ui.Colors.Red,
+			0.8
+		)
 	end)
 	UserInputService.InputBegan:Connect(function(input, processed)
 		if not packing then

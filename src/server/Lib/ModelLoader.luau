@@ -86,4 +86,19 @@ function ModelLoader.clone(name: string, origin: CFrame, scale: number?): Model?
 	return m
 end
 
+-- For one-mesh models: the single part, placed with its model origin at `origin`, or nil.
+function ModelLoader.part(name: string, origin: CFrame): BasePart?
+	local m = ModelLoader.clone(name, origin)
+	local part = m and m:FindFirstChildWhichIsA("BasePart", true)
+	if part then
+		part.Name = name
+		part.Anchored = true
+		part.Parent = nil
+	end
+	if m then
+		m:Destroy()
+	end
+	return part
+end
+
 return ModelLoader

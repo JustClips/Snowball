@@ -37,17 +37,7 @@ local TIERS = {
 }
 
 function ResultsController:Flash(text: string, color: Color3)
-	flash.Text = text
-	flash.TextColor3 = color
-	flash.TextTransparency = 0
-	flash.Visible = true
-	flashScale.Scale = 0.5
-	TweenService:Create(flashScale, TweenInfo.new(0.25, Enum.EasingStyle.Back), { Scale = 1 }):Play()
-	task.delay(0.8, function()
-		if flash.Text == text then
-			TweenService:Create(flash, TweenInfo.new(0.3), { TextTransparency = 1 }):Play()
-		end
-	end)
+	Ui.word(text, color)
 end
 
 local function close()

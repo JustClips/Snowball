@@ -11,6 +11,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Spline = require(Shared.Spline)
 local World = require(Shared.Config.World)
 local ModelLoader = require(script.Parent.Parent.Lib.ModelLoader)
+local Obstacles = require(Shared.Config.Obstacles)
 local Zones = require(Shared.Config.Zones)
 
 local WorldService = {}
@@ -341,20 +342,21 @@ end
 -- clients can't load models themselves.
 local function shareAssets()
 	local assets = folder("Assets", ReplicatedStorage)
-	for _, name in { "Chevron" } do
-		local model = ModelLoader.clone(name, CFrame.new())
-		local part = model and model:FindFirstChildWhichIsA("BasePart", true)
+	local names = { "Chevron" }
+	for _, kind in Obstacles.Kinds do
+		table.insert(names, "Obs_" .. kind.Id)
+	end
+	for _, kind in { "Snow", "Coin", "Egg", "Present", "Ramp" } do
+		table.insert(names, "Pick_" .. kind)
+	end
+	for _, name in names do
+		local part = ModelLoader.part(name, CFrame.new())
 		if part then
-			part.Name = name
-			part.Anchored = true
 			part.CanCollide = false
 			part.CanQuery = false
 			part.CanTouch = false
-			part.CastShadow = false
+			part.CastShadow = name ~= "Chevron"
 			part.Parent = assets
-		end
-		if model then
-			model:Destroy()
 		end
 	end
 end
