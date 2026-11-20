@@ -1,4 +1,499 @@
 {
+ "Pet_ArcticFox_Happy": {
+  "granted": true,
+  "id": 115884185725810,
+  "sha": "385c3075c2ed3a0a7dbdaa5cc56c4a9ae1bf281a62a28848384f11d56db208c5"
+ },
+ "Pet_ArcticFox_Idle": {
+  "granted": true,
+  "id": 137395852771226,
+  "sha": "71d211524c96564edc25a4580140571c76c4c2bf3d02501c2a11cc42152783f8"
+ },
+ "Pet_ArcticFox_Walk": {
+  "granted": true,
+  "id": 73209435152220,
+  "sha": "7b72cd85d256ca991b73b8e5eee93712484a6b766a116139e411fbbdb7241c31"
+ },
+ "Pet_Bear_Happy": {
+  "granted": true,
+  "id": 77361633469902,
+  "sha": "c6624ddd908c5da8de8f5add46e3dd7319a1d9907a2ea5226ccc6afc92c68fe3"
+ },
+ "Pet_Bear_Idle": {
+  "granted": true,
+  "id": 110722770166289,
+  "sha": "fc79896457dfd58a162695a40e0d88c7bb769d6095950b864746aacfa02659dc"
+ },
+ "Pet_Bear_Walk": {
+  "granted": true,
+  "id": 87518141575175,
+  "sha": "8a66eda6bdeaebd009982b3819b9cd12f3b613b205d5933c72fabe01a82e449e"
+ },
+ "Pet_Beaver_Happy": {
+  "granted": true,
+  "id": 102254659483815,
+  "sha": "6b954f4c92d8c69dcdc1989616d7c277f418d7c42f5d5c7a7fd8143130ef8a21"
+ },
+ "Pet_Beaver_Idle": {
+  "granted": true,
+  "id": 87911166695949,
+  "sha": "3885cde736fbdcda08c64fc23ed25e3c655e038db777b38731896b51716ac6a7"
+ },
+ "Pet_Beaver_Walk": {
+  "granted": true,
+  "id": 117024835693852,
+  "sha": "75a06f4927bce32dba411bb2b3d7156310cb3c2fd545b02ba86b2c50717cb9dd"
+ },
+ "Pet_Chipmunk_Happy": {
+  "granted": true,
+  "id": 100060986928840,
+  "sha": "6bc9a7bf648757289ef5f65991de862e4b0ae0d1d5bc885d469e4cc8b039a5ea"
+ },
+ "Pet_Chipmunk_Idle": {
+  "granted": true,
+  "id": 98869135828374,
+  "sha": "20e7eae9a4be2163c59bf3904ec37a91200ebac128980e60e392721352ce8d40"
+ },
+ "Pet_Chipmunk_Walk": {
+  "granted": true,
+  "id": 130438620561776,
+  "sha": "2d596cb6d4c80722ae62c06d9fd070702980e283cc132092782ddc5c752ac5a6"
+ },
+ "Pet_Dragon_Happy": {
+  "granted": true,
+  "id": 86528431537419,
+  "sha": "0ced828af70f6925abf016fc0994dc5b319062497af86d1826c751446b063ef4"
+ },
+ "Pet_Dragon_Idle": {
+  "granted": true,
+  "id": 108019717012785,
+  "sha": "f6bf53585b7f490de804cd8f24108c7ee3c2e8c4d27ca30ef1c0f80e246d90d4"
+ },
+ "Pet_Dragon_Walk": {
+  "granted": true,
+  "id": 85855518041773,
+  "sha": "0cf47303c45dc6eb7fbab42b5bea3ba6786706bc6e0e582b6e7891069d980355"
+ },
+ "Pet_Duck_Happy": {
+  "granted": true,
+  "id": 72231660940087,
+  "sha": "8c22856feb47cff6436e94d5e9400960f75b250d71a872f32b47a174e7627fe8"
+ },
+ "Pet_Duck_Idle": {
+  "granted": true,
+  "id": 95861403593672,
+  "sha": "2617119ddd27dd0f923e8501c71097e0cd7e21dbe0a44b8f49018d5f8b4d5162"
+ },
+ "Pet_Duck_Walk": {
+  "granted": true,
+  "id": 136217784190468,
+  "sha": "48cb38a488d36c8c09b5abdd40982b656cf159aa69f7ef34080ef7bbfb03f70f"
+ },
+ "Pet_Fox_Happy": {
+  "granted": true,
+  "id": 93849256896643,
+  "sha": "fe3d8e4f77ad12d22ce3c2a6b9ef2d48bb4aa2d2e7aebec565a769e8923f11e9"
+ },
+ "Pet_Fox_Idle": {
+  "granted": true,
+  "id": 106786129795726,
+  "sha": "c33bbe931516b486c6d306b995a1e31ac5182c9a55225050da03f37a6a7cff27"
+ },
+ "Pet_Fox_Walk": {
+  "granted": true,
+  "id": 129934554259048,
+  "sha": "41c0e0956fafe42f289efb1aea5870ae6b4b314d92e535a21ea6cf3aa44c45e3"
+ },
+ "Pet_Goose_Happy": {
+  "granted": true,
+  "id": 72536177793283,
+  "sha": "a901a4e5d8b67e85b8435a5e9984815e21877d9fe4026dafbff8038e60e53298"
+ },
+ "Pet_Goose_Idle": {
+  "granted": true,
+  "id": 95234756759199,
+  "sha": "d8b64dd6d4a74dd1ae0494b5a743575701e000412407a5722421487fa2952b93"
+ },
+ "Pet_Goose_Walk": {
+  "granted": true,
+  "id": 94350619025948,
+  "sha": "94fc07fb0e5b9d2add01a23731874c24e68dd0e55ed479bd152e0baa52a0addc"
+ },
+ "Pet_Hamster_Happy": {
+  "granted": true,
+  "id": 105687642756378,
+  "sha": "115efac18d4422dc22ffeb82b8e49ba43a40ab123bfc429fc014c88e47eea130"
+ },
+ "Pet_Hamster_Idle": {
+  "granted": true,
+  "id": 86605356173965,
+  "sha": "039d2b359a75a1d33d5fcb97f20158bc02d53e3ce23912269847cb0aaba37bff"
+ },
+ "Pet_Hamster_Walk": {
+  "granted": true,
+  "id": 127770007004101,
+  "sha": "2000faaa89f921c38457ca2cc636f779bc1b4af4f5308e3de904236b5634a170"
+ },
+ "Pet_Hedgehog_Happy": {
+  "granted": true,
+  "id": 135704628458565,
+  "sha": "463661c48375610a94cdd7780ce56993fe7ab4dde035319e802bce1179cf5099"
+ },
+ "Pet_Hedgehog_Idle": {
+  "granted": true,
+  "id": 138657487085612,
+  "sha": "f5991640dd8ca90b47e87006482b7f6f2f6120c428fae1b1729aeb5bf25e94cb"
+ },
+ "Pet_Hedgehog_Walk": {
+  "granted": true,
+  "id": 75716239247286,
+  "sha": "a4bc1f99ed9b84959bca31b7bad34918b49e5fd8b65569c99b9352aa21715acc"
+ },
+ "Pet_Koala_Happy": {
+  "granted": true,
+  "id": 131980723320563,
+  "sha": "d7cad8657072acd6ae29e053bc73efbefd26ee838941a24900b8b8def549c896"
+ },
+ "Pet_Koala_Idle": {
+  "granted": true,
+  "id": 76632801224957,
+  "sha": "54f38bbc5b65e6716305bfc2c996f7bf59753ac2b8c8899b74b36d6dd2594d5e"
+ },
+ "Pet_Koala_Walk": {
+  "granted": true,
+  "id": 109578738094495,
+  "sha": "7e2cd2d5011128e6ad8c11fddfcb98ce5d2fed6a42e8ac26ea4f5cef47213ba4"
+ },
+ "Pet_Llama_Happy": {
+  "granted": true,
+  "id": 126803155778290,
+  "sha": "a8152c5f0d0b01f4d38ef765b07760b8d67b18594344ffdff061189f3ab511da"
+ },
+ "Pet_Llama_Idle": {
+  "granted": true,
+  "id": 126764186271475,
+  "sha": "76308b46df83ec3b3d09e689ab72552371a7679adf81be04d2d9ae729f057332"
+ },
+ "Pet_Llama_Walk": {
+  "granted": true,
+  "id": 88419976812387,
+  "sha": "24a8365a6176225a84bc516595deafcf0fbafe728f684b208f68976adb8fc187"
+ },
+ "Pet_Mammoth_Happy": {
+  "granted": true,
+  "id": 120853326030389,
+  "sha": "faec40b4b9c51e0a62682f2d743838c5fd9cda6bd94034b21d64a9fea4718efd"
+ },
+ "Pet_Mammoth_Idle": {
+  "granted": true,
+  "id": 113670734745218,
+  "sha": "484da08103ca49e2241921aeb41109a83cd1770ab966fd75503c21ad17bd542b"
+ },
+ "Pet_Mammoth_Walk": {
+  "granted": true,
+  "id": 134794680545566,
+  "sha": "13be2917ebbb8840a898e739fe6bfdd3713f1f3ab7512a1e6beb9c868e3e8cf6"
+ },
+ "Pet_Moose_Happy": {
+  "granted": true,
+  "id": 125005391698846,
+  "sha": "c805f01030a3686c4e0df7e4c6a47b24b8bf333c56a34f90945d06798b60c73e"
+ },
+ "Pet_Moose_Idle": {
+  "granted": true,
+  "id": 135482419715601,
+  "sha": "5fe53d68374912f86e1b8876c700092e44f7f22c9ca5e12f154056368f75e169"
+ },
+ "Pet_Moose_Walk": {
+  "granted": true,
+  "id": 81024377343269,
+  "sha": "7c80889eaa53438652f700bf8a75a530d8ff32830bb905870327808aa573f352"
+ },
+ "Pet_Mouse_Happy": {
+  "granted": true,
+  "id": 111786248802029,
+  "sha": "ee0f0fbbd7464597227918ca897ab6f4cd79054c18083e15813b8a5f224104b7"
+ },
+ "Pet_Mouse_Idle": {
+  "granted": true,
+  "id": 112516808612087,
+  "sha": "fa6c9cd172bde585f93ff0cdff69ff0faa92fa278a7ad5f2eb85c205204d61c1"
+ },
+ "Pet_Mouse_Walk": {
+  "granted": true,
+  "id": 124620299422905,
+  "sha": "ec2e6c4c6162d68ca585ded37fe76e66d2c3096a1fc97cefa159ce0aa28eff72"
+ },
+ "Pet_Narwhal_Happy": {
+  "granted": true,
+  "id": 115874865861213,
+  "sha": "f7eb10e4667e1cb31f153f508dc79a511bef5bacff0d0c04caa05be93927e1f3"
+ },
+ "Pet_Narwhal_Idle": {
+  "granted": true,
+  "id": 96985702773527,
+  "sha": "63314d999e3a32ec39bd7df7c62543c2475cfaaab5099e71fcc0b9ec3124a7df"
+ },
+ "Pet_Narwhal_Walk": {
+  "granted": true,
+  "id": 79793462342305,
+  "sha": "33874a719b9ebaf8abcd8837689683f8be1afc824cfc1686deef7c41baa77af3"
+ },
+ "Pet_Orca_Happy": {
+  "granted": true,
+  "id": 126100879012362,
+  "sha": "2868a33266f6e5202c44c27453b956d0f20787514ec93ba11ee8e1fa7a3f2c6e"
+ },
+ "Pet_Orca_Idle": {
+  "granted": true,
+  "id": 102597946028499,
+  "sha": "f4b148f2d20d0b0602273f604f02bed6035e65776d31a4e1b994e687c9579530"
+ },
+ "Pet_Orca_Walk": {
+  "granted": true,
+  "id": 93105200556627,
+  "sha": "2353edde9ad0a6804cb1947a8a8fa5eef0cb0fa21d4ed5054dc4e55c66da70c3"
+ },
+ "Pet_Otter_Happy": {
+  "granted": true,
+  "id": 76356874889836,
+  "sha": "ebf5873725de6772fe10e00d68a2e8d1bdc5f385c9b3a0d9a034c33ab632e0a4"
+ },
+ "Pet_Otter_Idle": {
+  "granted": true,
+  "id": 98690235734884,
+  "sha": "0cb68458e4ceb5c838788ba3d256b871c7b1464d7f7cc6a77c69f24334a70848"
+ },
+ "Pet_Otter_Walk": {
+  "granted": true,
+  "id": 127352064467395,
+  "sha": "70b13f566946f8f60a9c745b191a116cffcb2024ee7038390411f4eb2af3c96f"
+ },
+ "Pet_Owl_Happy": {
+  "granted": true,
+  "id": 101608879550062,
+  "sha": "ea582c86b0e6029e3ac04ed315b2b9a75e3ad0b7b684d8930baa55d0fccdafd3"
+ },
+ "Pet_Owl_Idle": {
+  "granted": true,
+  "id": 106885930325666,
+  "sha": "1c6b5ac5c4c7f1cf3998e00524d32c4770c842266f3c7358e75a91b37de364d6"
+ },
+ "Pet_Owl_Walk": {
+  "granted": true,
+  "id": 117080076980429,
+  "sha": "40776fc3a1eaa6d2612716d800a0fd494e016bc0e6b3cc06777c2805951ea4f1"
+ },
+ "Pet_Panda_Happy": {
+  "granted": true,
+  "id": 124189532144827,
+  "sha": "4aa5eb4cbcf41a0ba6df0e9d726ef89eb0fb58995220bd79f1dbb1de51f75ac8"
+ },
+ "Pet_Panda_Idle": {
+  "granted": true,
+  "id": 74096274873171,
+  "sha": "10ff7b5af997b018b5b5f71ca0f7e0dff2c77b69a61abd2451e709c9c96a414f"
+ },
+ "Pet_Panda_Walk": {
+  "granted": true,
+  "id": 130982100249243,
+  "sha": "c5bfd08f7875a7e44581bec961178ff5d2f93fd4dd995bd36111e14aba7b60e1"
+ },
+ "Pet_Penguin_Happy": {
+  "granted": true,
+  "id": 79278315195347,
+  "sha": "70c821173e741068d70bcedb74cd76edcc397cccae4b2eb908766a15498a3dde"
+ },
+ "Pet_Penguin_Idle": {
+  "granted": true,
+  "id": 98683083349408,
+  "sha": "1ffbe2ca871349b0e602a5d8e527ae5adb2fb6b0376e5409839eb15122f15add"
+ },
+ "Pet_Penguin_Walk": {
+  "granted": true,
+  "id": 91371857403153,
+  "sha": "b49e92683cbc7ca4fd188147f44ab53d63ae8b41b6362f286394cdff09ec82e2"
+ },
+ "Pet_PolarBear_Happy": {
+  "granted": true,
+  "id": 110636729724898,
+  "sha": "c0707c182c529bcd25bcfefa634d3a5fd73197e0cb6a4c1aaa3486fe074206a1"
+ },
+ "Pet_PolarBear_Idle": {
+  "granted": true,
+  "id": 106087148617412,
+  "sha": "5cee8d365f590aca0fdde134ae7870e0b4414cb970405c226cf814c206a9d342"
+ },
+ "Pet_PolarBear_Walk": {
+  "granted": true,
+  "id": 81657341980077,
+  "sha": "6e408c11c177cad502937c7a8d63ea1f86b436a9a31b2f1fa7c03ad95b320318"
+ },
+ "Pet_Rabbit_Happy": {
+  "granted": true,
+  "id": 122163654734424,
+  "sha": "de01dcf3c56e666ac1aec7d285ef09ab2b50876eaeeb82e76b02fd07edd952ac"
+ },
+ "Pet_Rabbit_Idle": {
+  "granted": true,
+  "id": 137796713902982,
+  "sha": "527007b08d6e40bd15ea805e939e105f2e0732a29b8618b5973df941152f2092"
+ },
+ "Pet_Rabbit_Walk": {
+  "granted": true,
+  "id": 86367008506971,
+  "sha": "6297be3efada6bf6b3c97aa644f806d1542a54658d0e54671be7b7ff82203178"
+ },
+ "Pet_Raccoon_Happy": {
+  "granted": true,
+  "id": 71772224164755,
+  "sha": "26da8395b2f3d2b331d99232802fd50b36fa86e944739221feed62a6a9ab23f8"
+ },
+ "Pet_Raccoon_Idle": {
+  "granted": true,
+  "id": 98442851307338,
+  "sha": "d5a040359838185f547fc564ca3e4967a062e13ae12a19308b9dcb0d00fafae6"
+ },
+ "Pet_Raccoon_Walk": {
+  "granted": true,
+  "id": 79444651930797,
+  "sha": "1a7d68150ce403734b54b5bc2acbc1154b66808a1165dc046c200b5bda1ce4ba"
+ },
+ "Pet_RedPanda_Happy": {
+  "granted": true,
+  "id": 111491814494995,
+  "sha": "f4ce4a00d8744550c43bc1fb6204a7282f582675eee02137515954d42530ed90"
+ },
+ "Pet_RedPanda_Idle": {
+  "granted": true,
+  "id": 120429669647311,
+  "sha": "e53ae4be73565da0a590bbf20b6f1535dd73eb43590072b2d7724a775f3eba8b"
+ },
+ "Pet_RedPanda_Walk": {
+  "granted": true,
+  "id": 138140346887391,
+  "sha": "4a4ec283df4969c0045fc7ced5ac0208207a51413a05a2b159539412914d5ca7"
+ },
+ "Pet_Reindeer_Happy": {
+  "granted": true,
+  "id": 100729828776206,
+  "sha": "238193cfb4901638408c52a969f295a62c1288028c90ab9cda9c7460433aa4bb"
+ },
+ "Pet_Reindeer_Idle": {
+  "granted": true,
+  "id": 76498912970406,
+  "sha": "9df00beba065866ab5a537e8490ad54852ce6da9822faa4b6d0aa5215a0173df"
+ },
+ "Pet_Reindeer_Walk": {
+  "granted": true,
+  "id": 89325583792549,
+  "sha": "04c2177e6e63837e239b9d88ef1378cdafe929726a96a681d3785f7d10f36a6b"
+ },
+ "Pet_Seal_Happy": {
+  "granted": true,
+  "id": 94197712208468,
+  "sha": "9e0fe7f7cdf96d2d07c3737132909798d628e6621cc09df6cc431cb4d3c9f8e9"
+ },
+ "Pet_Seal_Idle": {
+  "granted": true,
+  "id": 106126794720123,
+  "sha": "da02461166f06f2c3ed20d130d3170d0d4d45f2af6a99b94e62b2208bf43d78f"
+ },
+ "Pet_Seal_Walk": {
+  "granted": true,
+  "id": 97875055467263,
+  "sha": "8f2681e029cfcc6922ba068782a70317879a0f5cf1488f9fb6317568ba09646e"
+ },
+ "Pet_Sheep_Happy": {
+  "granted": true,
+  "id": 74886976200846,
+  "sha": "f9d767783ad69ead340f65acbf8df1f12c601621dbfdc66136d1b433086865c2"
+ },
+ "Pet_Sheep_Idle": {
+  "granted": true,
+  "id": 90510203541919,
+  "sha": "032e45c965df9dd2da6fc43af5ba588f9d389a97cdbe93b2b520ea2e61c86138"
+ },
+ "Pet_Sheep_Walk": {
+  "granted": true,
+  "id": 74553677065808,
+  "sha": "cee1d74d822a5cb45996fa7ad948168372ea38cd0318798be5c512477ad966d5"
+ },
+ "Pet_Squirrel_Happy": {
+  "granted": true,
+  "id": 76068983988954,
+  "sha": "794f9e6ecb94b292ac36be1bef79562088bebab97b9e5b7fcef0c1c5ac9a5606"
+ },
+ "Pet_Squirrel_Idle": {
+  "granted": true,
+  "id": 90334330859387,
+  "sha": "8b116be36109c7e066bd893b98dd3901a861d6e112f04d755a125fca4355ec7e"
+ },
+ "Pet_Squirrel_Walk": {
+  "granted": true,
+  "id": 125957872348185,
+  "sha": "3cfb47efd90f8f6f8e8cbd40311cad40798bf9e43c8717d588fa28f6483468b5"
+ },
+ "Pet_Swan_Happy": {
+  "granted": true,
+  "id": 108103157598910,
+  "sha": "d266c402d38fa997ef8cbf735f0bd8e99e2a51689f24d8bdf3fc782ee302f120"
+ },
+ "Pet_Swan_Idle": {
+  "granted": true,
+  "id": 135688850940959,
+  "sha": "b7be3b3a998ffa375e7931180fa2ba9f7734e04283d697fab19cd4c05d05c9c2"
+ },
+ "Pet_Swan_Walk": {
+  "granted": true,
+  "id": 73828579107625,
+  "sha": "fd64d838512363e6dabc6be3a7e4276b341a74119b452239bad09b6fe9bc6be5"
+ },
+ "Pet_Tiger_Happy": {
+  "granted": true,
+  "id": 132911721933607,
+  "sha": "f08765e331d497ac05804210dd82eeffda12ccea7451a2e5b30cc356d5be0558"
+ },
+ "Pet_Tiger_Idle": {
+  "granted": true,
+  "id": 94132535654257,
+  "sha": "1d421fee2b604e2acf882b9f4fffd6084e21a8408d34548e9935b0bbfb03dfbe"
+ },
+ "Pet_Tiger_Walk": {
+  "granted": true,
+  "id": 119606753444678,
+  "sha": "28450deb2af31ffbe1ef83b4d72f568ab64de2b57c5518dae0af1f7efc52939f"
+ },
+ "Pet_Walrus_Happy": {
+  "granted": true,
+  "id": 85684081980115,
+  "sha": "a05e35fac931d3cb83fd86186f5f6e42bb40a3fc571b4a06369ceb6963e84782"
+ },
+ "Pet_Walrus_Idle": {
+  "granted": true,
+  "id": 135627601834783,
+  "sha": "ed07002c7b49faa6907c6429ef89ec9c982f95d7a5f0fb7af1db5c55cbd590b3"
+ },
+ "Pet_Walrus_Walk": {
+  "granted": true,
+  "id": 87411980864403,
+  "sha": "2391cb4de2bd028f68fd3aeea0f75ed65472b7f674305b3ce68f4206d53d78f4"
+ },
+ "Pet_Wolf_Happy": {
+  "granted": true,
+  "id": 82347115546137,
+  "sha": "9524dc985077625a3315af5ab0aac365f524847575011470c52eb8801d016ae7"
+ },
+ "Pet_Wolf_Idle": {
+  "granted": true,
+  "id": 136108976492610,
+  "sha": "4d068dde98abadbfd39c21257ba284a98ac1af0a36ab72812403bdb7f616cc18"
+ },
+ "Pet_Wolf_Walk": {
+  "granted": true,
+  "id": 123597730312062,
+  "sha": "edd3a630a4e9c50f1711d8810e85a5d02940587e1ea8d1a8ef5440d329ccc6f0"
+ },
  "Player_Push": {
   "granted": true,
   "id": 137380492824852,
