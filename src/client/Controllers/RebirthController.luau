@@ -10,6 +10,7 @@ local Economy = require(Shared.Config.Economy)
 local Format = require(Shared.Format)
 local Net = require(Shared.Net)
 local Products = require(Shared.Config.Products)
+local Rollers = require(Shared.Config.Rollers)
 local State = require(script.Parent.Parent.State)
 local Ui = require(script.Parent.Parent.Ui)
 
@@ -82,7 +83,11 @@ local function render(data)
 	end
 	local hud = C.HudController:Buttons():FindFirstChild("Rebirth")
 	if hud then
-		(hud :: GuiObject).Visible = data.ReachedVillage or n > 0
+		-- Also once a roller needs a rebirth, so "REBIRTH 2" on the upgrade leads somewhere.
+		local nextRoller = Rollers.get(data.Roller + 1)
+		local needed = nextRoller ~= nil and nextRoller.RebirthsNeeded > n
+		local tile = hud :: GuiObject
+		tile.Visible = data.ReachedVillage or n > 0 or needed
 	end
 end
 
