@@ -45,6 +45,8 @@ local JOINTS: { [string]: Vector3 } = {
 	ThighR = Vector3.new(1.35, 3.6, 0.1),
 	ShinR = Vector3.new(1.45, 1.9, -0.1),
 }
+-- Where the Hips mesh's bounding-box centre sits in the model (from art/out/Yeti.glb).
+local HIPS_CENTRE = Vector3.new(0.084, 3.769, 0.098)
 -- Parents first, so a child always reads its parent's finished frame.
 local BONES: { { string } } = {
 	{ "Torso", "Hips" },
@@ -118,9 +120,33 @@ local function makeYeti(folder: Folder): Yeti?
 	end
 	local model = template:Clone()
 	local parts = {}
+	-- Stand it on the ground whatever the import did to the pivot (Dev 2026-11-20: "yeti
+	-- seems to be on air"): the lowest mesh point goes to y = 0, centred on x/z.
+	local minY, n = math.huge, 0
 	for _, d in model:GetDescendants() do
 		if d:IsA("BasePart") then
-			parts[d.Name] = { part = d, base = d.CFrame } -- template sits at the origin
+			if d.Name == "RootPart" or d:IsA("Part") then
+				d.Transparency = 1
+			else
+				local cf, size = d.CFrame, d.Size
+				local half = (cf.RightVector * size.X):Abs()
+					+ (cf.UpVector * size.Y):Abs()
+					+ (cf.LookVector * size.Z):Abs()
+				minY = math.min(minY, cf.Position.Y - half.Y / 2)
+				n += 1
+			end
+		end
+	end
+	-- Best: put the Hips mesh where Blender had it (its bounding-box centre, model-local);
+	-- else just drop the lowest point to the floor.
+	local hipsPart = model:FindFirstChild("Hips", true) :: BasePart?
+	local shift = if hipsPart
+		then CFrame.new(HIPS_CENTRE - hipsPart.Position)
+		elseif n > 0 then CFrame.new(0, -minY, 0)
+		else CFrame.identity
+	for _, d in model:GetDescendants() do
+		if d:IsA("BasePart") then
+			parts[d.Name] = { part = d, base = shift * d.CFrame }
 		end
 	end
 	local missing = {}
@@ -282,8 +308,10 @@ local function drawYeti(y: Yeti, folder: Folder, dt: number)
 	local asleep = state == "Asleep"
 	if y.shown ~= not asleep then
 		y.shown = not asleep
-		for _, entry in y.parts do
-			entry.part.Transparency = if asleep then 1 else 0
+		for name, entry in y.parts do
+			if JOINTS[name] or name == "Hips" then
+				entry.part.Transparency = if asleep then 1 else 0
+			end
 		end
 	end
 	if asleep then
