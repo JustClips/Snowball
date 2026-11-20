@@ -6,7 +6,8 @@ src/shared/Config/Images.luau (name -> rbxassetid).
 
 Needs env ROBLOXAPIKEY (Open Cloud key with asset write for user 822623546). The key is
 never printed. Results are cached by file hash in art/images.lock.json.
-Every image must be checked first: no text, URLs, watermarks or credit lines (project rule).
+Icons come from the Free Icon Pack (project files: game-ideas/roll-the-snowball/icons/,
+not in git: the pack license forbids redistributing it). Every image must be checked first: no text, URLs, watermarks or credit lines (project rule).
 """
 import hashlib, json, os, ssl, sys, time, urllib.error, urllib.request, uuid
 
