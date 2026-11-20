@@ -69,23 +69,23 @@ local function chip(name: string, icon: string, text: string, color: Color3)
 	local c = chips:FindFirstChild(name) :: Frame?
 	if not c then
 		local f = Ui.frame({ Name = name, Size = UDim2.fromOffset(L.Chip.X, L.Chip.Y), BackgroundColor3 = color })
-		Ui.corner(f, L.Chip.Y // 2)
-		Ui.gradient(f, color)
-		Ui.stroke(f, 3)
+		Ui.block(f, nil, 2.5, 4)
 		Ui.icon(icon, {
-			Size = UDim2.fromOffset(L.Chip.Y + 6, L.Chip.Y + 6),
-			Position = UDim2.fromOffset(-6, -3),
-			ZIndex = 2,
+			Size = UDim2.fromOffset(L.Chip.Y + 4, L.Chip.Y + 4),
+			AnchorPoint = Vector2.new(0, 0.5),
+			Position = UDim2.new(0, -8, 0.5, -1),
+			ZIndex = 3,
 		}).Parent =
 			f
-		Ui.label({
+		local t = Ui.label({
 			Name = "Text",
-			Size = UDim2.new(1, -L.Chip.Y - 4, 1, -8),
-			Position = UDim2.fromOffset(L.Chip.Y, 4),
+			Size = UDim2.new(1, -L.Chip.Y + 2, 1, -10),
+			Position = UDim2.fromOffset(L.Chip.Y - 6, 3),
 			Text = text,
-			ZIndex = 2,
-		}).Parent =
-			f
+			ZIndex = 3,
+		})
+		Ui.maxText(t, 22)
+		t.Parent = f
 		f.Parent = chips
 		c = f
 	end
@@ -124,7 +124,7 @@ local function updateChips()
 	for _, t in timed do
 		local ends = data.Boosts[t[1]]
 		if type(ends) == "number" and ends > now then
-			chip(t[1], t[2], (if t[1] == "Crown" then "" else "x2 ") .. Format.time(ends - now), t[3])
+			chip(t[1], t[2], (if t[1] == "Crown" then "" else "2x ") .. Format.time(ends - now), t[3])
 		else
 			clearChip(t[1])
 		end
@@ -256,7 +256,7 @@ function HudController:SetZoneProgress(s: number)
 	if zone.Index ~= lastZone then
 		lastZone = zone.Index
 		zoneName.Text = zone.Name
-		zonePill.BackgroundColor3 = zone.Color
+		Ui.tint(zonePill, zone.Color)
 		luckScale.Scale = 1.35
 		TweenService:Create(luckScale, TweenInfo.new(0.35, Enum.EasingStyle.Back), { Scale = 1 }):Play()
 	end
@@ -382,15 +382,14 @@ function HudController:Init(controllers)
 	topRight.Parent = root
 	local avaBar = Ui.frame({
 		Name = "Avalanche",
-		Size = UDim2.new(1, -24, 0, 30),
-		Position = UDim2.fromOffset(24, 6),
+		Size = UDim2.new(1, -24, 0, 28),
+		Position = UDim2.fromOffset(24, 4),
 		BackgroundColor3 = Ui.Colors.PanelDark,
 	})
-	Ui.corner(avaBar, 15)
 	Ui.stroke(avaBar, 3)
 	avaFill = Ui.frame({ Name = "Fill", Size = UDim2.fromScale(0, 1), BackgroundColor3 = Ui.Colors.Blue })
-	Ui.corner(avaFill, 15)
 	Ui.gradient(avaFill)
+	Ui.studs(avaFill, nil, 28, 0.2)
 	avaFill.Parent = avaBar
 	avaText = Ui.label({
 		Name = "Text",
@@ -399,6 +398,7 @@ function HudController:Init(controllers)
 		Text = "",
 		ZIndex = 2,
 	})
+	Ui.maxText(avaText, 20)
 	avaText.Parent = avaBar
 	Ui.icon("Storm", {
 		Size = UDim2.fromOffset(50, 50),
@@ -410,14 +410,15 @@ function HudController:Init(controllers)
 	avaBar.Parent = topRight
 	chips = Ui.frame({
 		Name = "Chips",
-		Size = UDim2.new(1, 0, 0, L.Chip.Y * 2 + 8),
-		Position = UDim2.fromOffset(0, 46),
+		Size = UDim2.new(1, 0, 0, L.Chip.Y),
+		Position = UDim2.fromOffset(0, 44),
 		BackgroundTransparency = 1,
 	})
 	local chipGrid = Instance.new("UIGridLayout")
 	chipGrid.CellSize = UDim2.fromOffset(L.Chip.X, L.Chip.Y)
 	chipGrid.CellPadding = UDim2.fromOffset(8, 8)
 	chipGrid.HorizontalAlignment = Enum.HorizontalAlignment.Right
+	chipGrid.FillDirectionMaxCells = 2
 	chipGrid.Parent = chips
 	chips.Parent = topRight
 
@@ -471,50 +472,51 @@ function HudController:Init(controllers)
 	luckBox.Parent = root
 	local luckPill = Ui.frame({
 		Name = "Pill",
-		Size = UDim2.new(1, 0, 0, 74),
-		BackgroundColor3 = Color3.new(0, 0, 0),
-		BackgroundTransparency = 0.55,
+		Size = UDim2.new(1, 0, 0, 78),
+		BackgroundColor3 = Ui.Colors.PanelDark,
+		BackgroundTransparency = 0.15,
 	})
-	Ui.corner(luckPill, 37)
+	Ui.stroke(luckPill, 3)
 	luckPill.Parent = luckBox
 	luckScale = Instance.new("UIScale")
 	luckScale.Parent = luckPill
 	luckValue = Ui.label({
 		Name = "Value",
-		Size = UDim2.new(1, -20, 0, 58),
+		Size = UDim2.new(1, -20, 0, 54),
 		Position = UDim2.fromOffset(10, 2),
 		Text = "1X",
-		TextColor3 = Color3.fromRGB(255, 220, 70),
+		TextColor3 = Ui.Colors.Yellow,
 		ZIndex = 2,
 	})
-	local lg = Instance.new("UIGradient")
-	lg.Color = ColorSequence.new(Color3.fromRGB(255, 255, 255), Color3.fromRGB(255, 200, 40))
-	lg.Rotation = 90
-	lg.Parent = luckValue
+	Ui.maxText(luckValue, 52)
+	local lst = luckValue:FindFirstChildOfClass("UIStroke")
+	if lst then
+		lst.Thickness = 3
+	end
 	luckValue.Parent = luckPill
-	Ui.label({
+	local lw = Ui.label({
 		Name = "Word",
-		Size = UDim2.new(1, 0, 0, 22),
-		Position = UDim2.new(0, 0, 1, -16),
+		Size = UDim2.new(1, 0, 0, 20),
+		Position = UDim2.new(0, 0, 1, -24),
 		Text = "LUCK",
 		ZIndex = 2,
-	}).Parent =
-		luckPill
+	})
+	Ui.maxText(lw, 18)
+	lw.Parent = luckPill
 	zonePill = Ui.frame({
 		Name = "Zone",
 		Size = UDim2.new(1, 0, 0, 40),
-		Position = UDim2.fromOffset(0, 90),
+		Position = UDim2.fromOffset(0, 88),
 		BackgroundColor3 = Ui.Colors.Blue,
 		Visible = false,
 	})
-	Ui.corner(zonePill, 20)
-	Ui.gradient(zonePill)
-	Ui.stroke(zonePill, 3)
+	Ui.block(zonePill, nil, 3, 4)
 	zoneName = Ui.label({
 		Name = "Text",
-		Size = UDim2.new(1, -20, 1, -8),
+		Size = UDim2.new(1, -20, 1, -12),
 		Position = UDim2.fromOffset(10, 4),
 		Text = "",
+		ZIndex = 3,
 	})
 	zoneName.Parent = zonePill
 	zonePill.Parent = luckBox

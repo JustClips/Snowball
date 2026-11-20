@@ -1,9 +1,12 @@
 --!strict
 -- KEEP ROLLING? (DIRECTION.md, the near miss). When your ball stops just short of the next
 -- zone (or your best distance) the server pauses the roll (RollService "Stopped") and this
--- card pops: a bar from the zone you're in to the next one, filled to where you stopped,
--- with a lighter part showing where one more push gets you, a big green Robux button with
--- a pulse, and a countdown. X / the timer / closing Roblox's buy box cracks the ball.
+-- popup shows (UI polish 2026-11-20, stud style from Dev's UI packs, almost no words):
+--   header: snowball icon + "KEEP ROLLING?" + red X
+--   a track from here to the next zone: your snowball sits where it stopped, a lime part
+--   shows how far one more push gets you, the zone's pin + name at the end
+--   one big green Robux button that pulses, a yellow bar under it drains with the timer.
+-- X / the dim / the timer / closing Roblox's buy box cracks the ball.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 local Players = game:GetService("Players")
@@ -18,26 +21,23 @@ local player = Players.LocalPlayer
 local ContinueController = {}
 
 local card: Frame
-local cardScale: UIScale
 local fill: Frame
 local ghost: Frame
+local ball: ImageLabel
 local goal: TextLabel
 local goalIcon: ImageLabel
 local buy: TextButton
 local buyScale: UIScale
 local timerBar: Frame
-local timerText: TextLabel
 local current: any = nil
 local serial = 0
 local buying = false
-
-local GOLD = Color3.fromRGB(255, 210, 60)
 
 function ContinueController:Hide()
 	serial += 1
 	current = nil
 	buying = false
-	card.Visible = false
+	Ui.closeWindow(card)
 end
 
 local function decline()
@@ -85,24 +85,21 @@ local function show(info)
 	local from = info.ZoneStart or zone.Start
 	local target = if nextZone then nextZone.Start else (info.Best or info.Reach)
 	local span = math.max(1, target - from)
-	local at = math.clamp((info.Distance - from) / span, 0.04, 0.97)
+	local at = math.clamp((info.Distance - from) / span, 0.06, 0.94)
 	local reach = math.clamp((info.Reach - from) / span, at, 1)
 	fill.Size = UDim2.fromScale(at, 1)
 	ghost.Size = UDim2.fromScale(at, 1)
+	ball.Position = UDim2.fromScale(at, 0.5)
 	if nextZone then
 		goal.Text = nextZone.Name
-		goal.TextColor3 = nextZone.Color
 		goalIcon.Image = Ui.Images.Pin or ""
 	else
 		goal.Text = "BEST"
-		goal.TextColor3 = GOLD
 		goalIcon.Image = Ui.Images.Trophy or ""
 	end
-	Ui.setText(buy, `{Ui.ROBUX}{info.Price}`)
-	card.Visible = true
-	cardScale.Scale = 0.4
-	TweenService:Create(cardScale, TweenInfo.new(0.3, Enum.EasingStyle.Back), { Scale = 1 }):Play()
-	-- The lighter "one more push" part grows after the card lands.
+	Ui.setText(buy, `{Ui.ROBUX} {info.Price}`)
+	Ui.openWindow(card)
+	-- The lime "one more push" part grows after the popup lands.
 	task.delay(0.25, function()
 		if serial == mine then
 			TweenService:Create(ghost, TweenInfo.new(0.6, Enum.EasingStyle.Quad), { Size = UDim2.fromScale(reach, 1) })
@@ -120,7 +117,6 @@ local function show(info)
 			local left = seconds - (os.clock() - started)
 			if not buying then
 				timerBar.Size = UDim2.fromScale(math.clamp(left / seconds, 0, 1), 1)
-				timerText.Text = tostring(math.max(0, math.ceil(left)))
 				if left <= 0 then
 					ContinueController:Hide()
 					return
@@ -133,153 +129,107 @@ end
 
 function ContinueController:Init(_controllers)
 	local gui = Ui.screen("Continue", 30)
-	local root = Ui.root(gui)
-	card = Ui.frame({
-		Name = "Card",
-		Size = UDim2.fromOffset(470, 290),
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.new(0.5, 0, 0.62, 0),
-		BackgroundColor3 = Ui.Colors.PanelDark,
-		Visible = false,
+	local body
+	card, body = Ui.window(gui, "Card", "KEEP ROLLING?", Vector2.new(460, 300), {
+		Icon = "Icon_Snowball",
+		Color = Ui.Colors.Cyan,
+		OnClose = function()
+			Ui.sound("Click")
+			decline()
+		end,
 	})
-	Ui.corner(card, 20)
-	Ui.stroke(card, 4)
-	Ui.autoScale(card)
-	cardScale = Instance.new("UIScale")
-	cardScale.Parent = card
 
-	local title = Ui.label({
-		Name = "Title",
-		Size = UDim2.new(1, -90, 0, 58),
-		Position = UDim2.fromOffset(20, 10),
-		Text = "KEEP ROLLING?",
-		TextColor3 = GOLD,
-	})
-	local tg = Instance.new("UIGradient")
-	tg.Color = ColorSequence.new(Color3.new(1, 1, 1), GOLD)
-	tg.Rotation = 90
-	tg.Parent = title
-	local ts = title:FindFirstChildOfClass("UIStroke")
-	if ts then
-		ts.Thickness = 4
-	end
-	title.Parent = card
-
-	-- Close (no thanks).
-	local close = Instance.new("TextButton")
-	close.Name = "Close"
-	close.Text = ""
-	close.BorderSizePixel = 0
-	close.BackgroundColor3 = Ui.Colors.Red
-	close.Size = UDim2.fromOffset(46, 46)
-	close.AnchorPoint = Vector2.new(0.5, 0.5)
-	close.Position = UDim2.new(1, -14, 0, 14)
-	close.ZIndex = 5
-	Ui.corner(close, 10)
-	Ui.gradient(close)
-	Ui.stroke(close, 3)
-	Ui.label({ Size = UDim2.new(1, -12, 1, -12), Position = UDim2.fromOffset(6, 6), Text = "X", ZIndex = 6 }).Parent =
-		close
-	close.Activated:Connect(function()
-		Ui.sound("Click")
-		decline()
-	end)
-	close.Parent = card
-
-	-- Progress: snowball | bar (filled, lighter "push" part) | goal flag.
-	local row = Ui.frame({
-		Name = "Progress",
-		Size = UDim2.new(1, -36, 0, 64),
-		Position = UDim2.fromOffset(18, 76),
-		BackgroundTransparency = 1,
-	})
-	row.Parent = card
-	Ui.icon("Icon_Snowball", { Size = UDim2.fromOffset(60, 60), Position = UDim2.fromOffset(0, 2), ZIndex = 4 }).Parent =
-		row
+	-- Track: dark well, blue fill to where you stopped, lime "one more push" part, your
+	-- snowball on the fill's end, the next zone's pin + name at the far end.
 	local track = Ui.frame({
 		Name = "Track",
-		Size = UDim2.new(1, -200, 0, 30),
-		Position = UDim2.new(0, 48, 0.5, -15),
-		BackgroundColor3 = Color3.fromRGB(12, 14, 34),
-		ClipsDescendants = true,
-		ZIndex = 2,
+		Size = UDim2.new(1, -110, 0, 26),
+		Position = UDim2.fromOffset(18, 38),
+		BackgroundColor3 = Ui.Colors.PanelDark,
+		ZIndex = 22,
 	})
-	Ui.corner(track, 15)
 	Ui.stroke(track, 3)
-	track.Parent = row
+	track.Parent = body
 	ghost = Ui.frame({
 		Name = "Push",
 		Size = UDim2.fromScale(0.5, 1),
-		BackgroundColor3 = Color3.fromRGB(140, 255, 150),
-		BackgroundTransparency = 0.45,
-		ZIndex = 2,
+		BackgroundColor3 = Ui.Colors.Lime,
+		ZIndex = 22,
 	})
-	Ui.corner(ghost, 15)
+	Ui.studs(ghost, nil, 26, 0.2)
 	ghost.Parent = track
 	fill = Ui.frame({
 		Name = "Fill",
 		Size = UDim2.fromScale(0.4, 1),
-		BackgroundColor3 = Ui.Colors.Ice,
-		ZIndex = 3,
+		BackgroundColor3 = Ui.Colors.Cyan,
+		ZIndex = 23,
 	})
-	Ui.corner(fill, 15)
 	Ui.gradient(fill)
+	Ui.studs(fill, nil, 26, 0.2)
 	fill.Parent = track
+	ball = Ui.icon("Icon_Snowball", {
+		Name = "Ball",
+		Size = UDim2.fromOffset(54, 54),
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.4, 0.5),
+		ZIndex = 25,
+	})
+	ball.Parent = track
 	local flag = Ui.frame({
 		Name = "Goal",
-		Size = UDim2.fromOffset(150, 64),
-		Position = UDim2.new(1, -150, 0, 0),
+		Size = UDim2.fromOffset(110, 92),
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.new(1, 0, 0, -6),
 		BackgroundTransparency = 1,
+		ZIndex = 22,
 	})
-	flag.Parent = row
-	goalIcon = Ui.icon("Pin", { Size = UDim2.fromOffset(40, 40), Position = UDim2.fromOffset(4, 0), ZIndex = 4 })
+	flag.Parent = body
+	goalIcon = Ui.icon("Pin", {
+		Size = UDim2.fromOffset(54, 54),
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.new(0.5, 0, 0, 0),
+		ZIndex = 24,
+	})
 	goalIcon.Parent = flag
 	goal = Ui.label({
 		Name = "Name",
-		Size = UDim2.new(1, -4, 0, 28),
-		Position = UDim2.fromOffset(0, 36),
+		Size = UDim2.new(1, 0, 0, 24),
+		Position = UDim2.fromOffset(0, 56),
 		Text = "",
-		ZIndex = 4,
+		ZIndex = 24,
 	})
+	Ui.maxText(goal, 20)
 	goal.Parent = flag
 
-	-- The big green button.
-	-- (in a holder: the button's own UIScale is its press bounce, the holder's is the pulse)
+	-- The big green button (in a holder: the button's own UIScale is its press bounce, the
+	-- holder's is the pulse), and the timer bar right under it.
 	local holder = Ui.frame({
 		Name = "BuyHolder",
-		Size = UDim2.fromOffset(280, 80),
-		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.new(0.5, 0, 0, 152),
+		Size = UDim2.fromOffset(300, 78),
+		AnchorPoint = Vector2.new(0.5, 1),
+		Position = UDim2.new(0.5, 0, 1, -26),
 		BackgroundTransparency = 1,
+		ZIndex = 22,
 	})
 	buyScale = Instance.new("UIScale")
 	buyScale.Parent = holder
-	holder.Parent = card
-	buy = Ui.bigButton("Buy", "Icon_Snowball", "", Ui.Colors.Green, onBuy, Vector2.new(280, 80))
+	holder.Parent = body
+	buy = Ui.bigButton("Buy", nil, "", Ui.Colors.Green, onBuy, Vector2.new(300, 78))
+	buy.ZIndex = 23
 	buy.Parent = holder
-
-	-- Countdown under the button.
 	local timer = Ui.frame({
 		Name = "Timer",
-		Size = UDim2.new(1, -110, 0, 16),
-		Position = UDim2.new(0, 30, 1, -32),
-		BackgroundColor3 = Color3.fromRGB(12, 14, 34),
+		Size = UDim2.fromOffset(300, 12),
+		AnchorPoint = Vector2.new(0.5, 1),
+		Position = UDim2.new(0.5, 0, 1, -4),
+		BackgroundColor3 = Ui.Colors.PanelDark,
+		ZIndex = 22,
 	})
-	Ui.corner(timer, 8)
 	Ui.stroke(timer, 2)
-	timer.Parent = card
-	timerBar = Ui.frame({ Name = "Bar", Size = UDim2.fromScale(1, 1), BackgroundColor3 = Ui.Colors.Yellow })
-	Ui.corner(timerBar, 8)
+	timer.Parent = body
+	timerBar =
+		Ui.frame({ Name = "Bar", Size = UDim2.fromScale(1, 1), BackgroundColor3 = Ui.Colors.Yellow, ZIndex = 23 })
 	timerBar.Parent = timer
-	timerText = Ui.label({
-		Name = "Seconds",
-		Size = UDim2.fromOffset(44, 36),
-		Position = UDim2.new(1, -66, 1, -42),
-		Text = "8",
-	})
-	timerText.Parent = card
-
-	card.Parent = root
 end
 
 function ContinueController:Start()

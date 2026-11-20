@@ -1,48 +1,60 @@
 --!strict
--- After a roll (Dev 2026-11-20: like Throw Food For Animals): a result card at the bottom
--- centre (zone reached big in its colour, +cash, the eggs you found) and, for rare finds, a
--- tiered luck banner at the top: LUCKY! > SUPER LUCKY! > INSANE LUCK! > GODLY LUCK!! >
--- IMPOSSIBLE!!!. "tap to continue" closes it. Also the big flash words during a roll.
+-- The reward screen after a roll (UI polish 2026-11-20, from the Reward Screen pack Dev
+-- sent): the screen dims, a black band runs across the middle and the rewards pop onto it
+-- one by one as stud cards: a cash card (+$2.4K) and one card per egg in its rarity colour,
+-- each with rays behind the picture. Above the band: the zone you reached in its colour
+-- (+ a NEW BEST! tag). Rare eggs add the tiered luck word: LUCKY! > SUPER LUCKY! > INSANE
+-- LUCK! > GODLY LUCK!! > IMPOSSIBLE!!!. Tap anywhere (or wait) to continue.
+-- Also the big flash words during a roll (Flash).
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Eggs = require(Shared.Config.Eggs)
 local Format = require(Shared.Format)
-local L = require(Shared.Config.HudLayout)
 local Zones = require(Shared.Config.Zones)
 local Ui = require(script.Parent.Parent.Ui)
 
 local ResultsController = {}
 
 local gui: ScreenGui
-local card: TextButton
-local cardScale: UIScale
-local tag: TextLabel
+local screen: TextButton -- full-screen tap catcher + dim
+local band: Frame
+local row: Frame
 local zoneLabel: TextLabel
-local cashLabel: TextLabel
-local eggsRow: Frame
+local tag: TextLabel
 local banner: TextLabel
 local bannerScale: UIScale
-local flash: TextLabel
-local flashScale: UIScale
 local serial = 0
 
+local CARD = Vector2.new(150, 190)
+local MAX_CARDS = 6
+
 local TIERS = {
-	{ Order = 3, Text = "LUCKY!", Color = Color3.fromRGB(255, 80, 80) },
-	{ Order = 4, Text = "SUPER LUCKY!", Color = Color3.fromRGB(255, 110, 210) },
-	{ Order = 5, Text = "INSANE LUCK!", Color = Color3.fromRGB(110, 235, 90) },
-	{ Order = 6, Text = "GODLY LUCK!!", Color = Color3.fromRGB(255, 210, 50) },
-	{ Order = 7, Text = "IMPOSSIBLE!!!", Color = Color3.fromRGB(190, 120, 255) },
+	{ Order = 3, Text = "LUCKY!", Color = Color3.fromRGB(255, 70, 70) },
+	{ Order = 4, Text = "SUPER LUCKY!", Color = Color3.fromRGB(255, 90, 210) },
+	{ Order = 5, Text = "INSANE LUCK!", Color = Color3.fromRGB(120, 240, 60) },
+	{ Order = 6, Text = "GODLY LUCK!!", Color = Color3.fromRGB(255, 205, 30) },
+	{ Order = 7, Text = "IMPOSSIBLE!!!", Color = Color3.fromRGB(190, 110, 255) },
 }
 
 function ResultsController:Flash(text: string, color: Color3)
 	Ui.word(text, color)
 end
 
+-- The HUD hides while the reward screen is up (nothing else competes with the rewards).
+local function setHud(on: boolean)
+	local hud = gui.Parent and gui.Parent:FindFirstChild("Hud")
+	if hud and hud:IsA("ScreenGui") then
+		hud.Enabled = on
+	end
+end
+
 local function close()
-	card.Visible = false
-	banner.Visible = false
+	if screen.Visible then
+		setHud(true)
+	end
+	screen.Visible = false
 end
 
 function ResultsController:Close()
@@ -51,7 +63,71 @@ function ResultsController:Close()
 end
 
 function ResultsController:IsOpen(): boolean
-	return card ~= nil and card.Visible
+	return screen ~= nil and screen.Visible
+end
+
+-- One reward card: a stud block in `color`, rays + picture, a one-line caption at the
+-- bottom. Pops in after `delay`.
+local function card(
+	order: number,
+	color: Color3,
+	icon: string,
+	tint: Color3?,
+	caption: string,
+	delay: number,
+	mine: number
+)
+	local holder = Ui.frame({
+		Name = "Card" .. order,
+		LayoutOrder = order,
+		Size = UDim2.fromOffset(CARD.X, CARD.Y),
+		BackgroundTransparency = 1,
+		ZIndex = 4,
+	})
+	local pop = Instance.new("UIScale")
+	pop.Scale = 0
+	pop.Parent = holder
+	local c = Ui.frame({ Name = "Card", Size = UDim2.fromScale(1, 1), BackgroundColor3 = color, ZIndex = 4 })
+	Ui.block(c, nil, 3, 7)
+	c.Parent = holder
+	Ui.icon("Fx_Rays", {
+		Size = UDim2.fromOffset(CARD.X + 20, CARD.X + 20),
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.new(0.5, 0, 0, 78),
+		ImageTransparency = 0.45,
+		ZIndex = 5,
+	}).Parent =
+		c
+	Ui.icon(icon, {
+		Size = UDim2.fromOffset(110, 110),
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.new(0.5, 0, 0, 78),
+		ImageColor3 = tint or Color3.new(1, 1, 1),
+		ZIndex = 6,
+	}).Parent =
+		c
+	local l = Ui.label({
+		Name = "Caption",
+		Size = UDim2.new(1, -12, 0, 36),
+		AnchorPoint = Vector2.new(0.5, 1),
+		Position = UDim2.new(0.5, 0, 1, -12),
+		Text = caption,
+		ZIndex = 7,
+	})
+	Ui.maxText(l, 30)
+	local st = l:FindFirstChildOfClass("UIStroke")
+	if st then
+		st.Thickness = 2.5
+	end
+	l.Parent = c
+	holder.Parent = row
+	task.delay(delay, function()
+		if serial ~= mine then
+			return
+		end
+		Ui.sound("Pop", 0.9 + order * 0.06)
+		TweenService:Create(pop, TweenInfo.new(0.32, Enum.EasingStyle.Back), { Scale = 1 }):Play()
+	end)
 end
 
 function ResultsController:Show(result)
@@ -63,28 +139,18 @@ function ResultsController:Show(result)
 	local zone = Zones.List[result.Zone] or Zones.List[1]
 	tag.Text = if result.Village then "VILLAGE!" elseif result.Record then "NEW BEST!" else ""
 	tag.Visible = tag.Text ~= ""
-	zoneLabel.Text = zone.Name
+	zoneLabel.Text = string.upper(zone.Name)
 	zoneLabel.TextColor3 = zone.Color
-	cashLabel.Text = "+" .. Format.cash(result.Cash)
-	for _, c in eggsRow:GetChildren() do
+	for _, c in row:GetChildren() do
 		if c:IsA("GuiObject") then
 			c:Destroy()
 		end
 	end
 	local best = 0
-	for i, rarity in result.Eggs do
+	for _, rarity in result.Eggs do
 		local def = Eggs.ByName[rarity]
 		best = math.max(best, def and def.Order or 0)
-		if i <= 6 then
-			local egg = Ui.icon(if def and def.Order >= 5 then "GoldenEgg" else "Egg", {
-				Size = UDim2.fromOffset(52, 52),
-				ImageColor3 = if def then Color3.new(1, 1, 1):Lerp(def.Color, 0.45) else Color3.new(1, 1, 1),
-				LayoutOrder = i,
-			})
-			egg.Parent = eggsRow
-		end
 	end
-	eggsRow.Visible = #result.Eggs > 0
 	local tier = nil
 	for _, t in TIERS do
 		if best >= t.Order then
@@ -95,17 +161,52 @@ function ResultsController:Show(result)
 		if serial ~= mine then
 			return
 		end
-		card.Visible = true
-		cardScale.Scale = 0.6
-		TweenService:Create(cardScale, TweenInfo.new(0.3, Enum.EasingStyle.Back), { Scale = 1 }):Play()
+		screen.Visible = true
+		setHud(false)
 		Ui.sound("Winner")
+		-- Cards: cash first, then the eggs (rarest first), staggered.
+		card(1, Ui.Colors.Green, "Cash", nil, "+" .. Format.cash(result.Cash), 0.15, mine)
 		Ui.sound("Cash")
+		local eggs = table.clone(result.Eggs)
+		table.sort(eggs, function(a, b)
+			local da, db = Eggs.ByName[a], Eggs.ByName[b]
+			return (da and da.Order or 0) > (db and db.Order or 0)
+		end)
+		for i, rarity in eggs do
+			if i > MAX_CARDS - 1 then
+				break
+			end
+			local def = Eggs.ByName[rarity]
+			local color = if def then def.Color else Ui.Colors.Muted
+			card(
+				i + 1,
+				color,
+				if def and def.Order >= 5 then "GoldenEgg" else "Egg",
+				if def and def.Order < 5 then Color3.new(1, 1, 1):Lerp(color, 0.35) else nil,
+				string.upper(rarity),
+				0.15 + i * 0.18,
+				mine
+			)
+		end
+		if #eggs > MAX_CARDS - 1 then
+			card(
+				MAX_CARDS + 1,
+				Ui.Colors.Muted,
+				"Egg",
+				nil,
+				`+{#eggs - (MAX_CARDS - 1)}`,
+				0.15 + MAX_CARDS * 0.18,
+				mine
+			)
+		end
 		if tier then
 			banner.Text = tier.Text
 			banner.TextColor3 = tier.Color
 			banner.Visible = true
 			bannerScale.Scale = 0.3
 			TweenService:Create(bannerScale, TweenInfo.new(0.4, Enum.EasingStyle.Back), { Scale = 1 }):Play()
+		else
+			banner.Visible = false
 		end
 		task.delay(6, function()
 			if serial == mine then
@@ -118,134 +219,119 @@ end
 function ResultsController:Init()
 	gui = Ui.screen("Results", 15)
 	local root = Ui.root(gui)
-	flash = Ui.label({
-		Name = "Flash",
-		Size = UDim2.fromOffset(600, 70),
+	-- Tap anywhere to continue; it also dims the world.
+	screen = Instance.new("TextButton")
+	screen.Name = "RewardScreen"
+	screen.Text = ""
+	screen.AutoButtonColor = false
+	screen.BorderSizePixel = 0
+	screen.BackgroundColor3 = Ui.Colors.Dim
+	screen.BackgroundTransparency = 0.45
+	screen.Size = UDim2.new(1, 400, 1, 400)
+	screen.AnchorPoint = Vector2.new(0.5, 0.5)
+	screen.Position = UDim2.fromScale(0.5, 0.5)
+	screen.Visible = false
+	screen.Activated:Connect(function()
+		Ui.sound("Click")
+		ResultsController:Close()
+	end)
+	screen.Parent = root
+
+	-- Everything sits in a 1280x720 design frame that scales with the screen.
+	local stage = Ui.frame({
+		Name = "Stage",
+		Size = UDim2.fromOffset(1280, 400),
 		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.36),
-		Text = "",
-		Visible = false,
+		Position = UDim2.fromScale(0.5, 0.5),
+		BackgroundTransparency = 1,
+		ZIndex = 2,
 	})
-	flashScale = Instance.new("UIScale")
-	flashScale.Parent = flash
-	flash.Parent = root
+	Ui.autoScale(stage)
+	stage.Parent = screen
+
+	band = Ui.frame({
+		Name = "Band",
+		Size = UDim2.new(4, 0, 0, 230),
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.new(0.5, 0, 0.5, 10),
+		BackgroundColor3 = Color3.new(0, 0, 0),
+		BackgroundTransparency = 0.25,
+		ZIndex = 2,
+	})
+	band.Parent = stage
+	row = Ui.frame({
+		Name = "Rewards",
+		Size = UDim2.new(0, 1200, 0, CARD.Y),
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.new(0.5, 0, 0.5, 10),
+		BackgroundTransparency = 1,
+		ZIndex = 3,
+	})
+	local list = Instance.new("UIListLayout")
+	list.FillDirection = Enum.FillDirection.Horizontal
+	list.HorizontalAlignment = Enum.HorizontalAlignment.Center
+	list.VerticalAlignment = Enum.VerticalAlignment.Center
+	list.SortOrder = Enum.SortOrder.LayoutOrder
+	list.Padding = UDim.new(0, 16)
+	list.Parent = row
+	row.Parent = stage
+
+	zoneLabel = Ui.label({
+		Name = "Zone",
+		Size = UDim2.fromOffset(700, 62),
+		AnchorPoint = Vector2.new(0.5, 1),
+		Position = UDim2.new(0.5, 0, 0.5, -112),
+		Text = "",
+		ZIndex = 4,
+	})
+	Ui.maxText(zoneLabel, 58)
+	local zs = zoneLabel:FindFirstChildOfClass("UIStroke")
+	if zs then
+		zs.Thickness = 4
+	end
+	zoneLabel.Parent = stage
+	tag = Ui.label({
+		Name = "Tag",
+		Size = UDim2.fromOffset(170, 40),
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.new(0.5, 300, 0.5, -150),
+		Rotation = 8,
+		BackgroundTransparency = 0,
+		BackgroundColor3 = Ui.Colors.Gold,
+		Text = "",
+		ZIndex = 6,
+	})
+	Ui.stroke(tag, 3)
+	Ui.maxText(tag, 24)
+	tag.Parent = stage
 
 	banner = Ui.label({
 		Name = "Banner",
-		Size = UDim2.fromOffset(700, 100),
+		Size = UDim2.fromOffset(900, 90),
 		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.new(0.5, 0, 0, 30),
+		Position = UDim2.new(0.5, 0, 0, -60),
 		Text = "",
 		Visible = false,
-		ZIndex = 5,
+		ZIndex = 6,
 	})
+	Ui.maxText(banner, 84)
 	local bs = banner:FindFirstChildOfClass("UIStroke")
 	if bs then
 		bs.Thickness = 5
 	end
 	bannerScale = Instance.new("UIScale")
 	bannerScale.Parent = banner
-	-- Screen-size scale on a holder (one UIScale per object), the pop scale on the banner.
-	local bannerHolder = Ui.frame({
-		Name = "BannerHolder",
-		Size = UDim2.fromOffset(700, 100),
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.3),
-		BackgroundTransparency = 1,
-	})
-	Ui.autoScale(bannerHolder)
-	bannerHolder.Parent = root
-	banner.AnchorPoint = Vector2.new(0, 0)
-	banner.Position = UDim2.fromOffset(0, 0)
-	banner.Parent = bannerHolder
+	banner.Parent = stage
 
-	-- The result card: a button, so a tap anywhere on it closes it.
-	card = Instance.new("TextButton")
-	card.Name = "Card"
-	card.Text = ""
-	card.AutoButtonColor = false
-	card.BorderSizePixel = 0
-	card.BackgroundColor3 = Ui.Colors.PanelDark
-	local holder = Ui.frame({ Name = "CardHolder", BackgroundTransparency = 1 })
-	holder.AnchorPoint = L.Result.Anchor
-	holder.Position = L.Result.Pos
-	holder.Size = UDim2.fromOffset(L.Result.Size.X, L.Result.Size.Y)
-	Ui.autoScale(holder)
-	holder.Parent = root
-	card.Size = UDim2.fromScale(1, 1)
-	card.AnchorPoint = Vector2.new(0.5, 0.5)
-	card.Position = UDim2.fromScale(0.5, 0.5)
-	card.Visible = false
-	Ui.corner(card, 18)
-	Ui.stroke(card, 4)
-	cardScale = Instance.new("UIScale")
-	cardScale.Parent = card
-	card.Activated:Connect(function()
-		Ui.sound("Click")
-		close()
-	end)
-	card.Parent = holder
-	tag = Ui.label({
-		Name = "Tag",
-		Size = UDim2.fromOffset(170, 44),
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.new(1, -40, 0, 4),
-		Rotation = 12,
-		BackgroundTransparency = 0,
-		BackgroundColor3 = Ui.Colors.Yellow,
-		Text = "",
-		TextColor3 = Color3.new(1, 1, 1),
+	-- A small tap hint under the band (the pack's "Click Anywhere To Continue", as an icon).
+	local hint = Ui.icon("Tap", {
+		Name = "Tap",
+		Size = UDim2.fromOffset(54, 54),
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.new(0.5, 0, 0.5, 136),
 		ZIndex = 4,
 	})
-	Ui.corner(tag, 10)
-	Ui.stroke(tag, 3)
-	tag.Parent = card
-	zoneLabel = Ui.label({
-		Name = "Zone",
-		Size = UDim2.new(1, -30, 0, 60),
-		Position = UDim2.fromOffset(15, 16),
-		Text = "",
-	})
-	zoneLabel.Parent = card
-	local cashRow = Ui.frame({
-		Name = "CashRow",
-		Size = UDim2.fromOffset(300, 56),
-		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.new(0.5, 0, 0, 80),
-		BackgroundTransparency = 1,
-	})
-	Ui.icon("Cash", { Size = UDim2.fromOffset(56, 56) }).Parent = cashRow
-	cashLabel = Ui.label({
-		Name = "Value",
-		Size = UDim2.new(1, -64, 1, -6),
-		Position = UDim2.fromOffset(64, 3),
-		Text = "",
-		TextColor3 = Color3.fromRGB(110, 235, 90),
-		TextXAlignment = Enum.TextXAlignment.Left,
-	})
-	cashLabel.Parent = cashRow
-	cashRow.Parent = card
-	eggsRow = Ui.frame({
-		Name = "Eggs",
-		Size = UDim2.new(1, -30, 0, 56),
-		Position = UDim2.fromOffset(15, 142),
-		BackgroundTransparency = 1,
-	})
-	local list = Instance.new("UIListLayout")
-	list.FillDirection = Enum.FillDirection.Horizontal
-	list.HorizontalAlignment = Enum.HorizontalAlignment.Center
-	list.SortOrder = Enum.SortOrder.LayoutOrder
-	list.Padding = UDim.new(0, 6)
-	list.Parent = eggsRow
-	eggsRow.Parent = card
-	Ui.label({
-		Name = "Continue",
-		Size = UDim2.new(1, -30, 0, 26),
-		Position = UDim2.new(0, 15, 1, -36),
-		Text = "tap to continue",
-		TextColor3 = Color3.fromRGB(190, 200, 230),
-	}).Parent =
-		card
+	hint.Parent = stage
 end
 
 return ResultsController

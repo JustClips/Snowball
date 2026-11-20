@@ -1,8 +1,19 @@
 --!strict
--- UI helpers. Every element is made here so the whole game shares one look, copied from
--- Steal an Egg / Throw Food For Animals (Dev 2026-11-20, reference-study.md): a round
--- cartoon font with thick dark outlines, rounded gradient tiles with the word UNDER the
--- tile, numbers with no panel, windows with a bright gradient header and a red X.
+-- UI kit: every element in the game is made here, so all screens share ONE look.
+--
+-- Style "snow stud" (UI polish pass 2026-11-20, from the two UI packs Dev sent: Essential
+-- UI Pack + Ultra UI Pack; Dev: "we gonna do stud style", "rebuild all ui elements based
+-- on those"):
+--   * Montserrat Heavy everywhere (the packs use Gotham SSm = Montserrat), white text with
+--     a thin black outline.
+--   * square blocks: a bright fill with a lighter top (UIGradient), our stud overlay
+--     (art/ui/Ui_Studs.png, see-through, so it works on any colour), a 3 px black outline
+--     and a darker lip along the bottom edge.
+--   * windows: a slate body with a black outline, a coloured stud header (icon + short
+--     title on the left), a red X block filling the header's right end, a dim behind.
+--   * HUD: stud tiles with the icon on top and ONE word inside; money as a big number.
+--   * few words: icons first, one short word where a word is needed (kids don't read).
+-- Screens should not pick their own fonts, strokes or corners; use these helpers.
 local GuiService = game:GetService("GuiService")
 local Players = game:GetService("Players")
 local SoundService = game:GetService("SoundService")
@@ -18,29 +29,46 @@ local playerGui = player:WaitForChild("PlayerGui") :: PlayerGui
 local Ui = {}
 
 Ui.ROBUX = utf8.char(0xE002)
+
+-- Colour roles (bright like the packs). Old names are kept so every controller works.
 Ui.Colors = {
-	Ink = Color3.fromRGB(22, 20, 38),
-	Panel = Color3.fromRGB(30, 38, 78),
-	PanelDark = Color3.fromRGB(20, 24, 54),
-	Header = Color3.fromRGB(196, 60, 230),
-	HeaderDark = Color3.fromRGB(120, 50, 220),
-	Blue = Color3.fromRGB(60, 170, 255),
-	Orange = Color3.fromRGB(255, 150, 40),
-	Snow = Color3.fromRGB(240, 247, 255),
-	Ice = Color3.fromRGB(110, 200, 255),
-	Green = Color3.fromRGB(70, 205, 95),
-	Yellow = Color3.fromRGB(255, 205, 60),
-	Red = Color3.fromRGB(235, 70, 70),
-	Gold = Color3.fromRGB(255, 200, 40),
-	Power = Color3.fromRGB(255, 120, 60),
-	Robux = Color3.fromRGB(40, 190, 90),
+	Ink = Color3.fromRGB(16, 18, 24), -- outlines, text on light
+	Panel = Color3.fromRGB(86, 94, 108), -- window body (slate)
+	PanelStud = Color3.fromRGB(96, 104, 118),
+	PanelDark = Color3.fromRGB(46, 51, 62), -- wells, bars, slots
+	Surface = Color3.fromRGB(240, 243, 248),
+	Header = Color3.fromRGB(0, 170, 255), -- default window header (cyan)
+	HeaderDark = Color3.fromRGB(0, 120, 220),
+	Blue = Color3.fromRGB(0, 170, 255),
+	Cyan = Color3.fromRGB(0, 205, 255),
+	Orange = Color3.fromRGB(255, 140, 0),
+	Snow = Color3.fromRGB(255, 255, 255), -- white text
+	Sub = Color3.fromRGB(200, 207, 220), -- quiet text on the body
+	Ice = Color3.fromRGB(120, 210, 255),
+	Green = Color3.fromRGB(90, 215, 20), -- go / buy / claim / Robux buttons
+	Lime = Color3.fromRGB(150, 235, 0),
+	Yellow = Color3.fromRGB(255, 215, 0),
+	Red = Color3.fromRGB(235, 30, 45), -- close, danger, can't afford
+	Gold = Color3.fromRGB(255, 185, 0),
+	Pink = Color3.fromRGB(255, 50, 145),
+	Purple = Color3.fromRGB(160, 70, 255),
+	Power = Color3.fromRGB(255, 120, 0),
+	Robux = Color3.fromRGB(90, 215, 20),
+	Gift = Color3.fromRGB(190, 70, 255),
+	Muted = Color3.fromRGB(140, 146, 160), -- disabled / owned / claimed
+	Dim = Color3.fromRGB(8, 10, 20),
 }
 
-local FONT = Font.fromEnum(Enum.Font.FredokaOne)
-local FONT_BLACK = Font.fromEnum(Enum.Font.FredokaOne)
-local OUTLINE = Color3.fromRGB(22, 20, 38)
+local MONTSERRAT = "rbxasset://fonts/families/Montserrat.json"
+local FONT = Font.new(MONTSERRAT, Enum.FontWeight.Bold)
+local FONT_BLACK = Font.new(MONTSERRAT, Enum.FontWeight.Heavy)
+local INK = Ui.Colors.Ink
 Ui.Font = FONT
 Ui.FontBlack = FONT_BLACK
+
+-- The stud overlay (art/ui/Ui_Studs.png) and Sweep the World's white glow.
+Ui.STUD = Images.Ui_Studs or "rbxassetid://117181516497135"
+Ui.GLOW = "rbxassetid://139963628852518"
 
 -- A ScreenGui in PlayerGui (made once, kept across respawns).
 function Ui.screen(name: string, order: number?): ScreenGui
@@ -69,15 +97,19 @@ function Ui.frame(props: { [string]: any }): Frame
 	return f
 end
 
-function Ui.stroke(parent: Instance, thickness: number?, color: Color3?)
+-- Dark outline around a panel or button.
+function Ui.stroke(parent: Instance, thickness: number?, color: Color3?): UIStroke
 	local s = Instance.new("UIStroke")
 	s.Thickness = thickness or 3
-	s.Color = color or Ui.Colors.Ink
+	s.Color = color or INK
 	s.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	s.LineJoinMode = Enum.LineJoinMode.Miter
 	s.Parent = parent
 	return s
 end
 
+-- White text with a thin dark outline (Montserrat Heavy). TextScaled by default, never
+-- bigger than 40 px so short words don't balloon in big boxes.
 function Ui.label(props: { [string]: any }): TextLabel
 	local l = Instance.new("TextLabel")
 	l.BackgroundTransparency = 1
@@ -89,47 +121,163 @@ function Ui.label(props: { [string]: any }): TextLabel
 		(l :: any)[k] = v
 	end
 	local stroke = Instance.new("UIStroke")
-	stroke.Thickness = 2.5
-	stroke.Color = OUTLINE
+	stroke.Thickness = 2
+	stroke.Color = INK
 	stroke.LineJoinMode = Enum.LineJoinMode.Round
 	stroke.Parent = l
+	if l.TextScaled and not l:FindFirstChildOfClass("UITextSizeConstraint") then
+		local c = Instance.new("UITextSizeConstraint")
+		c.Name = "Fit"
+		c.MaxTextSize = 40
+		c.MinTextSize = 8
+		c.Parent = l
+	end
 	return l
 end
 
--- Rounded corners (px).
+-- Caps a label's text size (the kit's labels fit their box up to this size).
+function Ui.maxText(label: TextLabel, size: number)
+	local c = label:FindFirstChildOfClass("UITextSizeConstraint")
+	if not c then
+		local n = Instance.new("UITextSizeConstraint")
+		n.Name = "Fit"
+		n.MinTextSize = 8
+		n.Parent = label
+		c = n
+	end
+	(c :: UITextSizeConstraint).MaxTextSize = size
+end
+
+-- Corners: the kit is square (Sweep). Kept for round things: badges, dots, glows.
 function Ui.corner(parent: GuiObject, radius: number?): UICorner
 	local c = Instance.new("UICorner")
-	c.CornerRadius = UDim.new(0, radius or 12)
+	c.CornerRadius = UDim.new(0, radius or 0)
 	c.Parent = parent
 	return c
 end
 
--- A solid button with a child "Label" (text) and a dark outline. No rounded corners.
+-- A fully round shape (badges, dots).
+function Ui.round(parent: GuiObject): UICorner
+	local c = Instance.new("UICorner")
+	c.CornerRadius = UDim.new(0.5, 0)
+	c.Parent = parent
+	return c
+end
+
+-- The stud overlay (see-through highlights and shades, so no tint is needed).
+-- `tint` is kept for old callers and ignored; `transparency` fades the studs.
+function Ui.studs(parent: GuiObject, _tint: Color3?, tile: number?, transparency: number?): ImageLabel
+	local s = Instance.new("ImageLabel")
+	s.Name = "Studs"
+	s.BackgroundTransparency = 1
+	s.Image = Ui.STUD
+	s.ScaleType = Enum.ScaleType.Tile
+	s.TileSize = UDim2.fromOffset(tile or 40, tile or 40)
+	s.ImageTransparency = transparency or 0
+	s.Size = UDim2.fromScale(1, 1)
+	s.ZIndex = parent.ZIndex
+	s.Parent = parent
+	return s
+end
+
+-- Lighter top, slightly darker bottom. It multiplies the fill, so recolouring still works.
+function Ui.gradient(parent: GuiObject, _color: Color3?): UIGradient
+	local g = Instance.new("UIGradient")
+	g.Name = "Shine"
+	g.Color = ColorSequence.new({
+		ColorSequenceKeypoint.new(0, Color3.new(1, 1, 1)),
+		ColorSequenceKeypoint.new(0.55, Color3.fromRGB(232, 232, 236)),
+		ColorSequenceKeypoint.new(1, Color3.fromRGB(196, 198, 210)),
+	})
+	g.Rotation = 90
+	g.Parent = parent
+	return g
+end
+
+local function darker(c: Color3, k: number): Color3
+	return Color3.new(c.R * k, c.G * k, c.B * k)
+end
+Ui.darker = darker
+
+-- Turns a frame/button into a stud block: lighter top (gradient), studs, black outline, a
+-- darker lip along the bottom. Ui.tint recolours it (fill + lip).
+function Ui.block(object: GuiObject, color: Color3?, stroke: number?, lip: number?)
+	if color then
+		object.BackgroundColor3 = color
+	end
+	Ui.stroke(object, stroke or 3)
+	Ui.gradient(object)
+	Ui.studs(object, nil, 40, 0.15)
+	local h = lip or 5
+	if h > 0 then
+		local l = Instance.new("Frame")
+		l.Name = "Lip"
+		l.BorderSizePixel = 0
+		l.BackgroundColor3 = darker(object.BackgroundColor3, 0.62)
+		l.Size = UDim2.new(1, 0, 0, h)
+		l.AnchorPoint = Vector2.new(0, 1)
+		l.Position = UDim2.fromScale(0, 1)
+		l.ZIndex = object.ZIndex
+		l.Parent = object
+	end
+end
+
+-- Recolours a block (fill + its lip).
+function Ui.tint(object: GuiObject, color: Color3)
+	object.BackgroundColor3 = color
+	local l = object:FindFirstChild("Lip") :: Frame?
+	if l then
+		l.BackgroundColor3 = darker(color, 0.62)
+	end
+end
+
+-- Press feel: squash on tap, a small grow on hover (PC), click sound.
+local function press(b: GuiButton, onClick: (() -> ())?)
+	local scale = Instance.new("UIScale")
+	scale.Name = "Press"
+	scale.Parent = b
+	b.Activated:Connect(function()
+		Ui.sound("Click")
+		if not Ui.reducedMotion() then
+			scale.Scale = 0.9
+			TweenService:Create(scale, TweenInfo.new(0.2, Enum.EasingStyle.Back), { Scale = 1 }):Play()
+		end
+		if onClick then
+			onClick()
+		end
+	end)
+	b.MouseEnter:Connect(function()
+		if not Ui.reducedMotion() then
+			TweenService:Create(scale, TweenInfo.new(0.08), { Scale = 1.05 }):Play()
+		end
+	end)
+	b.MouseLeave:Connect(function()
+		TweenService:Create(scale, TweenInfo.new(0.08), { Scale = 1 }):Play()
+	end)
+end
+Ui.press = press
+
+-- A raised stud button with a child "Label". Colour comes from props.BackgroundColor3.
 function Ui.button(props: { [string]: any }, text: string, onClick: (() -> ())?): TextButton
 	local b = Instance.new("TextButton")
-	b.AutoButtonColor = true
+	b.AutoButtonColor = false
 	b.Text = ""
 	b.BorderSizePixel = 0
-	b.BackgroundColor3 = Ui.Colors.Ice
+	b.BackgroundColor3 = Ui.Colors.Blue
 	for k, v in props do
 		(b :: any)[k] = v
 	end
-	Ui.corner(b, 12)
-	Ui.gradient(b, b.BackgroundColor3)
-	Ui.stroke(b, 3)
-	local l =
-		Ui.label({ Name = "Label", Size = UDim2.new(1, -10, 1, -8), Position = UDim2.fromOffset(5, 4), Text = text })
+	Ui.block(b)
+	local l = Ui.label({
+		Name = "Label",
+		Size = UDim2.new(1, -12, 1, -8),
+		Position = UDim2.fromOffset(6, 4),
+		Text = text,
+		ZIndex = b.ZIndex + 1,
+	})
+	Ui.maxText(l, 30)
 	l.Parent = b
-	local scale = Instance.new("UIScale")
-	scale.Parent = b
-	if onClick then
-		b.Activated:Connect(function()
-			Ui.sound("Click")
-			scale.Scale = 0.92
-			TweenService:Create(scale, TweenInfo.new(0.15, Enum.EasingStyle.Back), { Scale = 1 }):Play()
-			onClick()
-		end)
-	end
+	press(b, onClick)
 	return b
 end
 
@@ -140,6 +288,20 @@ function Ui.setText(button: Instance, text: string)
 	elseif button:IsA("TextLabel") or button:IsA("TextButton") then
 		button.Text = text
 	end
+end
+
+-- The red X (same everywhere). Sits inside a header on the right.
+function Ui.closeButton(onClick: () -> (), size: number?): TextButton
+	local s = size or 52
+	local b = Ui.button({
+		Name = "Close",
+		Size = UDim2.fromOffset(s + 4, s),
+		AnchorPoint = Vector2.new(1, 0.5),
+		BackgroundColor3 = Ui.Colors.Red,
+		ZIndex = 30,
+	}, "X", onClick)
+	Ui.maxText(b:FindFirstChild("Label") :: TextLabel, math.floor(s * 0.6))
+	return b
 end
 
 -- Sound effects (Config/Sounds). Ui.sound plays a one-shot; Ui.loop starts/stops a loop.
@@ -188,8 +350,8 @@ function Ui.sound(name: string, speed: number?)
 	SoundService:PlayLocalSound(sound)
 end
 
--- One small toast pill near the top (Steal an Egg's green success toast). A new toast
--- replaces the old one (Dev 2026-11-20: stacked toasts covered the windows).
+-- One small toast near the top: a dark plate with a coloured edge and one short line.
+-- A new toast replaces the old one (Dev 2026-11-20: stacked toasts covered the windows).
 local toastGui: ScreenGui? = nil
 local toastSerial = 0
 function Ui.toast(text: string, kind: string?)
@@ -204,34 +366,41 @@ function Ui.toast(text: string, kind: string?)
 			Size = UDim2.fromOffset(0, 40),
 			AnchorPoint = Vector2.new(0.5, 0),
 			Position = UDim2.new(0.5, 0, 0, 78),
+			BackgroundColor3 = Ui.Colors.PanelDark,
+			BackgroundTransparency = 0.1,
 			Visible = false,
 		})
-		Ui.corner(f, 20)
-		Ui.stroke(f, 3)
+		Ui.stroke(f, 2)
 		local pad = Instance.new("UIPadding")
-		pad.PaddingLeft = UDim.new(0, 18)
-		pad.PaddingRight = UDim.new(0, 18)
+		pad.PaddingLeft = UDim.new(0, 22)
+		pad.PaddingRight = UDim.new(0, 16)
 		pad.Parent = f
+		local edge = Ui.frame({
+			Name = "Edge",
+			Size = UDim2.new(0, 6, 1, 0),
+			Position = UDim2.fromOffset(-22, 0),
+			BackgroundColor3 = color,
+		})
+		edge.Parent = f
 		local l = Ui.label({
 			Name = "Text",
 			AutomaticSize = Enum.AutomaticSize.X,
-			Size = UDim2.fromOffset(0, 30),
-			Position = UDim2.fromOffset(0, 5),
+			Size = UDim2.fromOffset(0, 40),
 			TextScaled = false,
-			TextSize = 24,
+			TextSize = 20,
 			Text = "",
 		})
 		l.Parent = f
+		local sc = Instance.new("UIScale")
+		sc.Name = "Pop"
+		sc.Parent = f
 		Ui.autoScale(f)
 		f.Parent = gui
 		item = f
 	end
 	local toast = item :: Frame
-	toast.BackgroundColor3 = color
-	local grad = toast:FindFirstChildOfClass("UIGradient")
-	if not grad then
-		Ui.gradient(toast, color)
-	end
+	local edge = toast:FindFirstChild("Edge") :: Frame
+	edge.BackgroundColor3 = color
 	local label = toast:FindFirstChild("Text") :: TextLabel
 	label.Text = text
 	toast.Visible = true
@@ -244,9 +413,8 @@ function Ui.toast(text: string, kind: string?)
 	end)
 end
 
--- ONE big word in the upper middle (PERFECT!, SMASH! x3, BONK!...). A new word replaces
--- the old one, and it always fades out completely, outline included, then hides
--- (Dev 2026-11-20: PERFECT!/SMASH! stayed stuck on screen and piled up).
+-- ONE big word in the upper middle (PERFECT!, SMASH! x3...). A new word replaces the old
+-- one; it pops in, holds, then fades out completely and hides.
 local wordLabel: TextLabel? = nil
 local wordScale: UIScale? = nil
 local wordSerial = 0
@@ -256,9 +424,9 @@ function Ui.word(text: string, color: Color3, hold: number?, size: number?)
 		local holder = Ui.frame({
 			Name = "Holder",
 			BackgroundTransparency = 1,
-			Size = UDim2.fromOffset(640, 100),
+			Size = UDim2.fromOffset(640, 90),
 			AnchorPoint = Vector2.new(0.5, 0.5),
-			Position = UDim2.fromScale(0.5, 0.34),
+			Position = UDim2.fromScale(0.5, 0.32),
 		})
 		Ui.autoScale(holder)
 		holder.Parent = gui
@@ -270,9 +438,10 @@ function Ui.word(text: string, color: Color3, hold: number?, size: number?)
 			Text = "",
 			Visible = false,
 		})
+		Ui.maxText(l, 72)
 		local st = l:FindFirstChildOfClass("UIStroke")
 		if st then
-			st.Thickness = 4
+			st.Thickness = 3.5
 		end
 		local sc = Instance.new("UIScale")
 		sc.Parent = l
@@ -291,18 +460,17 @@ function Ui.word(text: string, color: Color3, hold: number?, size: number?)
 	stroke.Transparency = 0
 	label.Visible = true
 	label.Size = UDim2.fromScale(size or 1, size or 1)
-	scale.Scale = 0.4
-	label.Rotation = math.random(-6, 6)
-	TweenService:Create(scale, TweenInfo.new(0.25, Enum.EasingStyle.Back), { Scale = 1 }):Play()
+	scale.Scale = 0.5
+	TweenService:Create(scale, TweenInfo.new(0.22, Enum.EasingStyle.Back), { Scale = 1 }):Play()
 	task.delay(hold or 0.6, function()
 		if wordSerial ~= mine then
 			return
 		end
-		local info = TweenInfo.new(0.25)
+		local info = TweenInfo.new(0.2)
 		TweenService:Create(label, info, { TextTransparency = 1 }):Play()
 		TweenService:Create(stroke, info, { Transparency = 1 }):Play()
-		TweenService:Create(scale, info, { Scale = 1.25 }):Play()
-		task.delay(0.3, function()
+		TweenService:Create(scale, info, { Scale = 1.15 }):Play()
+		task.delay(0.25, function()
 			if wordSerial == mine then
 				label.Visible = false
 			end
@@ -320,8 +488,7 @@ function Ui.reducedMotion(): boolean
 	return GuiService.ReducedMotionEnabled
 end
 
--- A full-screen root frame with a UIScale that follows the screen size, so layouts made
--- for a 1280x720 screen fit phones (min 0.55) and big monitors (max 1.25).
+-- A full-screen root frame (layouts are made for a 1280x720 screen; clusters scale).
 function Ui.root(gui: ScreenGui): Frame
 	local existing = gui:FindFirstChild("Root") :: Frame?
 	if existing then
@@ -332,27 +499,54 @@ function Ui.root(gui: ScreenGui): Frame
 	return root
 end
 
-local scales: { UIScale } = {}
-local function rescale()
+-- The screen scale: design pixels (1280x720) to real pixels, at least 0.62 on phones.
+function Ui.scale(): number
 	local cam = Workspace.CurrentCamera
 	if not cam then
-		return
+		return 1
 	end
 	local v = cam.ViewportSize
 	local s = math.clamp(math.min(v.X / 1280, v.Y / 720) * 1.05, 0.55, 1.25)
 	if Ui.isPhone() then
 		s = math.max(s, 0.62)
 	end
+	return s
+end
+
+local scales: { UIScale } = {}
+local fits: { { scale: UIScale, size: Vector2 } } = {}
+local function rescale()
+	local cam = Workspace.CurrentCamera
+	if not cam then
+		return
+	end
+	local s = Ui.scale()
 	for _, scale in scales do
 		scale.Scale = s
 	end
+	-- Windows also shrink to fit the screen (phones in landscape are short).
+	local v = cam.ViewportSize
+	for _, f in fits do
+		local fit = math.min((v.X - 40) / f.size.X, (v.Y - 50) / f.size.Y)
+		f.scale.Scale = math.min(s, fit)
+	end
 end
 
--- Adds a UIScale that follows the screen to a cluster (HUD corner, window...).
+-- Adds a UIScale that follows the screen to a cluster (HUD corner, popup...).
 function Ui.autoScale(object: GuiObject)
 	local scale = Instance.new("UIScale")
+	scale.Name = "AutoScale"
 	scale.Parent = object
 	table.insert(scales, scale)
+	rescale()
+end
+
+-- Like autoScale, but never bigger than the screen allows (windows).
+function Ui.fitScale(object: GuiObject, size: Vector2)
+	local scale = Instance.new("UIScale")
+	scale.Name = "AutoScale"
+	scale.Parent = object
+	table.insert(fits, { scale = scale, size = size })
 	rescale()
 end
 
@@ -391,108 +585,145 @@ function Ui.closeWindow(window: GuiObject)
 	end
 end
 
--- A centred window sized to its content (Steal an Egg chrome): a bright magenta/purple
--- gradient header with the white title on the left, a red rounded X, a dark navy body.
-function Ui.window(gui: ScreenGui, name: string, title: string, size: Vector2): (Frame, Frame)
+-- A dim behind a window that follows the window's Visible and closes it when tapped.
+function Ui.dim(gui: Instance, window: GuiObject, onTap: (() -> ())?): TextButton
+	local dim = Instance.new("TextButton")
+	dim.Name = window.Name .. "Dim"
+	dim.Text = ""
+	dim.AutoButtonColor = false
+	dim.BorderSizePixel = 0
+	dim.BackgroundColor3 = Ui.Colors.Dim
+	dim.BackgroundTransparency = 0.55
+	-- Oversized and centred so it also covers the top bar and the notch.
+	dim.Size = UDim2.new(1, 400, 1, 400)
+	dim.AnchorPoint = Vector2.new(0.5, 0.5)
+	dim.Position = UDim2.fromScale(0.5, 0.5)
+	dim.ZIndex = math.max(1, window.ZIndex - 1)
+	dim.Visible = window.Visible
+	dim.Activated:Connect(function()
+		if onTap then
+			onTap()
+		else
+			Ui.closeWindow(window)
+		end
+	end)
+	window:GetPropertyChangedSignal("Visible"):Connect(function()
+		dim.Visible = window.Visible
+	end)
+	dim.Parent = gui
+	return dim
+end
+
+-- Recolours a window's header (role colour per window: blue, gold, red...).
+function Ui.setHeader(window: GuiObject, color: Color3)
+	local header = window:FindFirstChild("Header") :: Frame?
+	if header then
+		Ui.tint(header, color)
+	end
+end
+
+-- The window chrome (the packs' windows): a slate body with a black outline, a coloured
+-- stud header (icon + short title on the left) with the red X block at its right end, a
+-- dim behind (tap it to close). Returns the window and its Body frame (content goes there; the body
+-- starts under the header and has 14 px of room on each side).
+-- opts: Icon (Config/Images name), Color (header colour), NoClose, NoDim, OnClose (X and
+-- dim call it instead of just closing).
+function Ui.window(gui: ScreenGui, name: string, title: string, size: Vector2, opts: { [string]: any }?): (Frame, Frame)
+	local o = opts or {}
+	local HEADER = 64
 	local window = Ui.frame({
 		Name = name,
 		Size = UDim2.fromOffset(size.X, size.Y),
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.5),
-		BackgroundColor3 = Ui.Colors.PanelDark,
+		BackgroundColor3 = Ui.Colors.Panel,
 		Visible = false,
 		ZIndex = 20,
 	})
-	Ui.corner(window, 16)
-	Ui.stroke(window, 4)
-	Ui.autoScale(window)
+	Ui.stroke(window, 3)
+	Ui.fitScale(window, size + Vector2.new(0, 10))
 	local header = Ui.frame({
 		Name = "Header",
-		Size = UDim2.new(1, 0, 0, 56),
-		BackgroundColor3 = Color3.new(1, 1, 1),
+		Size = UDim2.new(1, 0, 0, HEADER),
+		BackgroundColor3 = o.Color or Ui.Colors.Header,
 		ZIndex = 21,
 	})
-	Ui.corner(header, 16)
-	local hg = Instance.new("UIGradient")
-	hg.Color = ColorSequence.new(Ui.Colors.Header, Ui.Colors.HeaderDark)
-	hg.Parent = header
-	-- Square off the header's bottom corners.
-	local foot = Ui.frame({
-		Name = "Foot",
-		Size = UDim2.new(1, 0, 0, 16),
-		Position = UDim2.new(0, 0, 1, -16),
-		BackgroundColor3 = Color3.new(1, 1, 1),
-		ZIndex = 21,
-	})
-	local fg = hg:Clone()
-	fg.Parent = foot
-	foot.Parent = header
-	-- Diagonal sheen stripes.
-	for k = 0, 3 do
-		local stripe = Ui.frame({
-			Name = "Sheen" .. k,
-			Size = UDim2.fromOffset(18, 90),
-			AnchorPoint = Vector2.new(0.5, 0.5),
-			Position = UDim2.new(0.55 + k * 0.09, 0, 0.5, 0),
-			Rotation = 30,
-			BackgroundColor3 = Color3.new(1, 1, 1),
-			BackgroundTransparency = 0.88,
-			ZIndex = 22,
-		})
-		stripe.Parent = header
-	end
-	header.ClipsDescendants = true
+	Ui.block(header, nil, 3, 6)
 	header.Parent = window
+	local left = 16
+	if o.Icon then
+		Ui.icon(o.Icon, {
+			Size = UDim2.fromOffset(60, 60),
+			AnchorPoint = Vector2.new(0, 0.5),
+			Position = UDim2.new(0, 6, 0.5, -2),
+			ZIndex = 23,
+		}).Parent =
+			header
+		left = 72
+	end
 	local t = Ui.label({
 		Name = "Title",
-		Size = UDim2.new(1, -90, 1, -14),
-		Position = UDim2.fromOffset(18, 7),
+		Size = UDim2.new(1, -left - HEADER - 12, 1, -18),
+		Position = UDim2.fromOffset(left, 7),
 		Text = title,
 		TextXAlignment = Enum.TextXAlignment.Left,
 		ZIndex = 23,
 	})
+	Ui.maxText(t, 38)
+	local ts = t:FindFirstChildOfClass("UIStroke")
+	if ts then
+		ts.Thickness = 2.5
+	end
 	t.Parent = header
-	local close = Instance.new("TextButton")
-	close.Name = "Close"
-	close.Text = ""
-	close.AutoButtonColor = true
-	close.BorderSizePixel = 0
-	close.BackgroundColor3 = Ui.Colors.Red
-	close.Size = UDim2.fromOffset(46, 46)
-	close.AnchorPoint = Vector2.new(0.5, 0.5)
-	close.Position = UDim2.new(1, -14, 0, 14)
-	close.ZIndex = 24
-	Ui.corner(close, 10)
-	Ui.gradient(close, Ui.Colors.Red)
-	Ui.stroke(close, 3)
-	Ui.label({
-		Name = "Label",
-		Size = UDim2.new(1, -12, 1, -12),
-		Position = UDim2.fromOffset(6, 6),
-		Text = "X",
-		ZIndex = 25,
-	}).Parent =
-		close
-	close.Activated:Connect(function()
-		Ui.sound("Click")
-		Ui.closeWindow(window)
-	end)
-	close.Parent = window
+	if not o.NoClose then
+		-- The red X block fills the header's right end (Ultra UI Pack).
+		local close = Ui.closeButton(function()
+			if o.OnClose then
+				o.OnClose()
+			else
+				Ui.closeWindow(window)
+			end
+		end, HEADER)
+		close.Size = UDim2.fromOffset(HEADER + 6, HEADER)
+		close.AnchorPoint = Vector2.new(1, 0)
+		close.Position = UDim2.new(1, 0, 0, 0)
+		close.ZIndex = 24
+		for _, d in close:GetDescendants() do
+			if d:IsA("GuiObject") then
+				d.ZIndex = math.max(d.ZIndex, 24)
+			end
+		end
+		close.Parent = header
+	end
 	local body = Ui.frame({
 		Name = "Body",
 		BackgroundTransparency = 1,
-		Size = UDim2.new(1, -24, 1, -68),
-		Position = UDim2.fromOffset(12, 62),
+		Size = UDim2.new(1, -28, 1, -HEADER - 24),
+		Position = UDim2.fromOffset(14, HEADER + 12),
 		ZIndex = 21,
 	})
 	body.Parent = window
 	window.Parent = gui
+	if not o.NoDim then
+		Ui.dim(gui, window, o.OnClose)
+	end
+	-- Pop in when opened: the content slides up into place.
+	local holder = window
+	window:GetPropertyChangedSignal("Visible"):Connect(function()
+		if holder.Visible and not Ui.reducedMotion() then
+			local b = body
+			b.Position = UDim2.fromOffset(14, HEADER + 22)
+			TweenService
+				:Create(b, TweenInfo.new(0.18, Enum.EasingStyle.Quad), { Position = UDim2.fromOffset(14, HEADER + 12) })
+				:Play()
+		end
+	end)
 	return window, body
 end
 
 -------------------------------------------------------------------------- icon-first kit
 -- Kids don't read (Dev, 2026-11-20; Tizzy playbook): buttons are big icons from the
--- Free Icon Pack (Config/Images), with at most one short word under them.
+-- Free Icon Pack (Config/Images), with at most one short word.
 
 Ui.Images = Images
 
@@ -509,17 +740,7 @@ function Ui.icon(name: string, props: { [string]: any }?): ImageLabel
 	return i
 end
 
--- A vertical gradient: full colour on top, darker at the bottom (the chunky toy look).
--- It multiplies the background, so changing BackgroundColor3 later keeps working.
-function Ui.gradient(parent: GuiObject, _color: Color3?)
-	local g = Instance.new("UIGradient")
-	g.Color = ColorSequence.new(Color3.new(1, 1, 1), Color3.fromRGB(175, 175, 185))
-	g.Rotation = 90
-	g.Parent = parent
-	return g
-end
-
--- Round red badge with a count (hidden at 0).
+-- Round red badge with a white ring and a count (hidden at 0).
 function Ui.badge(parent: GuiObject, count: number)
 	local b = parent:FindFirstChild("Badge") :: TextLabel?
 	if not b then
@@ -527,14 +748,20 @@ function Ui.badge(parent: GuiObject, count: number)
 			Name = "Badge",
 			Size = UDim2.fromOffset(26, 26),
 			AnchorPoint = Vector2.new(0.5, 0.5),
-			Position = UDim2.new(1, -4, 0, 4),
+			Position = UDim2.new(1, -3, 0, 3),
 			BackgroundTransparency = 0,
-			BackgroundColor3 = Ui.Colors.Red,
+			BackgroundColor3 = Color3.fromRGB(214, 22, 52),
 			Text = "",
 			ZIndex = 8,
 		})
-		Ui.corner(nb, 13)
-		Ui.stroke(nb, 2)
+		Ui.maxText(nb, 17)
+		Ui.round(nb)
+		local ring = Instance.new("UIStroke")
+		ring.Name = "Ring"
+		ring.Color = Color3.new(1, 1, 1)
+		ring.Thickness = 2.5
+		ring.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+		ring.Parent = nb
 		nb.Parent = parent
 		b = nb
 	end
@@ -543,27 +770,10 @@ function Ui.badge(parent: GuiObject, count: number)
 	bb.Text = if count > 9 then "9+" else tostring(count)
 end
 
-local function press(b: GuiButton, onClick: () -> ())
-	local scale = Instance.new("UIScale")
-	scale.Parent = b
-	b.Activated:Connect(function()
-		Ui.sound("Click")
-		scale.Scale = 0.88
-		TweenService:Create(scale, TweenInfo.new(0.18, Enum.EasingStyle.Back), { Scale = 1 }):Play()
-		onClick()
-	end)
-	b.MouseEnter:Connect(function()
-		TweenService:Create(scale, TweenInfo.new(0.1), { Scale = 1.06 }):Play()
-	end)
-	b.MouseLeave:Connect(function()
-		TweenService:Create(scale, TweenInfo.new(0.1), { Scale = 1 }):Play()
-	end)
-end
-
--- A rounded icon tile (Steal an Egg rail): the icon fills the tile, one short outlined word
--- sits UNDER the tile (outside it), so a grid cell is size wide and size + 20 tall.
+-- A HUD tile (Sweep rail): a square stud button, the icon in the upper part and ONE word
+-- inside the tile along the bottom edge (Dev: words hanging under tiles looked off).
 function Ui.tile(name: string, icon: string, word: string, color: Color3, onClick: () -> (), size: number?): TextButton
-	local s = size or 64
+	local s = size or 72
 	local b = Instance.new("TextButton")
 	b.Name = name
 	b.Text = ""
@@ -571,40 +781,56 @@ function Ui.tile(name: string, icon: string, word: string, color: Color3, onClic
 	b.BorderSizePixel = 0
 	b.BackgroundColor3 = color
 	b.Size = UDim2.fromOffset(s, s)
-	Ui.corner(b, math.floor(s * 0.22))
-	Ui.gradient(b, color)
-	Ui.stroke(b, 3)
+	Ui.block(b)
+	local hasWord = word ~= ""
 	Ui.icon(icon, {
-		Size = UDim2.new(1, -8, 1, -8),
-		Position = UDim2.fromOffset(4, 4),
-		ZIndex = 2,
-	}).Parent = b
+		Size = UDim2.fromOffset(
+			math.floor(s * (if hasWord then 0.66 else 0.8)),
+			math.floor(s * (if hasWord then 0.66 else 0.8))
+		),
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.new(0.5, 0, if hasWord then 0.4 else 0.5, 0),
+		ZIndex = 3,
+	}).Parent =
+		b
 	local l = Ui.label({
 		Name = "Label",
-		Size = UDim2.new(1, 24, 0, math.max(18, math.floor(s * 0.3))),
-		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.new(0.5, 0, 1, -6),
+		Size = UDim2.new(1, -4, 0, math.floor(s * 0.24)),
+		AnchorPoint = Vector2.new(0.5, 1),
+		Position = UDim2.new(0.5, 0, 1, -3),
 		Text = word,
-		ZIndex = 3,
+		ZIndex = 4,
 	})
+	Ui.maxText(l, math.floor(s * 0.2))
 	l.Parent = b
 	press(b, onClick)
 	return b
 end
 
--- A number with no panel (bottom-left Power / cash): icon, then a big outlined number.
+-- A big number with its icon and no panel (both packs): bottom-left money and Power.
 function Ui.stat(name: string, icon: string, color: Color3, width: number?): (Frame, TextLabel)
-	local f = Ui.frame({ Name = name, Size = UDim2.fromOffset(width or 240, 50), BackgroundTransparency = 1 })
-	Ui.icon(icon, { Size = UDim2.fromOffset(50, 50), ZIndex = 2 }).Parent = f
+	local f = Ui.frame({
+		Name = name,
+		Size = UDim2.fromOffset(width or 240, 52),
+		BackgroundTransparency = 1,
+	})
+	Ui.icon(icon, {
+		Size = UDim2.fromOffset(52, 52),
+		AnchorPoint = Vector2.new(0, 0.5),
+		Position = UDim2.new(0, 0, 0.5, 0),
+		ZIndex = 2,
+	}).Parent =
+		f
 	local value = Ui.label({
 		Name = "Value",
-		Size = UDim2.new(1, -58, 0, 42),
-		Position = UDim2.fromOffset(56, 4),
+		Size = UDim2.new(1, -60, 0, 44),
+		Position = UDim2.fromOffset(58, 4),
 		Text = "0",
 		TextColor3 = color,
 		TextXAlignment = Enum.TextXAlignment.Left,
 		ZIndex = 2,
 	})
+	Ui.maxText(value, 42)
 	local st = value:FindFirstChildOfClass("UIStroke")
 	if st then
 		st.Thickness = 3
@@ -613,7 +839,7 @@ function Ui.stat(name: string, icon: string, color: Color3, width: number?): (Fr
 	return f, value
 end
 
--- A big rounded pill button (bottom centre ROLL / STOP): icon on the left, one word.
+-- A big action button (ROLL / STOP / Buy): a stud block, optional icon on the left, one word.
 function Ui.bigButton(
 	name: string,
 	icon: string?,
@@ -622,7 +848,7 @@ function Ui.bigButton(
 	onClick: () -> (),
 	size: Vector2?
 ): TextButton
-	local sz = size or Vector2.new(230, 78)
+	local sz = size or Vector2.new(230, 76)
 	local b = Instance.new("TextButton")
 	b.Name = name
 	b.Text = ""
@@ -630,71 +856,48 @@ function Ui.bigButton(
 	b.BorderSizePixel = 0
 	b.BackgroundColor3 = color
 	b.Size = UDim2.fromOffset(sz.X, sz.Y)
-	Ui.corner(b, math.floor(sz.Y / 2))
-	Ui.gradient(b, color)
-	Ui.stroke(b, 4)
-	local iconSize = sz.Y + 14
+	Ui.block(b, nil, 3, math.max(5, math.floor(sz.Y * 0.09)))
+	local iconSize = math.floor(sz.Y * 0.78)
 	if icon then
 		Ui.icon(icon, {
 			Size = UDim2.fromOffset(iconSize, iconSize),
-			AnchorPoint = Vector2.new(0.5, 0.5),
-			Position = UDim2.new(0, sz.Y * 0.42, 0.5, -4),
+			AnchorPoint = Vector2.new(0, 0.5),
+			Position = UDim2.new(0, 10, 0.5, 0),
 			ZIndex = 3,
 		}).Parent =
 			b
 	end
-	local left = if icon then math.floor(sz.Y * 0.95) else 14
-	Ui.label({
+	local left = if icon then iconSize + 16 else 12
+	local l = Ui.label({
 		Name = "Label",
-		Size = UDim2.new(1, -left - 14, 0, sz.Y * 0.62),
-		Position = UDim2.new(0, left, 0.5, -sz.Y * 0.31),
+		Size = UDim2.new(1, -left - 12, 0, math.floor(sz.Y * 0.56)),
+		Position = UDim2.new(0, left, 0.5, -math.floor(sz.Y * 0.28)),
 		Text = word,
 		ZIndex = 3,
-	}).Parent =
-		b
+	})
+	Ui.maxText(l, math.floor(sz.Y * 0.5))
+	local st = l:FindFirstChildOfClass("UIStroke")
+	if st then
+		st.Thickness = 2.5
+	end
+	l.Parent = b
 	press(b, onClick)
 	return b
 end
 
--- A currency pill: icon hanging off the left, big outlined number, optional "+" button.
+-- A currency number with an optional green "+" block right after it.
 function Ui.pill(name: string, icon: string, color: Color3, width: number, onPlus: (() -> ())?): (Frame, TextLabel)
-	local f = Ui.frame({ Name = name, Size = UDim2.fromOffset(width, 46), BackgroundColor3 = Ui.Colors.PanelDark })
-	Ui.stroke(f, 3)
-	local bar = Ui.frame({
-		Name = "Bar",
-		Size = UDim2.new(1, 0, 0, 6),
-		Position = UDim2.new(0, 0, 1, -6),
-		BackgroundColor3 = color,
-	})
-	bar.Parent = f
-	Ui.icon(icon, {
-		Size = UDim2.fromOffset(60, 60),
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.new(0, 4, 0.5, 0),
-		ZIndex = 3,
-	}).Parent =
-		f
-	local value = Ui.label({
-		Name = "Value",
-		Size = UDim2.new(1, if onPlus then -84 else -44, 1, -10),
-		Position = UDim2.fromOffset(38, 4),
-		Text = "0",
-		TextXAlignment = Enum.TextXAlignment.Left,
-	})
-	value.Parent = f
+	local f, value = Ui.stat(name, icon, color, width)
 	if onPlus then
-		local plus = Instance.new("ImageButton")
-		plus.Name = "Plus"
-		plus.BackgroundColor3 = Ui.Colors.Green
-		plus.BorderSizePixel = 0
-		plus.Size = UDim2.fromOffset(38, 38)
-		plus.Position = UDim2.new(1, -42, 0, 4)
-		plus.Image = Images.Plus or ""
-		Ui.stroke(plus, 2)
-		plus.Activated:Connect(function()
-			Ui.sound("Click")
-			onPlus()
-		end)
+		value.Size = UDim2.new(1, -110, 0, 44)
+		local plus = Ui.button({
+			Name = "Plus",
+			Size = UDim2.fromOffset(40, 40),
+			AnchorPoint = Vector2.new(1, 0.5),
+			Position = UDim2.new(1, -4, 0.5, 0),
+			BackgroundColor3 = Ui.Colors.Green,
+			ZIndex = 3,
+		}, "+", onPlus)
 		plus.Parent = f
 	end
 	return f, value

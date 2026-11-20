@@ -77,6 +77,7 @@ return {
 	Tap = "rbxassetid://83000692836701",
 	Target = "rbxassetid://71723469351535",
 	Trophy = "rbxassetid://131384754269503",
+	Ui_Studs = "rbxassetid://132422041069992",
 	Upgrade = "rbxassetid://88732375742237",
 	Weight = "rbxassetid://73645276916120",
 	Wheel = "rbxassetid://88053052363856",

@@ -1,0 +1,422 @@
+--!nocheck
+-- Runs the game's client UI code (src/client + src/shared) in Lune with a fake Roblox
+-- (roblox.luau), opens one screen and dumps the PlayerGui to JSON for render.mjs.
+--   lune run tools/ui_render/run.luau <scenario> <Phone|PC> <out.json>
+-- Scenarios are at the bottom (hud, keeprolling, results, starter, shop, ...).
+-- Run tools/ui_render/shots.sh to render every scenario on phone and PC.
+local fs = require("@lune/fs")
+local process = require("@lune/process")
+local serde = require("@lune/serde")
+local R = require("./roblox")
+local Dump = require("./dump")
+
+local scenario = process.args[1] or "hud"
+local deviceName = process.args[2] or "PC"
+local outPath = process.args[3] or "/tmp/ui_dump.json"
+local ROOT = process.cwd:gsub("/$", "")
+local VIEW = if deviceName == "Phone" then R.Vector2.new(844, 390) else R.Vector2.new(1280, 720)
+
+local Instance, Enum = R.Instance, R.Enum
+
+-------------------------------------------------------------------------- world
+
+local game = Instance.new("DataModel")
+game.Name = "Game"
+local services = {}
+local function service(name, cls)
+	local s = Instance.new(cls or name)
+	s.Name = name
+	s.Parent = game
+	services[name] = s
+	return s
+end
+for _, n in {
+	"ReplicatedStorage", "Players", "Workspace", "TweenService", "RunService", "UserInputService", "GuiService",
+	"SoundService", "ProximityPromptService", "MarketplaceService", "ContentProvider", "HttpService", "Lighting",
+	"Debris", "CollectionService", "TextService", "StarterGui", "SocialService", "BadgeService", "StarterPlayer",
+	"ContextActionService", "PhysicsService", "VRService", "PolicyService", "LocalizationService", "Teams",
+	"AvatarEditorService", "AssetService", "TeleportService", "GroupService", "AnalyticsService", "Chat",
+	"TextChatService", "HapticService", "ExperienceNotificationService",
+} do
+	service(n)
+end
+-- Waiting for something the server would make (EggModels, Bases...): an empty Folder.
+for _, svc in services do
+	R.state[svc].autoChild = function(name)
+		local f = Instance.new("Folder")
+		f.Name = name
+		f.Parent = svc
+		return f
+	end
+end
+local workspace = services.Workspace
+local camera = Instance.new("Camera")
+camera.Name = "Camera"
+camera.ViewportSize = VIEW
+camera.Parent = workspace
+workspace.CurrentCamera = camera
+workspace.Gravity = 196.2
+local terrain = Instance.new("Terrain")
+terrain.Name = "Terrain"
+terrain.Parent = workspace
+services.UserInputService.TouchEnabled = deviceName == "Phone"
+services.UserInputService.KeyboardEnabled = deviceName ~= "Phone"
+services.UserInputService.MouseEnabled = deviceName ~= "Phone"
+services.UserInputService.GamepadEnabled = false
+services.GuiService.ReducedMotionEnabled = false
+services.GuiService.TopbarInset = R.Rect.new(0, 0, 0, 0)
+services.Lighting.ClockTime = 13
+
+function game.GetService(_, name)
+	return services[name] or service(name)
+end
+game.FindService = game.GetService
+game.PlaceId = 0
+game.JobId = "render"
+game.GameId = 0
+game.CreatorId = 0
+
+local player = Instance.new("Player")
+player.Name = "Dev"
+player.DisplayName = "Dev"
+player.UserId = 1
+player.AccountAge = 30
+player.MembershipType = Enum.MembershipType.None
+player.Parent = services.Players
+local playerGui = Instance.new("PlayerGui")
+playerGui.Name = "PlayerGui"
+playerGui.Parent = player
+local backpack = Instance.new("Backpack")
+backpack.Name = "Backpack"
+backpack.Parent = player
+services.Players.LocalPlayer = player
+R.LocalPlayer = player
+
+-- Rojo tree
+local shared = R.mountFolder(ROOT .. "/src/shared", "Shared", services.ReplicatedStorage)
+local sp = Instance.new("StarterPlayerScripts")
+sp.Name = "StarterPlayerScripts"
+sp.Parent = services.StarterPlayer
+local client = R.mountFolder(ROOT .. "/src/client", "Client", sp)
+
+-- Remotes (names from Net.luau)
+local remotes = Instance.new("Folder")
+remotes.Name = "Remotes"
+local netSrc = fs.readFile(ROOT .. "/src/shared/Net.luau")
+local evBlock = netSrc:match("local EVENTS[^\n]*\n(.-)\n}")
+local fnBlock = netSrc:match("local FUNCTIONS[^\n]*\n(.-)\n}")
+for name in evBlock:gmatch("\n?%s*([%w_]+) = %d+,") do
+	local e = Instance.new("RemoteEvent")
+	e.Name = name
+	e.Parent = remotes
+end
+for name in fnBlock:gmatch("\n?%s*([%w_]+) = %d+,") do
+	local e = Instance.new("RemoteFunction")
+	e.Name = name
+	e.Parent = remotes
+end
+remotes.Parent = services.ReplicatedStorage
+local serverState = Instance.new("Folder")
+serverState.Name = "ServerState"
+serverState.Parent = services.ReplicatedStorage
+serverState:SetAttribute("AvalancheMeter", 0.4)
+
+-------------------------------------------------------------------------- globals
+
+local env = {
+	game = game,
+	workspace = workspace,
+	Workspace = workspace,
+	script = nil,
+	Instance = Instance,
+	Enum = Enum,
+	UDim = R.UDim,
+	UDim2 = R.UDim2,
+	Vector2 = R.Vector2,
+	Vector3 = R.Vector3,
+	Color3 = R.Color3,
+	ColorSequence = R.ColorSequence,
+	ColorSequenceKeypoint = R.ColorSequenceKeypoint,
+	NumberSequence = R.NumberSequence,
+	NumberSequenceKeypoint = R.NumberSequenceKeypoint,
+	NumberRange = R.NumberRange,
+	Rect = R.Rect,
+	Font = R.Font,
+	TweenInfo = R.TweenInfo,
+	CFrame = R.CFrame,
+	BrickColor = R.BrickColor,
+	RaycastParams = R.RaycastParams,
+	OverlapParams = R.OverlapParams,
+	PhysicalProperties = R.PhysicalProperties,
+	task = R.task,
+	typeof = R.typeof,
+	wait = R.task.wait,
+	delay = R.task.delay,
+	spawn = R.task.spawn,
+	tick = function()
+		return 1.7e9 + R.now()
+	end,
+	time = function()
+		return R.now()
+	end,
+	warn = function(...)
+		print("[warn]", ...)
+	end,
+	DateTime = {
+		now = function()
+			return { UnixTimestamp = 1795000000 + math.floor(R.now()), UnixTimestampMillis = (1795000000 + R.now()) * 1000 }
+		end,
+	},
+	os = setmetatable({
+		clock = function()
+			return R.now()
+		end,
+		time = function(t)
+			if t then
+				return os.time(t)
+			end
+			return 1795000000 + math.floor(R.now())
+		end,
+	}, { __index = os }),
+	utf8 = utf8,
+	Random = {
+		new = function(seed)
+			local state = (seed or 1) % 2147483647
+			if state <= 0 then
+				state += 2147483646
+			end
+			local function nxt()
+				state = (state * 16807) % 2147483647
+				return state / 2147483647
+			end
+			return {
+				NextNumber = function(_, a, b)
+					a = a or 0
+					b = b or 1
+					return a + (b - a) * nxt()
+				end,
+				NextInteger = function(_, a, b)
+					return math.floor(a + (b - a + 1) * nxt())
+				end,
+				NextUnitVector = function()
+					return R.Vector3.new(0, 1, 0)
+				end,
+				Shuffle = function() end,
+			}
+		end,
+	},
+	shared = {},
+	settings = function()
+		return { Rendering = { QualityLevel = 10 } }
+	end,
+	UserSettings = function()
+		return { GameSettings = { SavedQualityLevel = Enum.SavedQualitySetting.Automatic } }
+	end,
+}
+setmetatable(env, { __index = getfenv(0) })
+env.require = R.makeRequire(env)
+
+-------------------------------------------------------------------------- player data
+
+local NOW = 1795000000
+local function big(n)
+	return { m = n, e = 0 }
+end
+local data = {
+	Cash = big(12400),
+	Power = big(245),
+	PowerPerTap = big(5),
+	TrainMult = 1,
+	PopMult = 1,
+	Distance = 150,
+	Roller = 2,
+	RobuxRollers = {},
+	Core = 1,
+	EggSlots = 2,
+	PetSlots = 4,
+	PackZone = 0,
+	Rebirths = 0,
+	RebirthCost = big(50000),
+	BestDistance = 320,
+	BestZone = 2,
+	ReachedVillage = false,
+	BiggestRadius = 4,
+	InvVersion = 1,
+	Pets = {},
+	Eggs = {},
+	Hatching = {},
+	Index = {},
+	Boosts = { Cash2x = NOW + 299, Train2x = NOW + 552 },
+	Charges = { LuckyRoll = 0, SuperLucky = 0, GoldenRuns = 0, LuckPop = 0 },
+	Gamepasses = {},
+	Flags = {
+		TutorialDone = true,
+		StarterPackBought = false,
+		StarterPackEnds = NOW + 6000,
+		FirstPopDone = true,
+		Funnel = {},
+		OffersShown = {},
+	},
+	Stats = { Taps = 10, PopsClaimed = 1, Runs = 3, TotalDistance = 500, Smashes = 4, EggsFound = 2, Hatches = 1, Playtime = 600 },
+	Settings = { Music = 0.6, Sfx = 0.8, Steer = 1, FreePops = true },
+	IncomePerSec = 84,
+	Luck = 1,
+	Rewards = nil,
+	Spins = 1,
+	CashMult = 1,
+	CashPacks = nil,
+	PowerPacks = nil,
+	TutorialStep = "Done",
+	BaseIndex = 1,
+	ServerTime = NOW,
+}
+player:SetAttribute("IncomePerSec", 84)
+
+R.onInvoke = function(name, ...)
+	if name == "GetState" then
+		return data
+	end
+	return true
+end
+
+-------------------------------------------------------------------------- boot
+
+local MAIN_SRC = fs.readFile(ROOT .. "/src/client/Main.client.luau")
+local controllers
+local function boot()
+	local req = env.require
+	local Client = client
+	local State = req(Client:WaitForChild("State"))
+	local mainSrc = MAIN_SRC
+	local order = {}
+	for name in (mainSrc:match("local ORDER = {(.-)}") or ""):gmatch('"([%w_]+)"') do
+		table.insert(order, name)
+	end
+	controllers = {}
+	for _, name in order do
+		local ok, mod = pcall(req, Client.Controllers:FindFirstChild(name))
+		if ok then
+			controllers[name] = mod
+		else
+			print("[load] " .. name .. ": " .. tostring(mod))
+			controllers[name] = {}
+		end
+	end
+	State.init()
+	for _, name in order do
+		local c = controllers[name]
+		if c.Init then
+			local ok, err = pcall(c.Init, c, controllers)
+			if not ok then
+				print("[init] " .. name .. ": " .. tostring(err))
+			end
+		end
+	end
+	for _, name in order do
+		local c = controllers[name]
+		if c.Start then
+			R.task.spawn(function()
+				local ok, err = pcall(c.Start, c)
+				if not ok then
+					print("[start] " .. name .. ": " .. tostring(err))
+				end
+			end)
+		end
+	end
+end
+
+R.frame = function(dt)
+	services.RunService.Heartbeat:Fire(dt)
+	services.RunService.RenderStepped:Fire(dt)
+	services.RunService.Stepped:Fire(R.now(), dt)
+end
+
+local function fire(name, ...)
+	remotes:FindFirstChild(name).OnClientEvent:Fire(...)
+end
+
+-------------------------------------------------------------------------- scenarios
+
+local SCENARIOS = {}
+SCENARIOS.hud = function() end
+SCENARIOS.training = function()
+	player:SetAttribute("Training", true)
+end
+SCENARIOS.rolling = function()
+	player:SetAttribute("RollPhase", "Rolling")
+	controllers.HudController:ShowZoneBar(true, { Luck = 1 })
+	controllers.HudController:SetZoneProgress(180)
+end
+SCENARIOS.keeprolling = function()
+	player:SetAttribute("RollPhase", "Stopped")
+	controllers.HudController:ShowZoneBar(true, { Luck = 1 })
+	controllers.HudController:SetZoneProgress(180)
+	local Zones = env.require(shared.Config.Zones)
+	local z1, z2 = Zones.List[1], Zones.List[2]
+	fire("RunStopped", {
+		Zone = 1,
+		NextZone = 2,
+		ZoneStart = z1.Start,
+		Distance = z1.Start + (z2.Start - z1.Start) * 0.82,
+		Reach = z1.Start + (z2.Start - z1.Start) * 1.1,
+		Price = 19,
+		Product = "KeepRolling",
+		Seconds = 8,
+		Best = 320,
+	})
+end
+SCENARIOS.results = function()
+	controllers.ResultsController:Show({ Zone = 2, Cash = big(2400), Eggs = { "Common", "Rare", "Epic", "Legendary" }, Record = true })
+end
+SCENARIOS.starter = function()
+	controllers.StarterPackController:Open()
+end
+SCENARIOS.toast = function()
+	controllers.HudController:Mode()
+	env.require(client.Ui).toast("Stone Roller! +5 Power", "Good")
+	env.require(client.Ui).word("PERFECT!", R.Color3.fromRGB(110, 235, 90), 5)
+end
+local function opener(ctrl, method, ...)
+	local args = table.pack(...)
+	return function()
+		local c = controllers[ctrl]
+		c[method](c, table.unpack(args, 1, args.n))
+	end
+end
+SCENARIOS.shop = opener("ShopController", "Open")
+SCENARIOS.upgrades = opener("UpgradesController", "Toggle")
+SCENARIOS.rebirth = opener("RebirthController", "Toggle")
+SCENARIOS.bag = opener("InventoryController", "Toggle")
+SCENARIOS.daily = opener("RewardsController", "Open", "Daily")
+SCENARIOS.gifts = opener("RewardsController", "Open", "Gifts")
+SCENARIOS.wheel = opener("RewardsController", "Open", "Wheel")
+SCENARIOS.codes = opener("RewardsController", "Open", "Codes")
+
+-------------------------------------------------------------------------- run
+
+R.autoWorld = true
+local bootCo = R.task.spawn(boot)
+R.advance(1.5)
+if coroutine.status(bootCo) ~= "dead" then
+	print("[boot] still waiting: " .. debug.traceback(bootCo))
+end
+-- server state arrives
+fire("PlayerState", data)
+R.advance(1)
+local fn = SCENARIOS[scenario]
+if not fn then
+	error("unknown scenario " .. scenario)
+end
+R.task.spawn(fn)
+R.advance(tonumber(process.args[4]) or 1.2)
+
+local screens = {}
+for _, g in playerGui:GetChildren() do
+	if g.ClassName == "ScreenGui" then
+		table.insert(screens, Dump.node(g, R.typeof, function(x, k)
+			return x[k]
+		end))
+	end
+end
+fs.writeFile(outPath, serde.encode("json", screens))
+print(`{scenario} {deviceName}: {#screens} screens`)
