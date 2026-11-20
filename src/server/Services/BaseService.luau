@@ -102,6 +102,9 @@ local function teleport(player: Player, where: any): (boolean, string?)
 	if not index or not character or (S.RollService and S.RollService:IsBusy(player)) then
 		return false, nil
 	end
+	if S.EggRescueService and S.EggRescueService:IsRescuing(player) then
+		return false, "Save your eggs first! (or press LEAVE)"
+	end
 	if where == "Base" then
 		character:PivotTo(BaseService:SpawnCFrame(index))
 	elseif where == "Roller" then

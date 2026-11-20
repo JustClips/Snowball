@@ -67,6 +67,12 @@ local function weldInFront(player: Player, model: Model, name: string)
 	model.Parent = character
 end
 
+-- Welds any model into your arms (the egg rescue uses it): named "HeldEgg"/"HeldPet" so
+-- HoldPoseController poses the arms. It does not change what you hold from your bag.
+function CarryService:WeldModel(player: Player, model: Model, name: string)
+	weldInFront(player, model, name)
+end
+
 function CarryService:Held(player: Player): Held?
 	return held[player]
 end

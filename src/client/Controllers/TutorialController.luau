@@ -54,13 +54,22 @@ local function rollerCFrame(i: number): CFrame
 	return World.baseCFrame(i) * CFrame.new(World.RollerOffset)
 end
 
+-- The egg rescue borrows the ground arrows + bouncing marker (RescueController:Guide).
+local guide: Vector3? = nil
+function TutorialController:Guide(pos: Vector3?)
+	guide = pos
+	if C and C.HudController:Mode() == "Rescue" then
+		worldTarget = pos
+	end
+end
+
 -- What the step wants: goal words + icon, a world spot and/or a button.
 local function stepGoal(data): (string?, string?, Vector3?, GuiObject?)
 	local step = data.TutorialStep
 	local i = baseIndex()
 	local mode = C.HudController:Mode()
-	if not i then
-		return nil, nil, nil, nil
+	if not i or mode == "Rescue" then
+		return nil, nil, nil, nil -- the egg rescue shows its own goal (RescueController)
 	end
 	if step == "Train" then
 		if player:GetAttribute("Training") then
@@ -107,7 +116,7 @@ local function update(data)
 		actionKind = if ready then "OpenReady" elseif next(data.Eggs) ~= nil then "PlaceEggs" else nil
 		Ui.setText(action, if ready then "OPEN!" else "PLACE")
 	end
-	action.Visible = actionKind ~= nil
+	action.Visible = actionKind ~= nil and C.HudController:Mode() ~= "Rescue"
 	local icon, words, pos, button = stepGoal(data)
 	local mode = C.HudController:Mode()
 	-- The top centre belongs to the LUCK readout while rolling.
@@ -121,7 +130,7 @@ local function update(data)
 		local power = if data.Power then BigNum.toNumber(data.Power) else 0
 		progressFill.Size = UDim2.fromScale(math.clamp(power / TRAIN_GOAL, 0, 1), 1)
 	end
-	worldTarget = if mode == "Normal" or mode == "Training" then pos else nil
+	worldTarget = if mode == "Rescue" then guide elseif mode == "Normal" or mode == "Training" then pos else nil
 	uiTarget = if button and button.Visible and (mode == "Normal" or mode == "Training") then button else nil
 end
 
@@ -134,6 +143,10 @@ local function groundAt(p: Vector3): Vector3?
 	local list: { Instance } = { arrowFolder }
 	if player.Character then
 		table.insert(list, player.Character)
+	end
+	local rescue = Workspace:FindFirstChild("Rescue")
+	if rescue then
+		table.insert(list, rescue)
 	end
 	local balls = Workspace:FindFirstChild("Balls")
 	if balls then

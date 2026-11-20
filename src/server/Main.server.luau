@@ -23,6 +23,7 @@ local ORDER = {
 	"TrainService",
 	"PopService",
 	"RollService",
+	"EggRescueService",
 	"UpgradeService",
 	"AvalancheService",
 	"RebirthService",

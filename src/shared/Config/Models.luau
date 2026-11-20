@@ -36,6 +36,7 @@ return {
 	Prop_Pine = { Id = 111545802978348, Center = Vector3.new(-0.0, 9.4852, 0.0) },
 	Prop_Rock = { Id = 135725576025877, Center = Vector3.new(0.2253, 1.2508, 0.4389) },
 	Prop_Snowman = { Id = 115997361064198, Center = Vector3.new(-0.0, 5.3, 0.0) },
+	RescueFlag = { Id = 118887470596913, Center = Vector3.new(0.825, 5.12, 0.0) },
 	Roller_Admin = { Id = 105120766459716, Center = Vector3.new(-0.0, 9.5, 0.5) },
 	Roller_Aurora = { Id = 76665160629802, Center = Vector3.new(-0.0, 8.5016, 0.468) },
 	Roller_CandyCane = { Id = 136507451286981, Center = Vector3.new(-0.0, 8.15, 0.5) },
@@ -51,4 +52,5 @@ return {
 	Roller_NorthernLights = { Id = 109460777693098, Center = Vector3.new(-0.0, 8.5016, 0.468) },
 	Roller_Stone = { Id = 119249194850517, Center = Vector3.new(-0.0, 8.15, 0.4321) },
 	Roller_Wooden = { Id = 82071087939459, Center = Vector3.new(-0.0, 8.15, 0.5) },
+	Yeti = { Id = 109041727198269, Center = Vector3.new(-0.0, 5.2267, 0.03) },
 } :: { [string]: { Id: number, Center: Vector3 } }

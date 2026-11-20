@@ -349,6 +349,20 @@ local function shareAssets()
 	for _, kind in { "Snow", "Coin", "Egg", "Present", "Ramp" } do
 		table.insert(names, "Pick_" .. kind)
 	end
+	-- The egg rescue yeti (RescueController animates its six limbs around the joints).
+	local yeti = ModelLoader.clone("Yeti", CFrame.new())
+	if yeti then
+		for _, d in yeti:GetDescendants() do
+			if d:IsA("BasePart") then
+				d.Anchored = true
+				d.CanCollide = false
+				d.CanQuery = false
+				d.CanTouch = false
+			end
+		end
+		yeti.Name = "Yeti"
+		yeti.Parent = assets
+	end
 	for _, name in names do
 		local part = ModelLoader.part(name, CFrame.new())
 		if part then
