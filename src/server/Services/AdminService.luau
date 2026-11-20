@@ -70,6 +70,24 @@ local COMMANDS: { [string]: (Player, { string }) -> string? } = {
 		S.AvalancheService:Trigger(player)
 		return nil
 	end,
+	village = function(player)
+		local data = S.DataService:GetData(player)
+		if data then
+			data.ReachedVillage = true
+			S.StateService:Mark(player)
+		end
+		return "Village marked as reached (Rebirth unlocked)"
+	end,
+	nextday = function(player)
+		S.RewardService:SkewClock(86400)
+		S.StateService:Mark(player)
+		return "Moved the reward clock 24 h ahead (this server)"
+	end,
+	spins = function(player, args)
+		local n = tonumber(args[1]) or 5
+		S.RewardService:AddSpins(player, n)
+		return `+{n} wheel spins`
+	end,
 	reset = function(player)
 		local session = S.DataService:GetSession(player)
 		if session then

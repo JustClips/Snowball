@@ -32,3 +32,8 @@ from `Config/World` and `Config/Track`, until the Blender models are uploaded.
 ## Checks before pushing
 
 `stylua --syntax luau --check src` must pass (parse check). Configs hold all balance numbers.
+
+## Docs
+
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): where things live in code
+- [docs/PLAYTEST.md](docs/PLAYTEST.md): sync steps, test commands and a playtest checklist
