@@ -69,6 +69,7 @@ return {
 	Shop_ServerLuck = "rbxassetid://97452193875273",
 	Shop_StarterRoller = "rbxassetid://112459980413168",
 	Shop_SuperLucky = "rbxassetid://104888229087471",
+	Sled = "rbxassetid://73985330081754",
 	SpinPointer = "rbxassetid://125547311121820",
 	SpinWheel = "rbxassetid://119986703402197",
 	Star = "rbxassetid://108181013924413",
@@ -79,4 +80,6 @@ return {
 	Upgrade = "rbxassetid://88732375742237",
 	Weight = "rbxassetid://73645276916120",
 	Wheel = "rbxassetid://88053052363856",
+	Yeti = "rbxassetid://126640411534466",
+	YetiSpray = "rbxassetid://137716460580320",
 } :: { [string]: string }
