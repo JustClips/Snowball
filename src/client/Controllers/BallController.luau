@@ -36,6 +36,7 @@ type Drawn = {
 	golden: boolean,
 }
 local balls: { [number]: Drawn } = {}
+local cameraBall: Drawn? = nil
 
 -- Juice for your own roll (Dev 2026-11-20: "rolling is hella boring"): screen shake, a
 -- speed FOV, speed lines at the screen edges, a snow spray behind the ball, a bouncy
@@ -194,7 +195,6 @@ local function hideJuice()
 		cam.FieldOfView = BASE_FOV
 	end
 end
-local cameraBall: Drawn? = nil
 local debrisPool: { BasePart } = {}
 
 local SNOW = Color3.fromRGB(245, 249, 255)

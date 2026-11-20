@@ -321,6 +321,35 @@ local function checkHits(player: Player, run: Run)
 	end
 end
 
+-- Streaming is on (radius 640 around the character, who stays on the deck), so the far
+-- track never loaded and the zone "ended" (Dev 2026-11-20). While rolling, the player's
+-- ReplicationFocus is a part riding ahead of their ball.
+local focusParts: { [Player]: BasePart } = {}
+local function setFocus(player: Player, at: Vector3?)
+	local part = focusParts[player]
+	if at then
+		if not part then
+			local p = Instance.new("Part")
+			p.Name = "StreamFocus_" .. player.UserId
+			p.Anchored = true
+			p.CanCollide = false
+			p.CanQuery = false
+			p.CanTouch = false
+			p.Transparency = 1
+			p.Size = Vector3.one
+			p.Parent = Workspace
+			focusParts[player] = p
+			part = p
+		end
+		(part :: BasePart).Position = at
+		player.ReplicationFocus = part
+	elseif part then
+		player.ReplicationFocus = nil
+		part:Destroy()
+		focusParts[player] = nil
+	end
+end
+
 local function finish(player: Player, run: Run)
 	local data = S.DataService:GetData(player)
 	local ball = run.ball :: Roll.Ball
@@ -429,35 +458,6 @@ local function checkPads()
 				Net.fire("Notify", player, why, "Bad")
 			end
 		end
-	end
-end
-
--- Streaming is on (radius 640 around the character, who stays on the deck), so the far
--- track never loaded and the zone "ended" (Dev 2026-11-20). While rolling, the player's
--- ReplicationFocus is a part riding ahead of their ball.
-local focusParts: { [Player]: BasePart } = {}
-local function setFocus(player: Player, at: Vector3?)
-	local part = focusParts[player]
-	if at then
-		if not part then
-			local p = Instance.new("Part")
-			p.Name = "StreamFocus_" .. player.UserId
-			p.Anchored = true
-			p.CanCollide = false
-			p.CanQuery = false
-			p.CanTouch = false
-			p.Transparency = 1
-			p.Size = Vector3.one
-			p.Parent = Workspace
-			focusParts[player] = p
-			part = p
-		end
-		(part :: BasePart).Position = at
-		player.ReplicationFocus = part
-	elseif part then
-		player.ReplicationFocus = nil
-		part:Destroy()
-		focusParts[player] = nil
 	end
 end
 
