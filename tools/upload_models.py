@@ -51,6 +51,9 @@ def grant(asset):
             "requests": [{"assetId": asset, "grantToDependencies": False}]}
     code, res = request("PATCH", "https://apis.roblox.com/asset-permissions-api/v1/assets/permissions",
                         json.dumps(body).encode(), {"Content-Type": "application/json-patch+json"})
+    # 200 can still carry a refusal in the body (asset still processing): check it.
+    if code < 300 and int(asset) not in [int(a) for a in (res or {}).get("successAssetIds", [])]:
+        return 409
     return code
 
 
