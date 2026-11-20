@@ -29,6 +29,7 @@ local Format = require(Shared.Format)
 local Net = require(Shared.Net)
 local Products = require(Shared.Config.Products)
 local Rollers = require(Shared.Config.Rollers)
+local Upgrades = require(Shared.Config.Upgrades)
 
 local Rules = Economy.Offers
 
@@ -52,7 +53,36 @@ local function isLive(productKey: string): boolean
 	return def ~= nil and (def.Id ~= 0 or (Products.StudioTestBuys and RunService:IsStudio()))
 end
 
-type Offer = { Key: string, Product: string?, Title: string, Text: string, Open: string?, Pic: string? }
+-- Skip: passes that make the offer pointless (Dev 2026-11-20: a Golden Snowball run was
+-- offered to someone who owns the Golden Snowball pass).
+type Offer = {
+	Key: string,
+	Product: string?,
+	Title: string,
+	Text: string,
+	Open: string?,
+	Pic: string?,
+	Skip: { string }?,
+}
+
+-- Never offer what the player already has: the pass itself, or a pass that covers it.
+local function luckyCharges(player: Player): number?
+	local data = S.DataService:GetData(player)
+	return data and data.Charges and data.Charges.LuckyRoll
+end
+
+local function owned(data, offer: Offer): boolean
+	local passes = data.Gamepasses or {}
+	if offer.Product and Products.PassByKey[offer.Product] and passes[offer.Product] then
+		return true
+	end
+	for _, key in offer.Skip or {} do
+		if passes[key] then
+			return true
+		end
+	end
+	return false
+end
 
 local function show(player: Player, offer: Offer, ignoreGlobal: boolean?): boolean
 	local session = S.DataService:GetSession(player)
@@ -60,6 +90,9 @@ local function show(player: Player, offer: Offer, ignoreGlobal: boolean?): boole
 		return false
 	end
 	if offer.Product and not isLive(offer.Product) then
+		return false
+	end
+	if owned(session.Data, offer) then
 		return false
 	end
 	-- Nothing pops over a roll or the yeti chase.
@@ -200,7 +233,9 @@ local function checkAvalanche(player: Player, session)
 		state.avalancheShown = false
 		return
 	end
-	if state.avalancheShown or (S.AvalancheService and S.AvalancheService:IsActive()) then
+	-- Not when Server Luck is already running (someone bought it).
+	local luckOn = S.BoostService and S.BoostService:GetServerLuck() > 1
+	if state.avalancheShown or luckOn or (S.AvalancheService and S.AvalancheService:IsActive()) then
 		return
 	end
 	if
@@ -247,7 +282,9 @@ function OfferService:AfterRun(player: Player, result)
 			return
 		end
 	end
-	if state.full >= Rules.FullBounces then
+	-- Egg Slots all bought already: nothing to nudge.
+	local maxedSlots = Upgrades.EggSlotPrices[session.Data.EggSlots] == nil
+	if state.full >= Rules.FullBounces and not maxedSlots then
 		if
 			show(player, {
 				Key = "EggSlots",
@@ -265,6 +302,7 @@ function OfferService:AfterRun(player: Player, result)
 				Key = "GoldenRuns",
 				Product = "GoldenRuns1",
 				Pic = "Shop_PassGoldBall",
+				Skip = { "GoldenSnowball" },
 				Title = "SMASH EVERYTHING!",
 				Text = "A Golden Snowball smashes obstacles 1.5x its size and gets x2 coins.",
 			})
@@ -294,7 +332,8 @@ function OfferService:OnHatch(player: Player, order: number?, rarity: string?)
 	tryStarterPack(player)
 	-- Rule 9: a rare pet just came out, the player feels lucky.
 	local from = Eggs.ByName[Rules.LuckyAfterHatch]
-	if order and from and order >= from.Order then
+	local charged = (luckyCharges(player) or 0) >= 10 -- already has plenty of Lucky Rolls
+	if order and from and order >= from.Order and not charged then
 		show(player, {
 			Key = "HatchLuck",
 			Product = "LuckyRoll10",
