@@ -2,18 +2,29 @@
   "name": "Snowball",
   "tree": {
     "$className": "DataModel",
+    "ReplicatedFirst": {
+      "$path": "src/first"
+    },
     "ReplicatedStorage": {
-      "Shared": { "$path": "src/shared" }
+      "Shared": {
+        "$path": "src/shared"
+      }
     },
     "ServerScriptService": {
-      "Server": { "$path": "src/server" }
+      "Server": {
+        "$path": "src/server"
+      }
     },
     "StarterPlayer": {
       "StarterPlayerScripts": {
-        "Client": { "$path": "src/client" }
+        "Client": {
+          "$path": "src/client"
+        }
       }
     },
-    "StarterGui": { "$path": "src/gui" },
+    "StarterGui": {
+      "$path": "src/gui"
+    },
     "Workspace": {
       "$path": "src/workspace",
       "$properties": {
@@ -24,10 +35,15 @@
       }
     },
     "Players": {
-      "$properties": { "CharacterAutoLoads": false }
+      "$properties": {
+        "CharacterAutoLoads": false
+      }
     },
     "Lighting": {
-      "$properties": { "GlobalShadows": true, "ClockTime": 13 }
+      "$properties": {
+        "GlobalShadows": true,
+        "ClockTime": 13
+      }
     }
   }
 }
