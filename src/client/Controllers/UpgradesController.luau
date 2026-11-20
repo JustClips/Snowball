@@ -86,53 +86,58 @@ local function invoke(name: string, ...: any)
 	end
 end
 
+-- Every card says WHAT it upgrades in kid words and shows "now > next" (Dev 2026-11-20:
+-- "hard to tell what is for what"; "+7.5K" read like a one-time Power gift).
+local function set(c, title: string, now: string?, after: string?)
+	c.title.Text = title
+	c.info.Text = if now and after then `{now}  >  {after}` else (now or "")
+end
+
 local function render(data)
+	local cur = Rollers.get(data.Roller) or Rollers.Cash[1]
 	local nextRoller = Rollers.get(data.Roller + 1)
 	local c = cards.Roller
 	if nextRoller then
 		local free = nextRoller.Index == Rollers.FreeInTutorial and not data.Flags.TutorialDone
-		c.title.Text = nextRoller.Name
-		c.info.Text = `+{Format.big(nextRoller.Power)}`
-		Ui.setText(c.buy, if free then "FREE" else Format.cash(nextRoller.Price))
+		local locked = (data.Rebirths or 0) < nextRoller.RebirthsNeeded
+		set(c, "Power per rep", Format.big(cur.Power), Format.big(nextRoller.Power))
+		Ui.setText(
+			c.buy,
+			if locked
+				then `REBIRTH {nextRoller.RebirthsNeeded}`
+				elseif free then "FREE"
+				else Format.cash(nextRoller.Price)
+		)
 		c.buy.Visible = true
 	else
-		c.title.Text = "Best roller owned"
-		c.info.Text = ""
+		set(c, "Power per rep", `{Format.big(cur.Power)} (MAX)`)
 		c.buy.Visible = false
 	end
 	local robux = Rollers.nextRobux(data.RobuxRollers)
 	local product = robux and Products.ProductByKey[robux.Product]
+	local mult = Rollers.robuxMult(Rollers.ownedSet(data, false))
 	c = cards.RobuxRoller
 	if robux and product then
-		c.title.Text = robux.Name
-		c.info.Text = `x{robux.Mult}`
+		set(c, "Training boost", `x{mult}`, `x{robux.Mult}`)
 		Ui.setText(c.buy, `{Ui.ROBUX}{product.Price}`)
 		Ui.tint(c.buy, Ui.Colors.Purple) -- Robux buys are purple (Ultra pack)
 		c.buy.Visible = product.Id ~= 0
 	else
-		c.title.Text = "All Robux rollers owned"
-		c.info.Text = ""
+		set(c, "Training boost", `x{mult} (MAX)`)
 		c.buy.Visible = false
 	end
+	local coreNow = Upgrades.Cores[data.Core] or Upgrades.Cores[1]
 	local core = Upgrades.Cores[data.Core + 1]
-	c = cards.Core
-	c.title.Text = if core then core.Name else "Best core owned"
-	c.info.Text = if core then `x{core.Luck}` else ""
-	local rows = {
-		{ "Core", Upgrades.nextPrice("Core", data) },
-		{ "EggSlots", Upgrades.nextPrice("EggSlots", data) },
-		{ "PetSlots", Upgrades.nextPrice("PetSlots", data) },
-		{ "PackZone", Upgrades.nextPrice("PackZone", data) },
-	}
-	cards.EggSlots.title.Text = `Eggs {data.EggSlots}`
-	cards.EggSlots.info.Text = "+1"
-	cards.PetSlots.title.Text = `Pets {data.PetSlots}`
-	cards.PetSlots.info.Text = "+1"
-	cards.PackZone.title.Text = `Aim Lv {data.PackZone}`
-	cards.PackZone.info.Text = "+1"
-	for _, row in rows do
-		local price = row[2]
-		local cc = cards[row[1]]
+	set(cards.Core, "Ball luck", `x{coreNow.Luck}`, if core then `x{core.Luck}` else nil)
+	local eggNext = if Upgrades.nextPrice("EggSlots", data) then tostring(data.EggSlots + 1) else nil
+	set(cards.EggSlots, "Eggs per roll", tostring(data.EggSlots), eggNext)
+	local petNext = if Upgrades.nextPrice("PetSlots", data) then tostring(data.PetSlots + 1) else nil
+	set(cards.PetSlots, "Pets on base", tostring(data.PetSlots), petNext)
+	local aimNext = if Upgrades.nextPrice("PackZone", data) then `Lv {data.PackZone + 1}` else nil
+	set(cards.PackZone, "Green zone size", `Lv {data.PackZone}`, aimNext)
+	for _, id in { "Core", "EggSlots", "PetSlots", "PackZone" } do
+		local price = Upgrades.nextPrice(id, data)
+		local cc = cards[id]
 		Ui.setText(cc.buy, if price then Format.cash(price) else "MAX")
 		cc.buy.Visible = price ~= nil
 	end

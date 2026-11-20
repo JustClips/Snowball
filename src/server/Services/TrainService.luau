@@ -151,7 +151,10 @@ local function refreshPills()
 		if pill and data and nextDef then
 			local free = nextDef.Index == Rollers.FreeInTutorial and not data.Flags.TutorialDone
 			local canPay = free or not BigNum.lt(data.Cash, nextDef.Price)
-			pill.BackgroundColor3 = if canPay then Color3.fromRGB(70, 205, 95) else Color3.fromRGB(235, 70, 70)
+			pill.BackgroundColor3 = if data.Rebirths < nextDef.RebirthsNeeded
+				then Color3.fromRGB(150, 80, 230)
+				elseif canPay then Color3.fromRGB(70, 205, 95)
+				else Color3.fromRGB(235, 70, 70)
 		end
 	end
 end
@@ -193,8 +196,13 @@ local function buyRoller(player: Player): (boolean, string?)
 		return false, "You have the best roller"
 	end
 	if data.Rebirths < nextDef.RebirthsNeeded then
-		return false, `Rebirth {nextDef.RebirthsNeeded} needed`
+		-- Rebirth only unlocks at the Village: say how to get there, not just "needed".
+		if data.Rebirths == 0 and not data.ReachedVillage then
+			return false, `Roll to the Village to unlock Rebirth (this roller needs {nextDef.RebirthsNeeded})`
+		end
+		return false, `Rebirth {nextDef.RebirthsNeeded - data.Rebirths} more time(s) for this roller`
 	end
+	local before = (Rollers.get(data.Roller) or Rollers.Cash[1]).Power
 	local free = nextDef.Index == Rollers.FreeInTutorial and not data.Flags.TutorialDone
 	if not free then
 		local ok, why = S.CashService:Spend(player, nextDef.Price, "Roller" .. nextDef.Id)
@@ -209,7 +217,12 @@ local function buyRoller(player: Player): (boolean, string?)
 		S.AnalyticsService:Funnel(player, "StoneRoller")
 	end
 	TrainService:RefreshRoller(player)
-	Net.fire("Notify", player, `{nextDef.Name}! +{Format.big(nextDef.Power)} Power`, "Good")
+	Net.fire(
+		"Notify",
+		player,
+		`{nextDef.Name}! Power per rep {Format.big(before)} > {Format.big(nextDef.Power)}`,
+		"Good"
+	)
 	return true, nil
 end
 
@@ -355,7 +368,14 @@ function TrainService:RefreshRoller(player: Player)
 			48,
 			Color3.fromRGB(255, 215, 70)
 		)
-		text("Gain", `+{Format.big(nextDef.Power)} Power`, 124, 36, Color3.fromRGB(120, 210, 255))
+		-- A rate, before > after (Dev 2026-11-20: "+7.5K Power" read like a one-time gift).
+		text(
+			"Gain",
+			`Power/rep {Format.big(cur.Power)} > {Format.big(nextDef.Power)}`,
+			124,
+			36,
+			Color3.fromRGB(120, 210, 255)
+		)
 		local pill = Instance.new("Frame")
 		pill.Name = "Price"
 		pill.Size = UDim2.new(0, if robuxNext then 200 else 260, 0, 64)
@@ -372,7 +392,17 @@ function TrainService:RefreshRoller(player: Player)
 		ps.Color = Color3.fromRGB(22, 20, 38)
 		ps.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 		ps.Parent = pill
-		local price = text("Text", if free then "FREE" else Format.cash(nextDef.Price), 0, 52, Color3.new(1, 1, 1))
+		local locked = data.Rebirths < nextDef.RebirthsNeeded
+		if locked then
+			pill.BackgroundColor3 = Color3.fromRGB(150, 80, 230)
+		end
+		local price = text(
+			"Text",
+			if locked then `REBIRTH {nextDef.RebirthsNeeded}` elseif free then "FREE" else Format.cash(nextDef.Price),
+			0,
+			52,
+			Color3.new(1, 1, 1)
+		)
 		price.Size = UDim2.new(1, -20, 1, -12)
 		price.Position = UDim2.fromOffset(10, 6)
 		price.Parent = pill
