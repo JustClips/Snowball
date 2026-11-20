@@ -435,6 +435,19 @@ end
 
 function InventoryController:Init(controllers)
 	C = controllers
+	-- Our hotbar + Bag replace Roblox's backpack (its grey 1-0 slots and the Search window
+	-- that ` opened). SetCoreGuiEnabled can fail right at join, so retry a few times.
+	task.spawn(function()
+		for _ = 1, 10 do
+			local ok = pcall(function()
+				game:GetService("StarterGui"):SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, false)
+			end)
+			if ok then
+				break
+			end
+			task.wait(0.5)
+		end
+	end)
 	gui = Ui.screen("Bag", 12)
 
 	-- Hotbar.
@@ -587,10 +600,9 @@ function InventoryController:Start()
 	task.spawn(function()
 		while true do
 			local mode = C.HudController:Mode()
-			-- The roll's result card sits where the hotbar is: hide the bar while it shows.
-			local results = gui.Parent and gui.Parent:FindFirstChild("Results")
-			local card = results and results:FindFirstChild("Card", true) :: GuiObject?
-			hotbar.Visible = mode == "Normal" and not (card and card.Visible)
+			-- The roll's reward screen covers the bottom: hide the bar while it's open.
+			local results = C.ResultsController and C.ResultsController:IsOpen()
+			hotbar.Visible = mode == "Normal" and not results
 			if mode ~= "Normal" and window.Visible then
 				Ui.closeWindow(window)
 			end
