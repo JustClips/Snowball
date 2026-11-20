@@ -230,7 +230,7 @@
         }
       }
       box.style.cssText = `position:absolute;left:${pl}px;top:${pt}px;width:${isScroll ? Math.max(cw, bbW) : cw}px;height:${isScroll ? Math.max(canvasH, bbH) : ch}px;`;
-      if (isScroll && p.CanvasPosition) box.style.transform = `translate(${-p.CanvasPosition[0]}px,${-p.CanvasPosition[1]}px)`;
+      if (isScroll && p.CanvasPosition) for (const ch of box.children) ch.style.transform = `translate(${-p.CanvasPosition[0]}px,${-p.CanvasPosition[1]}px)`;
       return { box, needW: bbW + pl + pr, needH: bbH + pt + pb };
     }
 

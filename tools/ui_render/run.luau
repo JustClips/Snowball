@@ -389,6 +389,8 @@ local function opener(ctrl, method, ...)
 	end
 end
 SCENARIOS.shop = opener("ShopController", "Open")
+SCENARIOS.shop2 = opener("ShopController", "Open", "Boosts")
+SCENARIOS.shop3 = opener("ShopController", "Open", "Money")
 SCENARIOS.upgrades = opener("UpgradesController", "Toggle")
 SCENARIOS.rebirth = opener("RebirthController", "Toggle")
 SCENARIOS.bag = opener("InventoryController", "Toggle")

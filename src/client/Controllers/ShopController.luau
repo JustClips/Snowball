@@ -49,10 +49,11 @@ local YELLOW = "#FFE34D"
 -- uses the same stud style as every other window).
 local GLOW = Ui.GLOW
 
-local WIN = Vector2.new(820, 520) -- WIN_W x WIN_H
+local WIN = Vector2.new(720, 540) -- WIN_W x WIN_H (the pack's single panel)
 local PANEL_W = 720
 local NAV_W = 96
-local CELL = Vector2.new(220, 226) -- 3 cards per row
+local CELL = Vector2.new(214, 236) -- 3 pack cards per row
+local PASS = Vector2.new(330, 190) -- 2 gamepass cards per row
 local BANNER_H = 172
 local LUCK_H = 132
 
@@ -276,6 +277,26 @@ local function glow(parent: GuiObject, px: number, pos: UDim2, transparency: num
 	g.Parent = parent
 end
 
+-- The pack's look: bright two-colour vertical gradients on cards, no outline.
+local function paint(object: GuiObject, top: Color3, bottom: Color3)
+	object.BackgroundColor3 = WHITE
+	object.BorderSizePixel = 0
+	local g = Instance.new("UIGradient")
+	g.Name = "Paint"
+	g.Color = ColorSequence.new(top, bottom)
+	g.Rotation = 90
+	g.Parent = object
+end
+
+-- Card colours (top, bottom), like the pack's gamepass cards.
+local PAINTS: { { Color3 } } = {
+	{ Color3.fromRGB(40, 230, 255), Color3.fromRGB(40, 110, 255) }, -- cyan > blue
+	{ Color3.fromRGB(230, 60, 255), Color3.fromRGB(150, 40, 255) }, -- pink > purple
+	{ Color3.fromRGB(255, 220, 30), Color3.fromRGB(255, 120, 20) }, -- yellow > orange
+	{ Color3.fromRGB(190, 255, 40), Color3.fromRGB(60, 210, 40) }, -- lime > green
+}
+local MONEY_PAINT = { Color3.fromRGB(240, 255, 30), Color3.fromRGB(60, 230, 30) }
+
 local function place(object: GuiObject)
 	nextOrder += 1
 	object.LayoutOrder = nextOrder
@@ -291,9 +312,9 @@ local function addHeading(section: Section)
 	text({
 		Name = "Title",
 		Size = UDim2.fromScale(1, 1),
-		Text = string.upper(section.Title),
-		TextColor3 = section.Heading,
-	}, 40, 4).Parent =
+		Text = `-{section.Title}-`,
+		TextColor3 = WHITE,
+	}, 38, 3).Parent =
 		row
 	headings[section.Key] = row
 	place(row)
@@ -309,61 +330,36 @@ type Tile = {
 	Gift: boolean?,
 }
 
-local function buildCard(item: Tile, color: Color3): Frame
-	local def = Products.ProductByKey[item.Key] or Products.PassByKey[item.Key]
-	local enabled = not item.Owned and canBuy(def)
-	local col = if item.Owned then GREY else color
-	local card = Ui.frame({ Name = item.Key, Size = UDim2.fromOffset(CELL.X, CELL.Y), ZIndex = 2 })
-	Ui.block(card, col, 3, 5)
-	glow(card, 230, UDim2.new(0.5, 0, 0, 78), 0.25)
-	Ui.icon(item.Pic or "Shop", {
-		Name = "Icon",
-		Size = UDim2.fromOffset(120, 120),
-		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.new(0.5, 0, 0, 14),
-		ZIndex = 3,
-	}).Parent =
-		card
-	if item.Tag then
-		local tag = plate({
-			Name = "Tag",
-			Size = UDim2.fromOffset(104, 26),
-			Position = UDim2.fromOffset(-6, 6),
-			BackgroundColor3 = BADGE_RED,
-			ZIndex = 6,
-		})
-		text({
-			Name = "Label",
-			Size = UDim2.new(1, -6, 1, 0),
-			Position = UDim2.fromOffset(3, 0),
-			Text = item.Tag,
-			ZIndex = 7,
-		}, 16, 2).Parent =
-			tag
-		tag.Parent = card
-	end
-	text({
-		Name = "Label",
-		Size = UDim2.new(1, -12, 0, 32),
-		AnchorPoint = Vector2.new(0.5, 1),
-		Position = UDim2.new(0.5, 0, 1, -60),
-		Text = line(item.Hi, item.Lo),
-		RichText = true,
-		ZIndex = 4,
-	}, 28, 3).Parent =
-		card
+-- Price button (green, lighter top, darker lip) + optional small gift button left of it.
+local function priceRow(
+	card: GuiObject,
+	item: Tile,
+	def: any,
+	enabled: boolean,
+	size: Vector2,
+	pos: UDim2,
+	anchor: Vector2
+)
 	local giftable = item.Gift == true and def ~= nil and def.Giftable == true and enabled
+	local row = Ui.frame({
+		Name = "BuyRow",
+		Size = UDim2.fromOffset(size.X, size.Y),
+		AnchorPoint = anchor,
+		Position = pos,
+		BackgroundTransparency = 1,
+		ZIndex = 4,
+	})
 	local buy = button({
 		Name = "Buy",
-		Size = if giftable then UDim2.new(1, -68, 0, 46) else UDim2.new(1, -16, 0, 46),
-		AnchorPoint = Vector2.new(1, 1),
-		Position = UDim2.new(1, -8, 1, -8),
+		Size = if giftable then UDim2.new(1, -size.Y - 6, 1, 0) else UDim2.fromScale(1, 1),
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.fromScale(1, 0),
 		BackgroundColor3 = GREEN,
 		ZIndex = 4,
-	}, "")
-	buy.Parent = card
+	}, "", nil, 30)
+	buy.Parent = row
 	if item.Owned then
-		setPrice(buy, "Owned", GREY)
+		setPrice(buy, "OWNED", GREY)
 	elseif not enabled then
 		setPrice(buy, "SOON", GREY)
 	else
@@ -375,21 +371,108 @@ local function buildCard(item: Tile, color: Color3): Frame
 	if giftable then
 		local gift = button({
 			Name = "Gift",
-			Size = UDim2.fromOffset(50, 46),
-			AnchorPoint = Vector2.new(0, 1),
-			Position = UDim2.new(0, 8, 1, -8),
+			Size = UDim2.fromOffset(size.Y, size.Y),
 			BackgroundColor3 = GIFT,
 			ZIndex = 4,
 		}, nil, "Gift")
-		gift.Parent = card
+		gift.Parent = row
 		onPress(gift, function()
 			ShopController:OpenGift(item.Key)
 		end)
 	end
+	row.Parent = card
+end
+
+local function tagOn(card: GuiObject, tag: string)
+	local t = plate({
+		Name = "Tag",
+		Size = UDim2.fromOffset(110, 28),
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.new(1, 6, 0, -8),
+		Rotation = 6,
+		BackgroundColor3 = BADGE_RED,
+		ZIndex = 7,
+	})
+	text(
+		{ Name = "Label", Size = UDim2.new(1, -6, 1, 0), Position = UDim2.fromOffset(3, 0), Text = tag, ZIndex = 8 },
+		16,
+		2
+	).Parent =
+		t
+	t.Parent = card
+end
+
+local passPaint = 0
+
+-- Gamepass card (the pack's 2-per-row card): title top left, picture with a glow on the
+-- left, price on the right.
+local function passCard(item: Tile): Frame
+	local def = Products.ProductByKey[item.Key] or Products.PassByKey[item.Key]
+	local enabled = not item.Owned and canBuy(def)
+	local card = Ui.frame({ Name = item.Key, Size = UDim2.fromOffset(PASS.X, PASS.Y), ZIndex = 2 })
+	passPaint = passPaint % #PAINTS + 1
+	local pal = if item.Owned then { GREY, Color3.fromRGB(110, 116, 130) } else PAINTS[passPaint]
+	paint(card, pal[1], pal[2])
+	glow(card, 170, UDim2.new(0, 82, 0, 100), 0.2)
+	Ui.icon(item.Pic or "Shop", {
+		Name = "Icon",
+		Size = UDim2.fromOffset(118, 118),
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.new(0, 82, 0, 104),
+		ZIndex = 3,
+	}).Parent =
+		card
+	text({
+		Name = "Title",
+		Size = UDim2.new(1, -24, 0, 40),
+		Position = UDim2.fromOffset(12, 6),
+		Text = line(item.Hi, item.Lo),
+		RichText = true,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		ZIndex = 4,
+	}, 34, 3).Parent =
+		card
+	priceRow(card, item, def, enabled, Vector2.new(166, 58), UDim2.new(1, -12, 1, -16), Vector2.new(1, 1))
+	if item.Tag then
+		tagOn(card, item.Tag)
+	end
 	return card
 end
 
-local function addGrid(items: { Tile }, color: Color3)
+-- Pack card (the pack's currency card, 3 per row): amount on top, picture, price below.
+local function packCard(item: Tile, color: Color3): Frame
+	local def = Products.ProductByKey[item.Key] or Products.PassByKey[item.Key]
+	local enabled = not item.Owned and canBuy(def)
+	local card = Ui.frame({ Name = item.Key, Size = UDim2.fromOffset(CELL.X, CELL.Y), ZIndex = 2 })
+	local pal = if color == GREEN then MONEY_PAINT else { color:Lerp(WHITE, 0.25), color }
+	paint(card, pal[1], pal[2])
+	glow(card, 190, UDim2.new(0.5, 0, 0, 110), 0.2)
+	Ui.icon(item.Pic or "Shop", {
+		Name = "Icon",
+		Size = UDim2.fromOffset(118, 118),
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.new(0.5, 0, 0, 112),
+		ZIndex = 3,
+	}).Parent =
+		card
+	text({
+		Name = "Label",
+		Size = UDim2.new(1, -16, 0, 40),
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.new(0.5, 0, 0, 8),
+		Text = line(item.Hi, item.Lo),
+		RichText = true,
+		ZIndex = 4,
+	}, 32, 3).Parent =
+		card
+	priceRow(card, item, def, enabled, Vector2.new(CELL.X - 20, 50), UDim2.new(0.5, 0, 1, -12), Vector2.new(0.5, 1))
+	if item.Tag then
+		tagOn(card, item.Tag)
+	end
+	return card
+end
+
+local function addGrid(items: { Tile }, color: Color3, passes: boolean?)
 	if #items == 0 then
 		return
 	end
@@ -400,13 +483,14 @@ local function addGrid(items: { Tile }, color: Color3)
 		BackgroundTransparency = 1,
 	})
 	local g = Instance.new("UIGridLayout")
-	g.CellSize = UDim2.fromOffset(CELL.X, CELL.Y)
-	g.CellPadding = UDim2.fromOffset(10, 12)
+	g.CellSize = if passes then UDim2.fromOffset(PASS.X, PASS.Y) else UDim2.fromOffset(CELL.X, CELL.Y)
+	g.CellPadding = UDim2.fromOffset(12, 14)
 	g.SortOrder = Enum.SortOrder.LayoutOrder
 	g.HorizontalAlignment = Enum.HorizontalAlignment.Center
 	g.Parent = grid
+	passPaint = 0
 	for i, item in items do
-		local card = buildCard(item, color)
+		local card = if passes then passCard(item) else packCard(item, color)
 		card.LayoutOrder = i
 		card.Parent = grid
 	end
@@ -417,9 +501,8 @@ end
 local function titleStrip(parent: GuiObject, tag: string, title: string): TextLabel
 	local strip = Ui.frame({
 		Name = "Strip",
-		Size = UDim2.new(1, 0, 0, 44),
-		BackgroundColor3 = Color3.new(0, 0, 0),
-		BackgroundTransparency = 0.55,
+		Size = UDim2.new(1, 0, 0, 48),
+		BackgroundTransparency = 1,
 		ZIndex = 3,
 	})
 	local t = plate({
@@ -443,7 +526,7 @@ local function titleStrip(parent: GuiObject, tag: string, title: string): TextLa
 		AnchorPoint = Vector2.new(0, 0.5),
 		Position = UDim2.new(0, 114, 0.5, 0),
 		Text = title,
-		TextColor3 = Color3.fromRGB(255, 227, 77),
+		TextColor3 = WHITE,
 		TextXAlignment = Enum.TextXAlignment.Left,
 		ZIndex = 4,
 	}, 30, 3).Parent =
@@ -501,12 +584,9 @@ local function addStarterBanner(data)
 	if not def or not Economy.starterPackLive(data, State.now()) then
 		return
 	end
-	local color = Color3.fromRGB(255, 77, 94)
 	local banner = Ui.frame({ Name = "StarterPack", Size = UDim2.new(1, 0, 0, BANNER_H), ZIndex = 2 })
-	border(banner, 4, Color3.fromRGB(255, 176, 32))
-	studs(banner, color, 40)
-	tint(banner, color)
-	local timer = titleStrip(banner, "OFFER", "STARTER PACK")
+	paint(banner, Color3.fromRGB(215, 40, 255), Color3.fromRGB(140, 0, 235))
+	local timer = titleStrip(banner, "ONCE!", "Starter Pack!")
 	local items = Ui.frame({
 		Name = "Items",
 		Size = UDim2.new(1, -220, 0, 100),
@@ -540,11 +620,10 @@ local function addStarterBanner(data)
 			Size = UDim2.fromOffset(60, 60),
 			AnchorPoint = Vector2.new(0.5, 0),
 			Position = UDim2.fromScale(0.5, 0),
-			BackgroundColor3 = WHITE,
-			BackgroundTransparency = 0.82,
+			BackgroundColor3 = Color3.fromRGB(40, 0, 80),
+			BackgroundTransparency = 0.45,
 			ZIndex = 3,
 		})
-		border(back, 2, WHITE).Transparency = 0.4
 		back.Parent = c
 		Ui.icon(chip[1], {
 			Size = UDim2.fromOffset(54, 54),
@@ -638,12 +717,23 @@ local function addLuckCard()
 	if not luckNext(1) then
 		return
 	end
-	local color = Color3.fromRGB(46, 158, 74)
-	local card = Ui.frame({ Name = "ServerLuck", Size = UDim2.new(1, 0, 0, LUCK_H), ZIndex = 2 })
-	border(card, 4)
-	studs(card, color, 40)
-	tint(card, color)
-	glow(card, 150, UDim2.new(0, 62, 0.5, 0), 0.35)
+	local card = Ui.frame({
+		Name = "ServerLuck",
+		Size = UDim2.new(1, 0, 0, LUCK_H),
+		ZIndex = 2,
+		ClipsDescendants = true,
+	})
+	paint(card, Color3.fromRGB(200, 255, 40), Color3.fromRGB(40, 200, 40))
+	-- The pack's big faded clover behind the card's right side.
+	Ui.icon("Luck", {
+		Size = UDim2.fromOffset(240, 240),
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.new(1, -150, 0.5, 0),
+		ImageTransparency = 0.55,
+		ZIndex = 2,
+	}).Parent =
+		card
+	glow(card, 150, UDim2.new(0, 62, 0.5, 0), 0.2)
 	Ui.icon("Shop_ServerLuck", {
 		Size = UDim2.fromOffset(100, 100),
 		AnchorPoint = Vector2.new(0.5, 0.5),
@@ -655,8 +745,8 @@ local function addLuckCard()
 		Name = "Title",
 		Size = UDim2.fromOffset(260, 28),
 		Position = UDim2.fromOffset(124, 10),
-		Text = "SERVER LUCK",
-		TextColor3 = Color3.fromRGB(255, 227, 77),
+		Text = "Server Luck",
+		TextColor3 = WHITE,
 		TextXAlignment = Enum.TextXAlignment.Left,
 	}, 26, 3).Parent =
 		card
@@ -759,7 +849,7 @@ local function buildPasses(data, color: Color3)
 			Owned = owned,
 		})
 	end
-	addGrid(tiles, color)
+	addGrid(tiles, color, true)
 end
 
 local function buildBoosts(_data, color: Color3)
@@ -912,7 +1002,6 @@ end
 
 local function closeGift()
 	giftPicker.Visible = false
-	nav.Visible = true
 end
 
 function ShopController:OpenGift(key: string)
@@ -1233,27 +1322,32 @@ function ShopController:Init(controllers)
 	local panel = Ui.frame({ Name = "Panel", Size = UDim2.new(0, PANEL_W, 1, 0), BackgroundColor3 = BODY })
 	border(panel, 4)
 	studs(panel, BODY_STUDS, 40)
-	local head = Ui.frame({ Name = "Header", Size = UDim2.new(1, 0, 0, 70), BackgroundColor3 = GREEN, ZIndex = 3 })
-	border(head, 4)
-	studs(head, GREEN, 40)
-	shine(head, Color3.fromRGB(216, 232, 208))
+	local head = Ui.frame({ Name = "Header", Size = UDim2.new(1, 0, 0, 70), ZIndex = 3 })
+	paint(head, Color3.fromRGB(255, 70, 170), Color3.fromRGB(240, 30, 110))
+	Ui.icon("Shop", {
+		Size = UDim2.fromOffset(78, 78),
+		AnchorPoint = Vector2.new(0, 0.5),
+		Position = UDim2.new(0, 10, 0.5, -2),
+		ZIndex = 4,
+	}).Parent =
+		head
 	text({
 		Name = "Title",
-		Size = UDim2.new(0, 300, 1, 0),
-		Position = UDim2.fromOffset(18, 0),
-		Text = "SHOP",
+		Size = UDim2.new(0, 300, 1, -14),
+		Position = UDim2.fromOffset(96, 7),
+		Text = "Shop",
 		TextXAlignment = Enum.TextXAlignment.Left,
 		ZIndex = 4,
 	}, 44, 4).Parent =
 		head
 	local close = button({
 		Name = "Close",
-		Size = UDim2.fromOffset(58, 54),
+		Size = UDim2.fromOffset(84, 70),
 		AnchorPoint = Vector2.new(1, 0.5),
-		Position = UDim2.new(1, -8, 0.5, 0),
+		Position = UDim2.new(1, 0, 0.5, 0),
 		BackgroundColor3 = RED,
 		ZIndex = 5,
-	}, "X", nil, 34)
+	}, "X", nil, 44)
 	close.Parent = head
 	onPress(close, function()
 		ShopController:Close()
@@ -1335,6 +1429,8 @@ function ShopController:Init(controllers)
 		b.Parent = nav
 		navButtons[key] = b
 	end
+	-- The pack's shop has no side column: the list scrolls; Open(section) still jumps.
+	nav.Visible = false
 	nav.Parent = window
 	window.Parent = holder
 	holder.Parent = gui
