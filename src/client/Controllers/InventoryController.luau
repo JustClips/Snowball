@@ -553,7 +553,8 @@ function InventoryController:Start()
 		InventoryController:Refresh()
 	end)
 	UserInputService.InputBegan:Connect(function(input, processed)
-		if processed or UserInputService:GetFocusedTextBox() then
+		-- Keys only work while the bar shows (not while rolling, training or rescuing eggs).
+		if processed or UserInputService:GetFocusedTextBox() or not hotbar.Visible then
 			return
 		end
 		local k = input.KeyCode
