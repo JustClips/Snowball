@@ -244,6 +244,72 @@ function Ui.toast(text: string, kind: string?)
 	end)
 end
 
+-- ONE big word in the upper middle (PERFECT!, SMASH! x3, BONK!...). A new word replaces
+-- the old one, and it always fades out completely, outline included, then hides
+-- (Dev 2026-11-20: PERFECT!/SMASH! stayed stuck on screen and piled up).
+local wordLabel: TextLabel? = nil
+local wordScale: UIScale? = nil
+local wordSerial = 0
+function Ui.word(text: string, color: Color3, hold: number?, size: number?)
+	if not wordLabel then
+		local gui = Ui.screen("Words", 12)
+		local holder = Ui.frame({
+			Name = "Holder",
+			BackgroundTransparency = 1,
+			Size = UDim2.fromOffset(640, 100),
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(0.5, 0.34),
+		})
+		Ui.autoScale(holder)
+		holder.Parent = gui
+		local l = Ui.label({
+			Name = "Word",
+			Size = UDim2.fromScale(1, 1),
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(0.5, 0.5),
+			Text = "",
+			Visible = false,
+		})
+		local st = l:FindFirstChildOfClass("UIStroke")
+		if st then
+			st.Thickness = 4
+		end
+		local sc = Instance.new("UIScale")
+		sc.Parent = l
+		l.Parent = holder
+		wordLabel = l
+		wordScale = sc
+	end
+	local label = wordLabel :: TextLabel
+	local scale = wordScale :: UIScale
+	local stroke = label:FindFirstChildOfClass("UIStroke") :: UIStroke
+	wordSerial += 1
+	local mine = wordSerial
+	label.Text = text
+	label.TextColor3 = color
+	label.TextTransparency = 0
+	stroke.Transparency = 0
+	label.Visible = true
+	label.Size = UDim2.fromScale(size or 1, size or 1)
+	scale.Scale = 0.4
+	label.Rotation = math.random(-6, 6)
+	TweenService:Create(scale, TweenInfo.new(0.25, Enum.EasingStyle.Back), { Scale = 1 }):Play()
+	task.delay(hold or 0.6, function()
+		if wordSerial ~= mine then
+			return
+		end
+		local info = TweenInfo.new(0.25)
+		TweenService:Create(label, info, { TextTransparency = 1 }):Play()
+		TweenService:Create(stroke, info, { Transparency = 1 }):Play()
+		TweenService:Create(scale, info, { Scale = 1.25 }):Play()
+		task.delay(0.3, function()
+			if wordSerial == mine then
+				label.Visible = false
+			end
+		end)
+	end)
+end
+
 -- Phones get bigger touch targets.
 function Ui.isPhone(): boolean
 	local cam = Workspace.CurrentCamera

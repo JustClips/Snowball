@@ -135,7 +135,32 @@ local function setTraining(player: Player, on: boolean)
 	TrainService.TrainingChanged:Fire(player, on)
 end
 
+-- The upgrade board's price pill: green when you can pay, red when not (checked 1/s).
+local pillAcc = 0
+local function refreshPills()
+	for player in S.DataService:GetSessions() do
+		local data = S.DataService:GetData(player)
+		local index = player:GetAttribute("BaseIndex")
+		local base = type(index) == "number" and S.WorldService:GetBase(index)
+		local roller = base and base:FindFirstChild("Roller")
+		local post = roller and roller:FindFirstChild("UpgradePost")
+		local board = post and post:FindFirstChild("Board")
+		local pill = board and board:FindFirstChild("Price") :: Frame?
+		local nextDef = data and Rollers.get(data.Roller + 1)
+		if pill and data and nextDef then
+			local free = nextDef.Index == Rollers.FreeInTutorial and not data.Flags.TutorialDone
+			local canPay = free or not BigNum.lt(data.Cash, nextDef.Price)
+			pill.BackgroundColor3 = if canPay then Color3.fromRGB(70, 205, 95) else Color3.fromRGB(235, 70, 70)
+		end
+	end
+end
+
 local function tick()
+	pillAcc += TICK
+	if pillAcc >= 1 then
+		pillAcc = 0
+		refreshPills()
+	end
 	for player in S.DataService:GetSessions() do
 		local on = onRoller(player)
 		setTraining(player, on)
@@ -266,61 +291,90 @@ function TrainService:RefreshRoller(player: Player)
 	-- Upgrade the station right here (Dev, 2026-11-20: like the treadmill games): a sign
 	-- over the roller with the Upgrade icon and the next price, and a prompt to buy it.
 	local nextDef = Rollers.get(data.Roller + 1)
-	-- A short sign post standing on the ground beside the roller (not floating over it):
-	-- the price board sits on top at eye height and the prompt is on the post itself.
+	-- Steal an Egg style upgrade board beside the roller (Dev 2026-11-20: the old price
+	-- sign looked weird): two posts, a dark navy board facing the plaza with
+	-- "Upgrade Roller", "Stone > Iron", "+N Power" and a price pill (green when you can
+	-- afford it, red when not). The prompt is on the board.
+	local cur = Rollers.get(data.Roller) or Rollers.Cash[1]
+	local free = nextDef ~= nil and nextDef.Index == Rollers.FreeInTutorial and not data.Flags.TutorialDone
+	local boardCf = cf * CFrame.new(11, 4.6, -3) * CFrame.Angles(math.rad(-12), 0, 0)
+	for _, sx in { -3.2, 3.2 } do
+		local leg = Instance.new("Part")
+		leg.Name = "UpgradeLeg"
+		leg.Anchored = true
+		leg.Size = Vector3.new(0.6, 5.6, 0.6)
+		leg.CFrame = cf * CFrame.new(11 + sx, 2.8, -2.6)
+		leg.Material = Enum.Material.Wood
+		leg.Color = Color3.fromRGB(110, 72, 44)
+		leg.Parent = model
+	end
 	local post = Instance.new("Part")
 	post.Name = "UpgradePost"
 	post.Anchored = true
-	post.Size = Vector3.new(0.8, 4, 0.8)
-	post.CFrame = cf * CFrame.new(10, 2, -3)
-	post.Material = Enum.Material.Wood
-	post.Color = Color3.fromRGB(120, 80, 48)
+	post.Size = Vector3.new(7.6, 4.2, 0.4)
+	post.CFrame = boardCf
+	post.Material = Enum.Material.SmoothPlastic
+	post.Color = Color3.fromRGB(24, 30, 64)
 	post.Parent = model
-	local sign = Instance.new("Part")
-	sign.Name = "UpgradeSign"
-	sign.Anchored = true
-	sign.CanCollide = false
-	sign.CanQuery = false
-	sign.Size = Vector3.new(5, 0.4, 0.4)
-	sign.CFrame = cf * CFrame.new(10, 4.2, -3)
-	sign.Material = Enum.Material.Wood
-	sign.Color = Color3.fromRGB(120, 80, 48)
-	sign.Parent = model
-	local board = Instance.new("BillboardGui")
-	board.Name = "Board"
-	board.Size = UDim2.fromScale(6, 2.2)
-	board.StudsOffsetWorldSpace = Vector3.new(0, 1.5, 0)
-	board.MaxDistance = 90
-	board.LightInfluence = 0
-	board.Parent = sign
-	local bg = Instance.new("Frame")
-	bg.Size = UDim2.fromScale(1, 1)
-	bg.BackgroundColor3 = Color3.fromRGB(16, 27, 52)
-	bg.BorderSizePixel = 0
-	bg.Parent = board
-	local stroke = Instance.new("UIStroke")
-	stroke.Thickness = 3
-	stroke.Color = Color3.fromRGB(20, 32, 58)
-	stroke.Parent = bg
-	local icon = Instance.new("ImageLabel")
-	icon.BackgroundTransparency = 1
-	icon.Size = UDim2.fromScale(0.3, 1)
-	icon.ScaleType = Enum.ScaleType.Fit
-	icon.Image = if nextDef then Images.Upgrade else Images.Star
-	icon.Parent = bg
-	local price = Instance.new("TextLabel")
-	price.BackgroundTransparency = 1
-	price.Position = UDim2.fromScale(0.32, 0.1)
-	price.Size = UDim2.fromScale(0.66, 0.8)
-	price.TextScaled = true
-	price.FontFace = Font.new("rbxasset://fonts/families/Montserrat.json", Enum.FontWeight.Heavy)
-	price.TextColor3 = Color3.fromRGB(120, 230, 120)
-	local free = nextDef ~= nil and nextDef.Index == Rollers.FreeInTutorial and not data.Flags.TutorialDone
-	price.Text = if not nextDef then "MAX" elseif free then "FREE" else Format.cash(nextDef.Price)
-	price.Parent = bg
-	local textStroke = Instance.new("UIStroke")
-	textStroke.Thickness = 2
-	textStroke.Parent = price
+	local gui = Instance.new("SurfaceGui")
+	gui.Name = "Board"
+	gui.Face = Enum.NormalId.Front
+	gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+	gui.PixelsPerStud = 60
+	gui.LightInfluence = 0
+	gui.MaxDistance = 120
+	gui.Parent = post
+	local font = Font.fromEnum(Enum.Font.FredokaOne)
+	local function text(name: string, t: string, y: number, h: number, color: Color3): TextLabel
+		local l = Instance.new("TextLabel")
+		l.Name = name
+		l.BackgroundTransparency = 1
+		l.Size = UDim2.new(1, -40, 0, h)
+		l.Position = UDim2.new(0, 20, 0, y)
+		l.FontFace = font
+		l.TextScaled = true
+		l.TextColor3 = color
+		l.Text = t
+		local st = Instance.new("UIStroke")
+		st.Thickness = 4
+		st.Color = Color3.fromRGB(22, 20, 38)
+		st.Parent = l
+		l.Parent = gui
+		return l
+	end
+	text("Title", if nextDef then "Upgrade Roller" else "Best Roller!", 14, 56, Color3.new(1, 1, 1))
+	if nextDef then
+		text(
+			"Tiers",
+			`{string.gsub(cur.Name, " Roller", "")} > {string.gsub(nextDef.Name, " Roller", "")}`,
+			74,
+			48,
+			Color3.fromRGB(255, 215, 70)
+		)
+		text("Gain", `+{Format.big(nextDef.Power)} Power`, 124, 36, Color3.fromRGB(120, 210, 255))
+		local pill = Instance.new("Frame")
+		pill.Name = "Price"
+		pill.Size = UDim2.new(0, 260, 0, 64)
+		pill.AnchorPoint = Vector2.new(0.5, 0)
+		pill.Position = UDim2.new(0.5, 0, 0, 170)
+		local canPay = free or not BigNum.lt(data.Cash, nextDef.Price)
+		pill.BackgroundColor3 = if canPay then Color3.fromRGB(70, 205, 95) else Color3.fromRGB(235, 70, 70)
+		pill.Parent = gui
+		local corner = Instance.new("UICorner")
+		corner.CornerRadius = UDim.new(0.5, 0)
+		corner.Parent = pill
+		local ps = Instance.new("UIStroke")
+		ps.Thickness = 4
+		ps.Color = Color3.fromRGB(22, 20, 38)
+		ps.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+		ps.Parent = pill
+		local price = text("Text", if free then "FREE" else Format.cash(nextDef.Price), 0, 52, Color3.new(1, 1, 1))
+		price.Size = UDim2.new(1, -20, 1, -12)
+		price.Position = UDim2.fromOffset(10, 6)
+		price.Parent = pill
+	else
+		text("Tiers", cur.Name, 90, 60, Color3.fromRGB(255, 215, 70))
+	end
 	if nextDef then
 		local prompt = Instance.new("ProximityPrompt")
 		prompt.Name = "RollerUpgrade"

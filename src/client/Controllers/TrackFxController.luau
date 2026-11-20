@@ -30,6 +30,8 @@ local pickups: { Pickups.Pickup } = {}
 local pickupParts: { [number]: BasePart } = {}
 local taken: { [number]: boolean } = {}
 local pool: { [string]: { BasePart } } = {}
+local combo = 0
+local lastSmash = 0
 local AHEAD = 520
 local BEHIND = 40
 
@@ -66,27 +68,47 @@ local PICKUP_LOOK: { [string]: { Size: Vector3, Color: Color3, Shape: Enum.PartT
 	},
 }
 
+-- The Blender model for a track thing (art/blender/track.py), shared by the server in
+-- ReplicatedStorage.Assets. Its CFrame there is its offset from the model origin.
+local function asset(name: string, wait: number?): BasePart?
+	local assets = ReplicatedStorage:FindFirstChild("Assets")
+	if not assets and wait then
+		assets = ReplicatedStorage:WaitForChild("Assets", wait)
+	end
+	if not assets then
+		return nil
+	end
+	local found = if wait then assets:WaitForChild(name, wait) else assets:FindFirstChild(name)
+	return if found and found:IsA("BasePart") then found else nil
+end
+
 local function buildObstacles()
 	obstacleList = Obstacles.layout(spline.Length, RollMath.widthAt, Zones.VillageWall - 40)
 	for _, o in obstacleList do
 		local kind = Obstacles.ById[o.Kind]
-		local p = Instance.new("Part")
+		local template = asset("Obs_" .. kind.Id, 30)
+		local p: BasePart
+		if template then
+			p = template:Clone()
+			p.CFrame = spline:cframe(o.s, o.x) * template.CFrame
+		else
+			local np = Instance.new("Part")
+			np.Material = Enum.Material.SmoothPlastic
+			np.Size = Vector3.new(kind.Radius * 2, kind.Height, kind.Radius * 2)
+			np.CFrame = spline:cframe(o.s, o.x) * CFrame.new(0, kind.Height / 2, 0)
+			p = np
+		end
 		p.Name = o.Kind
 		p.Anchored = true
 		p.CanCollide = false
 		p.CanQuery = false
 		p.CanTouch = false
-		p.Material = if kind.Id == "IceBlock" or kind.Id == "Crystal"
-			then Enum.Material.Ice
-			else Enum.Material.SmoothPlastic
-		p.Color = kind.Color
-		p.Size = Vector3.new(kind.Radius * 2, kind.Height, kind.Radius * 2)
-		p.CFrame = spline:cframe(o.s, o.x) * CFrame.new(0, kind.Height / 2, 0)
+		p.Color = kind.Color -- debris colour when smashed
 		p.Parent = folder
 		-- Size badge so players learn the SMASH rule.
 		local gui = Instance.new("BillboardGui")
 		gui.Size = UDim2.fromOffset(60, 26)
-		gui.StudsOffset = Vector3.new(0, kind.Height / 2 + 2, 0)
+		gui.StudsOffsetWorldSpace = Vector3.new(0, p.Size.Y / 2 + 2, 0)
 		gui.MaxDistance = 140
 		local l = Ui.label({ Size = UDim2.fromScale(1, 1), Text = tostring(kind.SizeNeeded) })
 		l.Parent = gui
@@ -100,6 +122,12 @@ local function take(kind: string): BasePart
 	local p = list and table.remove(list)
 	if p then
 		return p
+	end
+	local template = asset("Pick_" .. kind)
+	if template then
+		local clone = template:Clone()
+		clone.Name = kind
+		return clone
 	end
 	local look = PICKUP_LOOK[kind] or PICKUP_LOOK.Snow
 	local np = Instance.new("Part")
@@ -133,6 +161,7 @@ end
 
 function TrackFxController:BeginRun(info)
 	clearPickups()
+	combo = 0
 	local list = Pickups.generate(info.Seed, info.Limit, RollMath.widthAt, info.FirstEgg == true)
 	for _, p in list do
 		pickups[p.Id] = p
@@ -166,14 +195,27 @@ function TrackFxController:Update(ball: Roll.Ball)
 			local np = take(p.Kind)
 			local look = PICKUP_LOOK[p.Kind] or PICKUP_LOOK.Snow
 			local base = spline:cframe(p.s, p.x)
-			np.CFrame = if p.Kind == "Coin"
-				then base * CFrame.new(0, 2.5, 0) * CFrame.Angles(0, math.rad(90), 0)
+			local template = asset("Pick_" .. p.Kind)
+			np.CFrame = if template
+				then base * template.CFrame
+				elseif p.Kind == "Coin" then base * CFrame.new(0, 2.5, 0) * CFrame.Angles(0, math.rad(90), 0)
 				else base * CFrame.new(0, look.Size.Y / 2, 0)
 			np.Parent = folder
 			pickupParts[id] = np
 		elseif not near and part then
 			give(p.Kind, part)
 			pickupParts[id] = nil
+		elseif part and (p.Kind == "Coin" or p.Kind == "Egg" or p.Kind == "Present") then
+			-- Coins spin, eggs and presents bob: things to grab read as alive.
+			local t = os.clock() + id
+			local base = spline:cframe(p.s, p.x)
+			local template = asset("Pick_" .. p.Kind)
+			local offset = if template then template.CFrame else CFrame.new(0, 2.5, 0)
+			if p.Kind == "Coin" then
+				part.CFrame = base * CFrame.new(0, 0.6 + math.sin(t * 3) * 0.4, 0) * CFrame.Angles(0, t * 4, 0) * offset
+			else
+				part.CFrame = base * CFrame.new(0, 0.5 + math.abs(math.sin(t * 2.5)) * 1.2, 0) * offset
+			end
 		end
 	end
 end
@@ -188,14 +230,25 @@ local function onEvent(kind: string, payload: any)
 		end
 		if ball then
 			Roll.smash(ball)
+			if part then
+				C.BallController:Stick("Obs_" .. part.Name, math.max(1.5, ball.r * 0.55))
+			end
 		end
-		Ui.sound("Smash")
 		Ui.sound("SnowHit")
 		if part then
 			Fx.burst("Puff", part.Position, 1.6)
 			Fx.burst("Flakes", part.Position, 1.2)
 		end
-		C.ResultsController:Flash("SMASH!", Ui.Colors.Green)
+		-- Combo: smashes close together count up, louder and shakier each time.
+		local now = os.clock()
+		combo = if now - lastSmash < 3 then combo + 1 else 1
+		lastSmash = now
+		Ui.sound("Smash", 1 + math.min(combo - 1, 8) * 0.07)
+		C.BallController:Shake(0.7 + math.min(combo, 6) * 0.2)
+		C.ResultsController:Flash(
+			if combo > 1 then `SMASH! x{combo}` else "SMASH!",
+			if combo >= 5 then Color3.fromRGB(255, 120, 220) elseif combo >= 3 then Ui.Colors.Gold else Ui.Colors.Green
+		)
 	elseif kind == "Bonk" then
 		if ball then
 			local o = nil
@@ -208,11 +261,9 @@ local function onEvent(kind: string, payload: any)
 			Roll.bonk(ball, if o then ball.x - o.x else 1)
 		end
 		Ui.sound("SnowHit", 0.8)
+		combo = 0
 		C.ResultsController:Flash("BONK!", Ui.Colors.Red)
-		local cam = Workspace.CurrentCamera
-		if cam then
-			cam.CFrame *= CFrame.Angles(0, 0, math.rad(4))
-		end
+		C.BallController:Shake(1.6)
 	elseif kind == "Pickup" or kind == "Egg" then
 		local id = if kind == "Egg" then payload.Id else payload
 		taken[id] = true
@@ -234,8 +285,14 @@ local function onEvent(kind: string, payload: any)
 				Roll.addSnow(ball, Pickups.snowAt(p.s))
 			elseif p.Kind == "Ramp" then
 				Roll.ramp(ball)
+				C.BallController:Jump()
+				C.ResultsController:Flash("JUMP!", Ui.Colors.Blue)
+				Ui.sound("Launch", 1.2)
 			elseif p.Kind == "Coin" then
 				Ui.sound("Coin", 1.3)
+				C.BallController:Stick("Pick_Coin", 1.4)
+			elseif p.Kind == "Present" then
+				C.BallController:Stick("Pick_Present", 1.8)
 			end
 		end
 		if kind == "Egg" then

@@ -38,6 +38,164 @@ type Drawn = {
 }
 local balls: { [number]: Drawn } = {}
 local cameraBall: Drawn? = nil
+
+-- Juice for your own roll (Dev 2026-11-20: "rolling is hella boring"): screen shake, a
+-- speed FOV, speed lines at the screen edges, a snow spray behind the ball, a bouncy
+-- "grow" pop when it picks up snow and a real hop off ramps.
+local BASE_FOV = 70
+local JUMP_TIME = 1.1
+local shake = 0
+local jumpAt = -10
+local jumpHeight = 0
+local landed = true
+local pop = 0
+local lastR = 0
+local spray: Part? = nil
+local sprayEmitter: ParticleEmitter? = nil
+local lines: { Frame } = {}
+local linesGui: ScreenGui? = nil
+
+-- Things you roll over stick to your ball (coins, presents, bits of what you smashed),
+-- so the ball visibly changes as the run goes on. Each piece keeps a spot on the ball's
+-- surface and turns with it.
+type Stuck = { part: BasePart, dir: Vector3, rot: CFrame }
+local stuck: { Stuck } = {}
+local MAX_STUCK = 28
+
+function BallController:Stick(templateName: string, size: number)
+	local cb = cameraBall
+	local assets = ReplicatedStorage:FindFirstChild("Assets")
+	local template = assets and assets:FindFirstChild(templateName)
+	if not cb or not template or not template:IsA("BasePart") then
+		return
+	end
+	local part = template:Clone()
+	local big = math.max(part.Size.X, part.Size.Y, part.Size.Z)
+	part.Size = part.Size * (size / big)
+	part.CastShadow = false
+	part.Parent = folder
+	-- Somewhere on the front/top/sides (where the camera can see it).
+	local dir = Vector3.new(math.random() * 2 - 1, math.random() * 1.4 - 0.4, math.random() * 2 - 1).Unit
+	table.insert(stuck, {
+		part = part,
+		dir = cb.spin:Inverse() * dir,
+		rot = CFrame.Angles(math.random() * 6.28, math.random() * 6.28, math.random() * 6.28),
+	})
+	if #stuck > MAX_STUCK then
+		local old = table.remove(stuck, 1)
+		if old then
+			old.part:Destroy()
+		end
+	end
+end
+
+local function clearStuck()
+	for _, s in stuck do
+		s.part:Destroy()
+	end
+	stuck = {}
+end
+
+function BallController:Shake(amount: number)
+	shake = math.max(shake, amount)
+end
+
+function BallController:Jump()
+	local cb = cameraBall
+	jumpAt = os.clock()
+	jumpHeight = 7 + (if cb then cb.ball.r * 1.2 else 0)
+	landed = false
+end
+
+local function makeSpray()
+	if spray then
+		return
+	end
+	local p = Instance.new("Part")
+	p.Name = "Spray"
+	p.Anchored = true
+	p.CanCollide = false
+	p.CanQuery = false
+	p.CanTouch = false
+	p.Transparency = 1
+	p.Size = Vector3.new(1, 1, 1)
+	local e = Instance.new("ParticleEmitter")
+	e.Texture = Ui.Images.Fx_SnowPuff or ""
+	e.FlipbookLayout = Enum.ParticleFlipbookLayout.Grid4x4
+	e.FlipbookMode = Enum.ParticleFlipbookMode.OneShot
+	e.Lifetime = NumberRange.new(0.5, 0.8)
+	e.Speed = NumberRange.new(8, 16)
+	e.SpreadAngle = Vector2.new(35, 20)
+	e.Drag = 3
+	e.Acceleration = Vector3.new(0, -10, 0)
+	e.RotSpeed = NumberRange.new(-90, 90)
+	e.Rotation = NumberRange.new(0, 360)
+	e.LightEmission = 0.1
+	e.Rate = 0
+	e.EmissionDirection = Enum.NormalId.Front
+	e.Parent = p
+	p.Parent = folder
+	spray = p
+	sprayEmitter = e
+end
+
+local function makeLines()
+	if linesGui then
+		return
+	end
+	local gui = Ui.screen("SpeedLines", 2)
+	for k = 1, 18 do
+		local f = Instance.new("Frame")
+		f.Name = "Line" .. k
+		f.BorderSizePixel = 0
+		f.BackgroundColor3 = Color3.new(1, 1, 1)
+		f.AnchorPoint = Vector2.new(0.5, 0.5)
+		f.BackgroundTransparency = 1
+		f.Parent = gui
+		lines[k] = f
+	end
+	linesGui = gui
+end
+
+-- Speed lines: thin white streaks around the edges, more and brighter the faster you go.
+local function drawLines(speed01: number)
+	makeLines()
+	local cam = Workspace.CurrentCamera
+	local vs = if cam then cam.ViewportSize else Vector2.new(1280, 720)
+	for k, f in lines do
+		local on = speed01 > 0.35 and math.random() < speed01
+		if not on then
+			f.BackgroundTransparency = 1
+		else
+			local a = (k / #lines) * math.pi * 2 + math.random() * 0.3
+			local dir = Vector2.new(math.cos(a), math.sin(a))
+			local r = 0.42 + math.random() * 0.12
+			local pos = vs / 2 + Vector2.new(dir.X * vs.X * r, dir.Y * vs.Y * r)
+			local len = 60 + speed01 * 160 * math.random()
+			f.Position = UDim2.fromOffset(pos.X, pos.Y)
+			f.Size = UDim2.fromOffset(len, 3)
+			f.Rotation = math.deg(a)
+			f.BackgroundTransparency = 1 - 0.55 * speed01
+		end
+	end
+end
+
+local function hideJuice()
+	shake = 0
+	pop = 0
+	jumpAt = -10
+	landed = true
+	if sprayEmitter then
+		sprayEmitter.Rate = 0
+	end
+	for _, f in lines do
+		f.BackgroundTransparency = 1
+	end
+	local cam = Workspace.CurrentCamera
+	if cam then
+		cam.FieldOfView = BASE_FOV
+	end
+end
 local debrisPool: { BasePart } = {}
 
 local SNOW = Color3.fromRGB(245, 249, 255)
@@ -79,6 +237,11 @@ local function onStarted(userId: number, info)
 		C.SteerController:SetActive(true)
 		C.TrackFxController:BeginRun(info)
 		C.HudController:ShowZoneBar(true, info)
+		hideJuice()
+		clearStuck()
+		makeSpray()
+		lastR = 0
+		BallController:Shake(1.2)
 		Ui.sound("Launch")
 		Ui.loop("Roll", true)
 		local cam = Workspace.CurrentCamera
@@ -168,6 +331,24 @@ local function onEnded(userId: number, result)
 		Ui.sound("Crack")
 		Ui.sound("Shatter")
 		C.SteerController:SetActive(false)
+		hideJuice()
+		BallController:Shake(2)
+		-- The stuck bits fly off with the crack.
+		for _, st in stuck do
+			local p = st.part
+			local dir = (p.Position - pos).Unit + Vector3.yAxis
+			TweenService:Create(p, TweenInfo.new(0.8, Enum.EasingStyle.Quad), {
+				CFrame = p.CFrame + dir * 12,
+				Transparency = 1,
+			}):Play()
+		end
+		local flying = stuck
+		stuck = {}
+		task.delay(0.9, function()
+			for _, st in flying do
+				st.part:Destroy()
+			end
+		end)
 		C.TrackFxController:EndRun()
 		C.ResultsController:Show(result)
 		task.delay(1.6, function()
@@ -258,11 +439,49 @@ local function step(dt: number)
 		end
 		local smp = spline:sample(ball.s)
 		local center = smp.Pos + smp.Right * ball.x + Vector3.yAxis * ball.r
+		local drawR = ball.r
+		if d.isLocal then
+			-- Hop off ramps (a parabola), land with a thump.
+			local t = (now - jumpAt) / JUMP_TIME
+			if t >= 0 and t < 1 then
+				center += Vector3.yAxis * (4 * jumpHeight * t * (1 - t))
+			elseif not landed then
+				landed = true
+				BallController:Shake(1.4)
+				Fx.burst("Puff", center - Vector3.yAxis * ball.r, math.clamp(ball.r / 2, 1, 4))
+				Ui.sound("SnowHit", 0.7)
+			end
+			-- Grow pop: the ball bulges for a moment every time it picks up snow.
+			if ball.r > lastR + 0.02 and lastR > 0 then
+				pop = 1
+			end
+			lastR = ball.r
+			pop = math.max(0, pop - dt * 5)
+			drawR = ball.r * (1 + 0.16 * math.sin(pop * math.pi))
+			-- Snow spray from where the ball touches the ground, thrown backwards.
+			if spray and sprayEmitter then
+				local grounded = not (t >= 0 and t < 1)
+				local contact = center - Vector3.yAxis * (ball.r * 0.85)
+				spray.CFrame = CFrame.lookAt(contact, contact - smp.Forward + Vector3.yAxis * 0.6)
+				sprayEmitter.Rate = if grounded then math.clamp(ball.v * 0.8, 0, 60) else 0
+				sprayEmitter.Size = NumberSequence.new({
+					NumberSequenceKeypoint.new(0, math.max(1.5, ball.r * 0.6)),
+					NumberSequenceKeypoint.new(1, math.max(3, ball.r * 1.3)),
+				})
+			end
+		end
 		-- Roll: spin around the side axis by distance / radius.
 		d.spin = CFrame.fromAxisAngle(Vector3.xAxis, -(ball.v * dt) / math.max(ball.r, 1)) * d.spin
 		local facing = CFrame.lookAt(center, center + smp.Forward)
-		d.part.Size = Vector3.one * (ball.r * 2)
+		d.part.Size = Vector3.one * (drawR * 2)
 		d.part.CFrame = facing * d.spin
+		if d.isLocal then
+			local turn = facing * d.spin
+			for _, st in stuck do
+				local world = turn:VectorToWorldSpace(st.dir)
+				st.part.CFrame = CFrame.new(turn.Position + world * drawR * 0.97) * turn.Rotation * st.rot
+			end
+		end
 		d.part.Transparency = if d.isLocal then 0 else 0.35
 	end
 	local cb = cameraBall
@@ -274,9 +493,25 @@ local function step(dt: number)
 		local flat = Vector3.new(smp.Forward.X, 0, smp.Forward.Z).Unit
 		local back = 22 + ball.r * 2.4
 		local up = 10 + ball.r * 1.3
+		local t = (os.clock() - jumpAt) / JUMP_TIME
+		if t >= 0 and t < 1 then
+			center += Vector3.yAxis * (4 * jumpHeight * t * (1 - t) * 0.7)
+		end
 		local want = CFrame.lookAt(center - flat * back + Vector3.yAxis * up, center + flat * 14)
 		if cam then
-			cam.CFrame = cam.CFrame:Lerp(want, math.min(1, dt * 8))
+			local base = cam.CFrame:Lerp(want, math.min(1, dt * 8))
+			-- Screen shake on top of the follow, decaying fast.
+			shake = math.max(0, shake - dt * 4)
+			local k = shake * shake
+			local jitter = CFrame.new((math.random() - 0.5) * k * 1.2, (math.random() - 0.5) * k * 1.2, 0)
+				* CFrame.Angles(0, 0, (math.random() - 0.5) * k * 0.04)
+			cam.CFrame = base * jitter
+			-- Faster = wider view; a ramp hop widens it more.
+			local speed01 = math.clamp(ball.v / 70, 0, 1)
+			local air = if t >= 0 and t < 1 then 8 else 0
+			local fov = BASE_FOV + speed01 * 22 + air
+			cam.FieldOfView += (fov - cam.FieldOfView) * math.min(1, dt * 4)
+			drawLines(speed01)
 		end
 		C.HudController:SetZoneProgress(ball.s)
 		C.TrackFxController:Update(ball)

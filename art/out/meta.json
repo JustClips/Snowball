@@ -20,6 +20,167 @@
    0.4263
   ]
  },
+ "Egg_Common": {
+  "center": [
+   0.0613,
+   2.21,
+   -0.0544
+  ]
+ },
+ "Egg_Epic": {
+  "center": [
+   -0.1156,
+   2.21,
+   -0.1892
+  ]
+ },
+ "Egg_Legendary": {
+  "center": [
+   0.0171,
+   2.21,
+   0.0
+  ]
+ },
+ "Egg_Mythic": {
+  "center": [
+   0.0613,
+   2.21,
+   -0.0544
+  ]
+ },
+ "Egg_Rare": {
+  "center": [
+   -0.1156,
+   2.21,
+   -0.1892
+  ]
+ },
+ "Egg_Secret": {
+  "center": [
+   0.0613,
+   2.21,
+   -0.0544
+  ]
+ },
+ "Egg_Uncommon": {
+  "center": [
+   -0.1271,
+   2.21,
+   0.0483
+  ]
+ },
+ "Obs_BigPine": {
+  "center": [
+   -0.0,
+   17.2096,
+   0.0
+  ]
+ },
+ "Obs_Boulder": {
+  "center": [
+   -0.7936,
+   5.76,
+   0.3723
+  ]
+ },
+ "Obs_Crystal": {
+  "center": [
+   -0.0,
+   6.0473,
+   -0.0778
+  ]
+ },
+ "Obs_Fence": {
+  "center": [
+   0.0,
+   1.7775,
+   0.0
+  ]
+ },
+ "Obs_FishingHut": {
+  "center": [
+   -0.0,
+   4.9,
+   -0.9
+  ]
+ },
+ "Obs_IceBlock": {
+  "center": [
+   -0.0,
+   3.5,
+   0.0
+  ]
+ },
+ "Obs_Log": {
+  "center": [
+   -0.0,
+   1.7527,
+   0.0
+  ]
+ },
+ "Obs_Pine": {
+  "center": [
+   -0.0,
+   8.282,
+   0.0865
+  ]
+ },
+ "Obs_Snowman": {
+  "center": [
+   -0.0,
+   3.875,
+   0.0
+  ]
+ },
+ "Obs_SnowmanWall": {
+  "center": [
+   -0.0,
+   9.9643,
+   0.0
+  ]
+ },
+ "Obs_Stalagmite": {
+  "center": [
+   -0.9998,
+   10.0,
+   0.0003
+  ]
+ },
+ "Pick_Coin": {
+  "center": [
+   -0.0,
+   1.6,
+   0.0
+  ]
+ },
+ "Pick_Egg": {
+  "center": [
+   -0.0,
+   1.9275,
+   0.0
+  ]
+ },
+ "Pick_Present": {
+  "center": [
+   -0.0,
+   1.9425,
+   0.0
+  ]
+ },
+ "Pick_Ramp": {
+  "center": [
+   -0.0,
+   2.0291,
+   -0.2
+  ]
+ },
+ "Pick_Snow": {
+  "center": [
+   0.0227,
+   0.9,
+   0.0589
+  ]
+ },
  "Prop_Bench": {
   "center": [
    -0.0,
