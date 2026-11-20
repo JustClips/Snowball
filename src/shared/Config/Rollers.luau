@@ -120,6 +120,25 @@ local Robux: { Types.RobuxRollerDef } = {
 		Product = "RollerDivine",
 		Color = Color3.fromRGB(255, 250, 230),
 	},
+	-- Not in the one-by-one ladder (Dev 2026-11-20: "admin/gamepass versions"):
+	{
+		Index = 6,
+		Id = "Frostfire",
+		Name = "Frostfire Roller",
+		Mult = 4,
+		Product = "",
+		Pass = "FrostfireRoller",
+		Color = Color3.fromRGB(255, 110, 60),
+	},
+	{
+		Index = 7,
+		Id = "Admin",
+		Name = "Admin Roller",
+		Mult = 25,
+		Product = "",
+		Admin = true,
+		Color = Color3.fromRGB(30, 30, 40),
+	},
 }
 
 local Rollers = {
@@ -147,10 +166,24 @@ function Rollers.robuxMult(owned: { [string]: boolean }): number
 	return best
 end
 
+-- Every special roller the player has: bought ones, the gamepass one, the admin one.
+function Rollers.ownedSet(data: any, isAdmin: boolean): { [string]: boolean }
+	local owned: { [string]: boolean } = {}
+	for id, v in data.RobuxRollers do
+		owned[id] = v
+	end
+	for _, def in Robux do
+		if (def.Pass and data.Gamepasses[def.Pass]) or (def.Admin and isAdmin) then
+			owned[def.Id] = true
+		end
+	end
+	return owned
+end
+
 -- The next Robux roller to sell (one by one, in order), or nil when all are owned.
 function Rollers.nextRobux(owned: { [string]: boolean }): Types.RobuxRollerDef?
 	for _, def in Robux do
-		if not owned[def.Id] then
+		if not def.Pass and not def.Admin and not owned[def.Id] then
 			return def
 		end
 	end
@@ -161,7 +194,7 @@ end
 function Rollers.lookId(cashIndex: number, owned: { [string]: boolean }): string
 	local best: Types.RobuxRollerDef? = nil
 	for _, def in Robux do
-		if owned[def.Id] then
+		if owned[def.Id] and (best == nil or def.Mult > (best :: Types.RobuxRollerDef).Mult) then
 			best = def
 		end
 	end

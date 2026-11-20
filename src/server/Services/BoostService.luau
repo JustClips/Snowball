@@ -64,7 +64,7 @@ function BoostService:GetTrainMult(player: Player): number
 	if not data then
 		return 1
 	end
-	local mult = Rollers.robuxMult(data.RobuxRollers)
+	local mult = Rollers.robuxMult(Rollers.ownedSet(data, S.AdminService and S.AdminService:IsAdminAccount(player)))
 	mult *= 1 + (if S.PetService then S.PetService:GetTrainBonus(player) else 0)
 	mult *= BoostService:GetPopMult(player)
 	mult *= Economy.rebirthTrainMult(data.Rebirths)

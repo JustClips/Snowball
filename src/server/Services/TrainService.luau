@@ -12,6 +12,7 @@ local BigNum = require(Shared.BigNum)
 local Economy = require(Shared.Config.Economy)
 local Format = require(Shared.Format)
 local Net = require(Shared.Net)
+local Products = require(Shared.Config.Products)
 local Rollers = require(Shared.Config.Rollers)
 local Signal = require(Shared.Signal)
 local World = require(Shared.Config.World)
@@ -229,7 +230,8 @@ function TrainService:RefreshRoller(player: Player)
 	if old then
 		old:Destroy()
 	end
-	local look = Rollers.lookId(data.Roller, data.RobuxRollers)
+	local look =
+		Rollers.lookId(data.Roller, Rollers.ownedSet(data, S.AdminService and S.AdminService:IsAdminAccount(player)))
 	local color = (Rollers.get(data.Roller) or Rollers.Cash[1]).Color
 	local robux = Rollers.RobuxById[look]
 	if robux then
@@ -296,8 +298,9 @@ function TrainService:RefreshRoller(player: Player)
 	-- "Upgrade Roller", "Stone > Iron", "+N Power" and a price pill (green when you can
 	-- afford it, red when not). The prompt is on the board.
 	local cur = Rollers.get(data.Roller) or Rollers.Cash[1]
+	local robuxNext = Rollers.nextRobux(data.RobuxRollers)
 	local free = nextDef ~= nil and nextDef.Index == Rollers.FreeInTutorial and not data.Flags.TutorialDone
-	local boardCf = cf * CFrame.new(11, 4.6, -3) * CFrame.Angles(math.rad(-12), 0, 0)
+	local boardCf = cf * CFrame.new(11, 4.6, -2.6)
 	for _, sx in { -3.2, 3.2 } do
 		local leg = Instance.new("Part")
 		leg.Name = "UpgradeLeg"
@@ -354,9 +357,9 @@ function TrainService:RefreshRoller(player: Player)
 		text("Gain", `+{Format.big(nextDef.Power)} Power`, 124, 36, Color3.fromRGB(120, 210, 255))
 		local pill = Instance.new("Frame")
 		pill.Name = "Price"
-		pill.Size = UDim2.new(0, 260, 0, 64)
+		pill.Size = UDim2.new(0, if robuxNext then 200 else 260, 0, 64)
 		pill.AnchorPoint = Vector2.new(0.5, 0)
-		pill.Position = UDim2.new(0.5, 0, 0, 170)
+		pill.Position = UDim2.new(if robuxNext then 0.27 else 0.5, 0, 0, 170)
 		local canPay = free or not BigNum.lt(data.Cash, nextDef.Price)
 		pill.BackgroundColor3 = if canPay then Color3.fromRGB(70, 205, 95) else Color3.fromRGB(235, 70, 70)
 		pill.Parent = gui
@@ -373,7 +376,47 @@ function TrainService:RefreshRoller(player: Player)
 		price.Position = UDim2.fromOffset(10, 6)
 		price.Parent = pill
 	else
-		text("Tiers", cur.Name, 90, 60, Color3.fromRGB(255, 215, 70))
+		text("Tiers", cur.Name, 74, 60, Color3.fromRGB(255, 215, 70))
+	end
+	-- The purple Robux button next to the cash price (Steal an Egg's upgrade signs): the
+	-- next Robux roller in the ladder.
+	if robuxNext then
+		local product = Products.ProductByKey[robuxNext.Product]
+		local rp = Instance.new("Frame")
+		rp.Name = "Robux"
+		rp.Size = UDim2.new(0, 200, 0, 64)
+		rp.AnchorPoint = Vector2.new(0.5, 0)
+		rp.Position = UDim2.new(if nextDef then 0.75 else 0.5, 0, 0, 170)
+		rp.BackgroundColor3 = Color3.fromRGB(150, 70, 240)
+		rp.Parent = gui
+		local rc = Instance.new("UICorner")
+		rc.CornerRadius = UDim.new(0.5, 0)
+		rc.Parent = rp
+		local rs = Instance.new("UIStroke")
+		rs.Thickness = 4
+		rs.Color = Color3.fromRGB(22, 20, 38)
+		rs.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+		rs.Parent = rp
+		local rt =
+			text("Text", `{utf8.char(0xE002)}{if product then product.Price else "?"}`, 0, 52, Color3.new(1, 1, 1))
+		rt.Size = UDim2.new(1, -20, 1, -12)
+		rt.Position = UDim2.fromOffset(10, 6)
+		rt.Parent = rp
+		local rprompt = Instance.new("ProximityPrompt")
+		rprompt.Name = "RobuxRoller"
+		rprompt.ActionText = `x{robuxNext.Mult} {robuxNext.Name}`
+		rprompt.ObjectText = "Robux"
+		rprompt.HoldDuration = 0
+		rprompt.MaxActivationDistance = 18
+		rprompt.RequiresLineOfSight = false
+		rprompt.KeyboardKeyCode = Enum.KeyCode.F
+		rprompt.UIOffset = Vector2.new(0, -70)
+		rprompt.Parent = post
+		rprompt.Triggered:Connect(function(who)
+			if who == player and S.ShopService then
+				S.ShopService:Prompt(player, robuxNext.Product)
+			end
+		end)
 	end
 	if nextDef then
 		local prompt = Instance.new("ProximityPrompt")

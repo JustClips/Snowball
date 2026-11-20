@@ -30,8 +30,10 @@ export type RobuxRollerDef = {
 	Id: string,
 	Name: string,
 	Mult: number,
-	Product: string, -- key in Config/Products
+	Product: string, -- key in Config/Products ("" for pass / admin rollers)
 	Color: Color3,
+	Pass: string?, -- owned through this gamepass key instead of a product
+	Admin: boolean?, -- only for the game's admins
 }
 
 export type PopTier = {

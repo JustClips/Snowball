@@ -5,7 +5,7 @@
 -- of it follows the mouse (or sits where you last tapped on a phone) with a ring: green =
 -- it can go there, red = not there (Shared/EggSpots, the same rules the server checks for
 -- eggs). Click / tap to put it down. Far from your base a big HOME button shows instead.
--- The red X (or Q) puts it back in the bag.
+-- The red X at the left of the hotbar (or Q) puts it back in the bag.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -16,7 +16,6 @@ local Workspace = game:GetService("Workspace")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local EggLook = require(Shared.EggLook)
 local EggSpots = require(Shared.EggSpots)
-local L = require(Shared.Config.HudLayout)
 local Net = require(Shared.Net)
 local PetLook = require(Shared.PetLook)
 local PetStats = require(Shared.PetStats)
@@ -37,10 +36,7 @@ local PlacementController = {}
 
 local C: any
 local gui: ScreenGui
-local bar: Frame
 local homeButton: TextButton
-local cancelButton: TextButton
-local nameLabel: TextLabel
 
 local heldKind: string? = nil
 local heldId: string? = nil
@@ -220,7 +216,7 @@ function PlacementController:Stop(silent: boolean?)
 	heldKind, heldId = nil, nil
 	pointer = nil
 	clearGhost()
-	bar.Visible = false
+	C.InventoryController:ShowPutAway(false)
 	homeButton.Visible = false
 	if not silent then
 		task.spawn(function()
@@ -245,16 +241,7 @@ function PlacementController:Hold(kind: string, id: string)
 	heldKind, heldId = kind, id
 	heldAt = os.clock()
 	pointer = nil
-	local data = State.data
-	if kind == "Egg" then
-		nameLabel.Text = `{id} Egg`
-		C.InventoryController.colorText(nameLabel, id)
-	else
-		local pet = data and data.Pets and data.Pets[id]
-		nameLabel.Text = if pet then PetStats.name(pet) else ""
-		C.InventoryController.colorText(nameLabel, if pet then PetStats.rarity(pet) else "Common")
-	end
-	bar.Visible = true
+	C.InventoryController:ShowPutAway(true)
 	Ui.sound("Click")
 	refresh()
 	task.spawn(function()
@@ -317,37 +304,12 @@ end
 function PlacementController:Init(controllers)
 	C = controllers
 	gui = Ui.screen("Holding", 13)
-	-- What you're holding, right above the hotbar: name in rarity colour + red X.
-	bar = Ui.frame({
-		Name = "HoldBar",
-		BackgroundTransparency = 1,
-		AnchorPoint = L.Hotbar.Anchor,
-		Position = L.Hotbar.Pos + UDim2.fromOffset(0, -(L.Slot + 14)),
-		Size = UDim2.fromOffset(L.Hotbar.Size.X, 56),
-		Visible = false,
-	})
-	Ui.autoScale(bar)
-	nameLabel = Ui.label({
-		Name = "Name",
-		Size = UDim2.new(1, -70, 0, 36),
-		Position = UDim2.fromOffset(0, 10),
-		Text = "",
-		TextXAlignment = Enum.TextXAlignment.Right,
-	})
-	nameLabel.Parent = bar
-	cancelButton = Ui.tile("PutAway", "Close", "", Ui.Colors.Red, function()
-		PlacementController:Stop()
-	end, 52)
-	cancelButton.AnchorPoint = Vector2.new(1, 0)
-	cancelButton.Position = UDim2.new(1, 0, 0, 2)
-	cancelButton.Parent = bar
-	bar.Parent = gui
 	-- Far from home: one big HOME button (teleports you to your base).
 	homeButton = Ui.bigButton("GoHome", "Base", "HOME", Ui.Colors.Blue, function()
 		Net.func("Teleport"):InvokeServer("Base")
 	end, Vector2.new(220, 70))
 	homeButton.AnchorPoint = Vector2.new(0.5, 1)
-	homeButton.Position = UDim2.new(0.5, 0, 1, -110)
+	homeButton.Position = UDim2.new(0.5, 0, 1, -200) -- above ROLL
 	homeButton.Visible = false
 	Ui.autoScale(homeButton)
 	homeButton.Parent = gui

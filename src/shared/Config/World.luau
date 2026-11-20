@@ -74,7 +74,7 @@ end
 -- eggs can't sit on (art/blender/base.py: egg pedestals, lanterns).
 World.ParkMin = Vector2.new(-29, -25)
 World.ParkMax = Vector2.new(29, 12)
-World.ParkTop = 0.5 -- floor top above the base centre (art/blender/base.py FLOOR)
+World.ParkTop = 1 -- floor top above the base centre (the Pad: centre +0.5, 1 stud tall)
 World.ParkProps = {
 	{ Position = Vector3.new(-4.5, 0, -14), Radius = 1.2 },
 	{ Position = Vector3.new(4.5, 0, -14), Radius = 1.2 },

@@ -149,7 +149,7 @@ local function tag(model: Model, income: number)
 	local billboard = Instance.new("BillboardGui")
 	billboard.Name = "Tag"
 	billboard.Size = UDim2.fromOffset(110, 26)
-	billboard.StudsOffsetWorldSpace = Vector3.new(0, size.Y + 0.9, 0)
+	billboard.StudsOffsetWorldSpace = Vector3.new(0, size.Y / 2 + 1, 0) -- from the hit box centre
 	billboard.MaxDistance = 45
 	billboard.LightInfluence = 0
 	billboard.Adornee = model.PrimaryPart
@@ -221,7 +221,9 @@ local function hitBox(model: Model)
 	box.Parent = model
 	local pivotCf = model:GetPivot()
 	model.PrimaryPart = box
-	model.WorldPivot = pivotCf
+	-- With a PrimaryPart the model pivots on that part (WorldPivot is ignored), so keep the
+	-- pet's feet as the pivot through the part's PivotOffset.
+	box.PivotOffset = box.CFrame:ToObjectSpace(pivotCf)
 end
 
 local function spawnPet(park: Park, key: string, entry: Folder, fresh: boolean, owned: boolean)

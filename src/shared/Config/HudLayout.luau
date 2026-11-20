@@ -13,12 +13,14 @@ return {
 	LeftRail = { Anchor = Vector2.new(0, 0.5), Pos = UDim2.new(0, 24, 0.5, -16), Size = Vector2.new(138, 290) },
 	RightRail = { Anchor = Vector2.new(1, 0.5), Pos = UDim2.new(1, -24, 0.5, -16), Size = Vector2.new(138, 290) },
 	TopRight = { Anchor = Vector2.new(1, 0), Pos = UDim2.new(1, -24, 0, 18), Size = Vector2.new(260, 130) },
-	Action = { Anchor = Vector2.new(0.5, 1), Pos = UDim2.new(0.5, 0, 1, -14), Size = Vector2.new(240, 80) },
+	-- ROLL / STOP sit right above the bag hotbar (Dev 2026-11-20: hotbar bottom centre, ROLL moved up).
+	Action = { Anchor = Vector2.new(0.5, 1), Pos = UDim2.new(0.5, 0, 1, -98), Size = Vector2.new(240, 80) },
 	Goal = { Anchor = Vector2.new(0.5, 0), Pos = UDim2.new(0.5, 0, 0, 10), Size = Vector2.new(460, 58) },
 	Luck = { Anchor = Vector2.new(0.5, 0), Pos = UDim2.new(0.5, 0, 0, 10), Size = Vector2.new(300, 130) },
 	Meter = { Anchor = Vector2.new(0.5, 0.5), Pos = UDim2.new(0.5, 170, 0.5, 0), Size = Vector2.new(120, 380) },
 	Slot = 70, -- hotbar slot (InventoryController)
-	-- Bag hotbar, bottom right: 4 slots + Bag on PC, 3 + Bag on phones (sized for the PC row).
-	Hotbar = { Anchor = Vector2.new(1, 1), Pos = UDim2.new(1, -24, 1, -14), Size = Vector2.new(382, 70) },
+	-- Bag hotbar, bottom centre like Sweep the World: 6 slots + Bag on PC, 4 + Bag on phones,
+	-- plus a red X on the left while you carry something (sized for the PC row with the X).
+	Hotbar = { Anchor = Vector2.new(0.5, 1), Pos = UDim2.new(0.5, 0, 1, -10), Size = Vector2.new(616, 70) },
 	Result = { Anchor = Vector2.new(0.5, 1), Pos = UDim2.new(0.5, 0, 1, -16), Size = Vector2.new(420, 250) },
 }

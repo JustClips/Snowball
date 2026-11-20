@@ -45,6 +45,13 @@ local Gamepasses: { ProductDef } = {
 	},
 	{ Key = "ExtraSlots", Id = 0, Price = 199, Name = "+4 Pet Slots", Description = "4 more pets on your base." },
 	{ Key = "FastHatch", Id = 0, Price = 229, Name = "Fast Hatch", Description = "All hatch timers halved." },
+	{
+		Key = "FrostfireRoller",
+		Id = 0,
+		Price = 399,
+		Name = "Frostfire Roller",
+		Description = "A blazing ice roller on your base: x4 training, forever.",
+	},
 }
 
 local function p(
