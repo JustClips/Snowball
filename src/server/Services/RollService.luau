@@ -156,7 +156,18 @@ local function startPack(player: Player): (boolean, string?)
 	}
 	runs[player] = run
 	setPhase(player, run, "Packing")
-	standAtDeck(player, run.lane)
+	-- Pack right where you stand on the deck (keep your x; line up on the stand row).
+	local root = rootOf(player)
+	local character = player.Character
+	if root and character then
+		local half = World.Deck.Size.X / 2 - 6
+		local x = math.clamp(root.Position.X - World.Deck.Center.X, -half, half)
+		local pos = World.DeckStand + Vector3.new(x, 0, 0)
+		character:PivotTo(CFrame.lookAt(pos, pos + Vector3.zAxis))
+		root.Anchored = true
+	else
+		standAtDeck(player, run.lane)
+	end
 	local green = Upgrades.packGreen(data.PackZone)
 	Net.fire("PackStart", player, run.packStart, RollMath.PackPeriod, green, Upgrades.PackYellow)
 	return true, nil
