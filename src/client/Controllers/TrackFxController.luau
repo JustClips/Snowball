@@ -16,6 +16,7 @@ local Roll = require(Shared.Roll)
 local RollMath = require(Shared.RollMath)
 local Spline = require(Shared.Spline)
 local Zones = require(Shared.Config.Zones)
+local Fx = require(script.Parent.Parent.Fx)
 local Ui = require(script.Parent.Parent.Ui)
 
 local TrackFxController = {}
@@ -179,6 +180,10 @@ local function onEvent(kind: string, payload: any)
 		end
 		Ui.sound("Smash")
 		Ui.sound("SnowHit")
+		if part then
+			Fx.burst("Puff", part.Position, 1.6)
+			Fx.burst("Flakes", part.Position, 1.2)
+		end
 		C.ResultsController:Flash("SMASH!", Ui.Colors.Green)
 	elseif kind == "Bonk" then
 		if ball then
@@ -224,6 +229,9 @@ local function onEvent(kind: string, payload: any)
 		end
 		if kind == "Egg" then
 			Ui.sound("Egg")
+			if part then
+				Fx.burst("Sparkle", part.Position, 1.5)
+			end
 			local def = Eggs.ByName[payload.Rarity]
 			C.ResultsController:Flash(`{string.upper(payload.Rarity)} EGG!`, if def then def.Color else Ui.Colors.Snow)
 		end

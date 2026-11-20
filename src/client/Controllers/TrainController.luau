@@ -14,6 +14,7 @@ local Economy = require(Shared.Config.Economy)
 local Format = require(Shared.Format)
 local Net = require(Shared.Net)
 local State = require(script.Parent.Parent.State)
+local Fx = require(script.Parent.Parent.Fx)
 local Ui = require(script.Parent.Parent.Ui)
 
 local player = Players.LocalPlayer
@@ -193,6 +194,16 @@ end
 function TrainController:Start()
 	Net.event("PowerGained").OnClientEvent:Connect(function(amount: number, _reps: number)
 		Ui.sound("Rep", 0.9 + math.random() * 0.2)
+		-- A snow puff where the ball meets the deck on every rep.
+		local pad = myRollerPad()
+		local roller = pad and pad.Parent and pad.Parent:FindFirstChild("Roller")
+		local ball = roller and roller:FindFirstChild("Ball") :: BasePart?
+		if ball then
+			Fx.burst("Puff", ball.Position - Vector3.yAxis * (ball.Size.Y / 2 - 0.8), 0.8)
+			if (State.data and State.data.PopMult or 1) > 1 then
+				Fx.burst("Sparkle", ball.Position, 1)
+			end
+		end
 		local popMult = State.data and State.data.PopMult or 1
 		floater(
 			"+" .. Format.big(amount),

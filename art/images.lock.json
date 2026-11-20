@@ -63,6 +63,26 @@
   "id": 87998818329106,
   "sha": "28dc0458790624cb3ad4d09429bfb998042958ddfada8df39952a89ac523361e"
  },
+ "Fx_Flake": {
+  "id": 109810231265053,
+  "sha": "9bda9974f7ffd7ad98ea2b64fbff9959f6e780743aa5688e34e7a2ed376c0324"
+ },
+ "Fx_Ring": {
+  "id": 130894413549827,
+  "sha": "ee018600e06a43e031e79bfcf1ae6cc7edee3b4a5b531f085d0b3869266d2f27"
+ },
+ "Fx_Shard": {
+  "id": 87601179791834,
+  "sha": "71e78e0296d31551098fd30f644fd05b672fe0be2626dc61bf8225323bd85f00"
+ },
+ "Fx_SnowPuff": {
+  "id": 80708136450981,
+  "sha": "ea6318cf331e739f9b08a2e6fb6bd7d307ea100a993c2bdcaceea797899baac9"
+ },
+ "Fx_Sparkle": {
+  "id": 109279251492674,
+  "sha": "55b41b395e758f51cf7c8d8626898de24181d9b4607aefc1d3447b7e1966c89c"
+ },
  "Gem": {
   "id": 73983781596237,
   "sha": "f9c4d77cb62f9915ff4e0bf7bff28da7b70f57f929f90b9d2d523afa2d256bf0"

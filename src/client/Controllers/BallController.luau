@@ -14,6 +14,7 @@ local Net = require(Shared.Net)
 local Roll = require(Shared.Roll)
 local Spline = require(Shared.Spline)
 local Zones = require(Shared.Config.Zones)
+local Fx = require(script.Parent.Parent.Fx)
 local Ui = require(script.Parent.Parent.Ui)
 
 local player = Players.LocalPlayer
@@ -162,6 +163,7 @@ local function onEnded(userId: number, result)
 	d.part:Destroy()
 	if d.isLocal then
 		Ui.loop("Roll", false)
+		Fx.burst("Shatter", pos, math.clamp(d.ball.r / 3, 1, 4))
 		Ui.sound("Crack")
 		Ui.sound("Shatter")
 		C.SteerController:SetActive(false)

@@ -15,6 +15,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Net = require(Shared.Net)
 local RollMath = require(Shared.RollMath)
 local World = require(Shared.Config.World)
+local Fx = require(script.Parent.Parent.Fx)
 local Ui = require(script.Parent.Parent.Ui)
 
 local player = Players.LocalPlayer
@@ -162,6 +163,14 @@ function PackController:Start()
 			pushTile.Parent.Visible = false
 			quality.Text = `{string.upper(info.Quality)}!`
 			Ui.sound(if info.Quality == "Perfect" then "Perfect" elseif info.Quality == "Good" then "Good" else "Weak")
+			local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart") :: BasePart?
+			if root then
+				Fx.burst("Puff", root.Position + root.CFrame.LookVector * 4, 1.4)
+				Fx.burst("Ring", root.Position - Vector3.yAxis * 2.5, 1)
+				if info.Quality == "Perfect" then
+					Fx.burst("Sparkle", root.Position, 2)
+				end
+			end
 			quality.TextColor3 = if info.Quality == "Perfect"
 				then Ui.Colors.Green
 				elseif info.Quality == "Good" then Ui.Colors.Yellow
