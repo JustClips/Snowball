@@ -81,7 +81,8 @@ local function step(dt: number)
 		local character = player.Character
 		local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
 		if root then
-			local rolling = player:GetAttribute("RollPhase") == "Rolling"
+			local phase = player:GetAttribute("RollPhase")
+			local rolling = phase == "Rolling" or phase == "Stopped"
 			for _, f in entry.list do
 				local goal = (root.CFrame * CFrame.new(f.offset)).Position
 				if (f.pos - goal).Magnitude > 60 then

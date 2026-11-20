@@ -64,6 +64,10 @@ end
 
 local Products: { ProductDef } = {
 	p("StarterPack", 9, "Starter Pack", "StarterPack", false),
+	-- Keep Rolling: only from the "KEEP ROLLING?" popup when a roll stops (RollService).
+	-- The first push in a roll costs Continue1, a second push in the same roll Continue2.
+	p("KeepRolling1", 9, "Keep Rolling", "KeepRolling", false, { Push = 1 }),
+	p("KeepRolling2", 19, "Keep Rolling x2", "KeepRolling", false, { Push = 2 }),
 	-- Rainbow Pops: only from the on-screen pop (PopService)
 	p("RainbowPop25", 19, "Rainbow Pop x25", "RainbowPop", false, { Mult = 25, Seconds = 120 }),
 	p("RainbowPop50", 39, "Rainbow Pop x50", "RainbowPop", false, { Mult = 50, Seconds = 120 }),
@@ -144,6 +148,10 @@ local Config = {
 	GiftWindowSeconds = 120,
 	-- Regional pricing stays off for these (one buyer's price covers the whole server).
 	FullPriceKinds = { ServerLuck = true, Avalanche = true } :: { [string]: boolean },
+	-- In Studio only, a product or pass with Id 0 is granted for free when you press Buy, so
+	-- every offer and the Shop can be tested before the products exist. Live servers never
+	-- do this (RunService:IsStudio() is false there).
+	StudioTestBuys = true,
 }
 for _, def in Gamepasses do
 	Config.PassByKey[def.Key] = def

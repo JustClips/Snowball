@@ -3,6 +3,7 @@
 -- product grants. Products with Id 0 aren't created yet: their buttons stay hidden.
 local MarketplaceService = game:GetService("MarketplaceService")
 local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
@@ -135,6 +136,15 @@ local GRANTS: { [string]: (product: any, buyer: Player, recipient: Player) -> ()
 			recipient,
 			`Starter Pack: Iron Roller, an {pack.EggRarity} egg, {pack.LuckyRolls} Lucky Rolls and {pack.Train2xMinutes} min of 2x training!`
 		)
+	end,
+	KeepRolling = function(_product, _buyer, recipient)
+		-- The ball normally still waits (phase Stopped). If the receipt came too late (left,
+		-- server restart), the push isn't lost: the next roll becomes a Lucky Roll.
+		if not S.RollService:Continue(recipient) then
+			local data = S.DataService:GetData(recipient)
+			data.Charges.LuckyRoll += 1
+			notify(recipient, "Your push is saved: your next roll is a Lucky Roll!")
+		end
 	end,
 	RainbowPop = function(product, _buyer, recipient)
 		-- Granted even if the pop already melted (GAME_PLAN quality bar 6).
@@ -283,6 +293,10 @@ local function checkPasses(player: Player)
 		return
 	end
 	for _, pass in Products.Gamepasses do
+		if pass.Id == 0 and not data.GiftedPasses[pass.Key] then
+			-- Never keep a Studio test buy of a pass that doesn't exist yet.
+			data.Gamepasses[pass.Key] = nil
+		end
 		if pass.Id ~= 0 then
 			local ok, owns = pcall(MarketplaceService.UserOwnsGamePassAsync, MarketplaceService, player.UserId, pass.Id)
 			if ok then
@@ -297,6 +311,28 @@ end
 
 -- Validates and opens a purchase prompt. giftToUserId makes it a gift.
 
+local function studioTest(def): boolean
+	return def.Id == 0 and Products.StudioTestBuys == true and RunService:IsStudio()
+end
+
+-- Studio only: grant a product/pass that has no Id yet, as if it was bought.
+local function studioGrant(player: Player, def, isPass: boolean, recipient: Player)
+	if isPass then
+		local data = S.DataService:GetData(recipient)
+		data.Gamepasses[def.Key] = true
+		applyPassEffects(recipient)
+	else
+		local ok, err = pcall(GRANTS[def.Kind], def, player, recipient)
+		if not ok then
+			warn(`[ShopService] studio grant {def.Key} failed: {err}`)
+			return
+		end
+		S.StateService:Mark(recipient)
+	end
+	print(`[ShopService] STUDIO TEST BUY: {def.Key} for {recipient.Name} (no Robux, Studio only)`)
+	Net.fire("Purchased", recipient, def.Key, if recipient ~= player then { From = player.DisplayName } else {})
+end
+
 local function promptPurchase(player: Player, key: any, giftToUserId: any): (boolean, string?)
 	if type(key) ~= "string" then
 		return false, "Bad request"
@@ -307,18 +343,22 @@ local function promptPurchase(player: Player, key: any, giftToUserId: any): (boo
 	end
 	local pass = Products.PassByKey[key]
 	if pass then
-		if pass.Id == 0 then
-			return false, "Coming soon!"
-		end
 		if session.Data.Gamepasses[key] then
 			return false, "You already own this"
+		end
+		if studioTest(pass) then
+			studioGrant(player, pass, true, player)
+			return true, nil
+		end
+		if pass.Id == 0 then
+			return false, "Coming soon!"
 		end
 		MarketplaceService:PromptGamePassPurchase(player, pass.Id)
 		S.AnalyticsService:PromptShown(player, pass.Key)
 		return true, nil
 	end
 	local product = Products.ProductByKey[key]
-	if not product or product.Id == 0 then
+	if not product or (product.Id == 0 and not studioTest(product)) then
 		return false, "Coming soon!"
 	end
 	local recipient = player
@@ -364,6 +404,14 @@ local function promptPurchase(player: Player, key: any, giftToUserId: any): (boo
 		end
 	elseif product.Kind == "SkipHatch" and not S.HatchService:HasHatching(recipient, product.Rarity) then
 		return false, "No egg of that rarity is hatching"
+	elseif product.Kind == "KeepRolling" then
+		if recipient ~= player or not S.RollService:ContinueBuying(player) then
+			return false, "Your ball already cracked"
+		end
+	end
+	if studioTest(product) then
+		studioGrant(player, product, false, recipient)
+		return true, nil
 	end
 	MarketplaceService:PromptProductPurchase(player, product.Id)
 	S.AnalyticsService:PromptShown(player, product.Key)
@@ -414,6 +462,9 @@ function ShopService:Start()
 		local product = Products.ProductById[productId]
 		if player and product and not purchased then
 			S.AnalyticsService:Custom(player, "PurchaseCancelled", product.Price, { Product = product.Key })
+			if product.Kind == "KeepRolling" then
+				S.RollService:ContinueDeclined(player)
+			end
 			if product.Kind == "RainbowPop" then
 				S.PopService:RainbowDeclined(player)
 				S.AnalyticsService:Custom(player, "RainbowPop", product.Mult, { Result = "Declined" })

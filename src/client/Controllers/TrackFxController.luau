@@ -142,6 +142,17 @@ function TrackFxController:BeginRun(info)
 	end
 end
 
+-- A Keep Rolling push: the new stretch's pickups, made from its own seed like the server.
+function TrackFxController:AddPickups(info)
+	if type(info.Seed) ~= "number" or type(info.Limit) ~= "number" or info.Limit <= (info.From or 0) then
+		return
+	end
+	local list = Pickups.generate(info.Seed, info.Limit, RollMath.widthAt, false, info.From, info.IdBase)
+	for _, p in list do
+		pickups[p.Id] = p
+	end
+end
+
 function TrackFxController:EndRun()
 	clearPickups()
 end

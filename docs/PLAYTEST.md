@@ -18,6 +18,8 @@
 | `/village` | mark the Village as reached (unlocks Rebirth) |
 | `/nextday` | move the reward clock 24 h (daily streak, free wheel spin) |
 | `/spins 5` | add Lucky Wheel spins |
+| `/keeprolling` | toggle: KEEP ROLLING? shows after every roll, not only near misses |
+| `/starter` | put the Starter Pack back on sale (it pops again a few seconds later) |
 | `/reset` | wipe your save and kick |
 
 ## Checklist
@@ -31,7 +33,11 @@
 7. DAILY, GIFTS, SPIN, CODES buttons on the left. Try code `SNOWBALL`. Wheel: first spin always lands on the Rare egg.
 8. Avalanche meter top centre fills from finished runs (or `/avalanche`): 10 s warning, then 60 s with 2x luck and a bonus egg per run.
 9. `/power 50M`, roll to the Village (x3 cash + bonus egg), then REBIRTH appears on the right.
-10. SHOP: sections on the right, GIFT bar on top. All items show SOON until products are created.
-11. Phone emulator (Studio Device view): check every window fits and the buttons are reachable.
+10. SHOP: one scrolling list (Starter Pack banner, Rollers, Eggs, Passes, Boosts + Server Luck, Money, Codes box), section buttons right of the window, purple gift button on giftable cards.
+11. Starter Pack: about 6 s after the tutorial ends a big window pops; the chest tile on the right rail shows the countdown and reopens it.
+12. Keep Rolling: stop just short of the next zone (or use `/keeprolling`): KEEP ROLLING? card, 8 s timer, buy = the ball rolls on with new snow/coins/eggs; X or the timer cracks it.
+
+**Studio test buys:** in Studio, any product or pass without an ID is granted for free when you press its Buy (the Output says STUDIO TEST BUY). Live servers show SOON instead. Note: with API access on, test buys save to your real data (`/reset` wipes it).
+13. Phone emulator (Studio Device view): check every window fits and the buttons are reachable.
 
 Report anything odd with what you pressed and what you saw (a screenshot helps).

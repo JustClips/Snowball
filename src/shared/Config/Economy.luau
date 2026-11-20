@@ -55,8 +55,31 @@ local Economy = {
 	},
 
 	-- Starter Pack (GAME_PLAN §6)
-	StarterPack = { Hours = 2, HideAtZone = 4, EggRarity = "Epic", LuckyRolls = 3, Train2xMinutes = 15 },
+	StarterPack = { Hours = 2, HideAtZone = 4, EggRarity = "Epic", LuckyRolls = 3, Train2xMinutes = 15, ShowDelay = 6 },
+	-- "KEEP ROLLING?" when a roll stops (DIRECTION.md, near miss). The push adds
+	-- max(MinStuds, Share x distance so far). Offered only when that push reaches the next
+	-- zone or beats your best distance, never in the tutorial, at most MaxPerRun per roll.
+	-- After DeclineStreak "no"s in a row it rests for RestRuns rolls.
+	Continue = {
+		Seconds = 8,
+		Share = 0.5,
+		MinStuds = 120,
+		MaxPerRun = 2,
+		DeclineStreak = 3,
+		RestRuns = 2,
+	},
 }
+
+-- Whether the Starter Pack is still for sale for this save (shared by server and client).
+function Economy.starterPackLive(data: any, now: number): boolean
+	local flags = data.Flags
+	local ends = flags.StarterPackEnds
+	return not flags.StarterPackBought
+		and flags.TutorialDone == true
+		and type(ends) == "number"
+		and now < ends
+		and (data.BestZone or 1) < Economy.StarterPack.HideAtZone
+end
 
 function Economy.rebirthCost(rebirths: number): number
 	return Economy.RebirthFirstCost * Economy.RebirthCostGrowth ^ rebirths

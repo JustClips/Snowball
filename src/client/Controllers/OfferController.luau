@@ -94,6 +94,10 @@ end
 
 function OfferController:Start()
 	Net.event("ShowOffer").OnClientEvent:Connect(function(offer)
+		if offer.Key == "StarterPack" then
+			C.StarterPackController:Open() -- its own big window
+			return
+		end
 		current = offer
 		title.Text = offer.Title
 		text.Text = offer.Text

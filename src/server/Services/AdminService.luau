@@ -78,6 +78,28 @@ local COMMANDS: { [string]: (Player, { string }) -> string? } = {
 		end
 		return "Village marked as reached (Rebirth unlocked)"
 	end,
+	keeprolling = function(player)
+		local session = S.DataService:GetSession(player)
+		if session then
+			session.Runtime.ForceContinue = not session.Runtime.ForceContinue
+			return if session.Runtime.ForceContinue
+				then "KEEP ROLLING? now shows after every roll"
+				else "KEEP ROLLING? back to near misses only"
+		end
+		return "No save loaded"
+	end,
+	starter = function(player)
+		local session = S.DataService:GetSession(player)
+		if session then
+			local data = session.Data
+			data.Flags.StarterPackBought = false
+			data.Flags.StarterPackEnds = os.time() + 7200
+			session.Runtime.StarterShown = nil
+			session.Runtime.TutorialDoneAt = nil
+			S.StateService:Mark(player)
+		end
+		return "Starter Pack is for sale again (pops in a few seconds if the tutorial is done)"
+	end,
 	nextday = function(player)
 		S.RewardService:SkewClock(86400)
 		S.StateService:Mark(player)

@@ -9,9 +9,11 @@ local Workspace = game:GetService("Workspace")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local BigNum = require(Shared.BigNum)
+local Economy = require(Shared.Config.Economy)
 local Net = require(Shared.Net)
 local Obstacles = require(Shared.Config.Obstacles)
 local Pickups = require(Shared.Config.Pickups)
+local Products = require(Shared.Config.Products)
 local PowerCurve = require(Shared.PowerCurve)
 local Roll = require(Shared.Roll)
 local RollMath = require(Shared.RollMath)
@@ -19,6 +21,7 @@ local Spline = require(Shared.Spline)
 local Upgrades = require(Shared.Config.Upgrades)
 local World = require(Shared.Config.World)
 local Zones = require(Shared.Config.Zones)
+local RunService = game:GetService("RunService")
 
 local RollService = {}
 
@@ -51,6 +54,9 @@ type Run = {
 	golden: boolean,
 	lucky: boolean,
 	startedAt: number,
+	limit: number, -- pickups exist up to here
+	continues: number, -- Keep Rolling pushes bought this roll
+	stopDeadline: number, -- os.clock() when the KEEP ROLLING? window cracks the ball
 }
 
 local runs: { [Player]: Run } = {}
@@ -143,6 +149,9 @@ local function startPack(player: Player): (boolean, string?)
 		golden = false,
 		lucky = false,
 		startedAt = 0,
+		limit = 0,
+		continues = 0,
+		stopDeadline = 0,
 	}
 	runs[player] = run
 	setPhase(player, run, "Packing")
@@ -199,6 +208,7 @@ local function launch(player: Player, run: Run, quality: string)
 	local firstEgg = data.Stats.Runs == 0 and data.Stats.EggsFound == 0
 	local limit = math.min(spline.Length, D * 1.15 + Pickups.Margin)
 	run.pickups = Pickups.generate(run.seed, limit, RollMath.widthAt, firstEgg)
+	run.limit = limit
 	run.startedAt = os.clock()
 	setPhase(player, run, "Rolling")
 	S.StateService:Mark(player)
@@ -400,6 +410,173 @@ local function finish(player: Player, run: Run)
 	end)
 end
 
+---------------------------------------------------------------- Keep Rolling (near miss)
+-- When the ball stops short of something it could reach with one more push, the roll
+-- pauses in phase "Stopped" and the owner sees KEEP ROLLING? for Continue.Seconds
+-- (ContinueController). Buying (ShopService -> RollService:Continue) pushes the ball on;
+-- "no", the timer or leaving cracks it as usual.
+local Rules = Economy.Continue
+
+local function continueRuntime(player: Player)
+	local session = S.DataService:GetSession(player)
+	if not session then
+		return nil
+	end
+	local rt = session.Runtime.Continue
+	if not rt then
+		rt = { declines = 0, rest = 0 }
+		session.Runtime.Continue = rt
+	end
+	return rt
+end
+
+local function pushProduct(push: number)
+	return Products.ProductByKey["KeepRolling" .. push]
+end
+
+local function buyable(def): boolean
+	return def ~= nil and (def.Id ~= 0 or (Products.StudioTestBuys and RunService:IsStudio()))
+end
+
+local function extraFor(ball: Roll.Ball): number
+	return math.max(Rules.MinStuds, ball.s * Rules.Share)
+end
+
+-- What one more push would reach, or nil when it's not worth offering.
+local function nearMiss(player: Player, run: Run)
+	local data = S.DataService:GetData(player)
+	local ball = run.ball :: Roll.Ball
+	if not data or not data.Flags.TutorialDone or ball.s >= endAt - 1 then
+		return nil
+	end
+	if run.continues >= Rules.MaxPerRun then
+		return nil
+	end
+	local def = pushProduct(run.continues + 1)
+	if not buyable(def) then
+		return nil
+	end
+	local rt = continueRuntime(player)
+	if not rt then
+		return nil
+	end
+	local session = S.DataService:GetSession(player)
+	if run.continues == 0 and rt.rest > 0 and not (session and session.Runtime.ForceContinue) then
+		rt.rest -= 1
+		return nil
+	end
+	local reach = math.min(endAt, ball.s + extraFor(ball))
+	local zone = Zones.at(ball.s)
+	local nextZone = Zones.List[zone.Index + 1]
+	local reachesZone = nextZone ~= nil and nextZone.Start > ball.s and nextZone.Start <= reach
+	local beatsBest = data.BestDistance > ball.s and reach > data.BestDistance
+	local forced = session ~= nil and session.Runtime.ForceContinue == true -- /keeprolling
+	if not reachesZone and not beatsBest and not forced then
+		return nil
+	end
+	return {
+		def = def,
+		reach = reach,
+		nextZone = if reachesZone or (forced and not beatsBest) then nextZone else nil,
+		best = data.BestDistance,
+	}
+end
+
+local function stopForContinue(player: Player, run: Run, miss): ()
+	local ball = run.ball :: Roll.Ball
+	run.stopDeadline = os.clock() + Rules.Seconds
+	setPhase(player, run, "Stopped")
+	local zone = Zones.at(ball.s)
+	Net.fire("RunStopped", player, {
+		Distance = math.floor(ball.s),
+		Seconds = Rules.Seconds,
+		Product = miss.def.Key,
+		Price = miss.def.Price,
+		Push = run.continues + 1,
+		Zone = zone.Index,
+		NextZone = if miss.nextZone then miss.nextZone.Index else nil,
+		ZoneStart = zone.Start,
+		ToNext = if miss.nextZone then math.ceil(miss.nextZone.Start - ball.s) else nil,
+		Reach = math.floor(miss.reach),
+		Best = miss.best,
+	})
+	S.AnalyticsService:Custom(player, "KeepRolling", run.continues + 1, { Result = "Shown" })
+end
+
+-- The KEEP ROLLING? prompt is open: wait for Roblox's buy box instead of the timer.
+function RollService:ContinueBuying(player: Player): boolean
+	local run = runs[player]
+	if not run or run.phase ~= "Stopped" then
+		return false
+	end
+	run.stopDeadline = os.clock() + 120
+	return true
+end
+
+function RollService:IsStopped(player: Player): boolean
+	local run = runs[player]
+	return run ~= nil and run.phase == "Stopped"
+end
+
+-- No thanks / buy box closed without buying: crack it now.
+function RollService:ContinueDeclined(player: Player)
+	local run = runs[player]
+	if run and run.phase == "Stopped" then
+		local rt = continueRuntime(player)
+		if rt then
+			rt.declines += 1
+			if rt.declines >= Rules.DeclineStreak then
+				rt.declines = 0
+				rt.rest = Rules.RestRuns
+			end
+		end
+		S.AnalyticsService:Custom(player, "KeepRolling", run.continues + 1, { Result = "Declined" })
+		run.stopDeadline = 0
+	end
+end
+
+-- A Keep Rolling purchase: push the ball on from where it stopped, with a fresh stretch of
+-- snow, coins and eggs past the old pickups. Returns false when there is no stopped ball
+-- (the grant then gives the push to the next roll as a Lucky Roll instead, ShopService).
+function RollService:Continue(player: Player): boolean
+	local run = runs[player]
+	if not run or run.phase ~= "Stopped" or not run.ball then
+		return false
+	end
+	local ball = run.ball :: Roll.Ball
+	run.continues += 1
+	local rt = continueRuntime(player)
+	if rt then
+		rt.declines = 0
+	end
+	ball.D = math.min(endAt, ball.s + extraFor(ball))
+	ball.v = Roll.PushSpeed
+	ball.done = false
+	local from = math.max(run.limit, ball.s + 20)
+	local limit = math.min(spline.Length, ball.D * 1.15 + Pickups.Margin)
+	local seed = rng:NextInteger(1, 2 ^ 30)
+	local idBase = 100_000 * run.continues
+	if limit > from then
+		for _, p in Pickups.generate(seed, limit, RollMath.widthAt, false, from, idBase) do
+			table.insert(run.pickups, p)
+		end
+		run.limit = limit
+	end
+	setPhase(player, run, "Rolling")
+	Net.fireAll("RunContinued", player.UserId, {
+		S = ball.s,
+		X = ball.x,
+		D = ball.D,
+		V = ball.v,
+		Seed = seed,
+		From = from,
+		Limit = limit,
+		IdBase = idBase,
+	})
+	S.AnalyticsService:Custom(player, "KeepRolling", run.continues, { Result = "Bought" })
+	return true
+end
+
 -- Stepping onto your own lane pad starts the launch (Dev 2026-11-20: no GO button; like
 -- Throw Food's throw circle). Only on the step ON, so standing there after a roll waits.
 local PAD_RADIUS = 3.8
@@ -442,8 +619,15 @@ local function simulate(dt: number)
 			Roll.step(run.ball, dt, spline, endAt)
 			checkHits(player, run)
 			if run.ball.done then
-				finish(player, run)
+				local miss = nearMiss(player, run)
+				if miss then
+					stopForContinue(player, run, miss)
+				else
+					finish(player, run)
+				end
 			end
+		elseif run.phase == "Stopped" and os.clock() >= run.stopDeadline then
+			finish(player, run)
 		end
 	end
 end
@@ -496,6 +680,9 @@ function RollService:Init(services)
 	Net.onInvoke("CancelPack", cancelPack)
 	Net.onEvent("PackTap", onPackTap)
 	Net.onEvent("Steer", onSteer)
+	Net.onEvent("DeclineContinue", function(player)
+		RollService:ContinueDeclined(player)
+	end)
 	S.DataService.ProfileReleasing:Connect(function(player)
 		runs[player] = nil
 		onPadBefore[player] = nil

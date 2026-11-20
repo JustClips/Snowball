@@ -34,6 +34,7 @@ type Drawn = {
 	isLocal: boolean,
 	spin: CFrame,
 	golden: boolean,
+	stopped: boolean?, -- KEEP ROLLING? is up: hold still until it's bought or cracks
 }
 local balls: { [number]: Drawn } = {}
 local cameraBall: Drawn? = nil
@@ -187,12 +188,52 @@ local function onEnded(userId: number, result)
 	end
 end
 
+-- Your ball stopped short and KEEP ROLLING? is up (RollService "Stopped").
+local function onStopped(info)
+	local d = balls[player.UserId]
+	if not d then
+		return
+	end
+	d.stopped = true
+	d.snap = nil
+	d.ball.v = 0
+	d.ball.vx = 0
+	d.ball.s = info.Distance or d.ball.s
+	Ui.loop("Roll", false)
+end
+
+-- A Keep Rolling push (anyone's ball): it rolls on from where it stopped.
+local function onContinued(userId: number, info)
+	local d = balls[userId]
+	if not d then
+		return
+	end
+	d.stopped = false
+	d.snap = nil
+	local ball = d.ball
+	ball.s = info.S
+	ball.x = info.X
+	ball.D = info.D
+	ball.v = info.V
+	ball.done = false
+	if d.isLocal then
+		C.TrackFxController:AddPickups(info)
+		Ui.sound("Launch")
+		Ui.loop("Roll", true)
+		Fx.burst("Ring", d.part.Position, math.clamp(ball.r / 3, 1, 4))
+		C.ResultsController:Flash("KEEP ROLLING!", Color3.fromRGB(110, 235, 90))
+	end
+end
+
 local function step(dt: number)
 	local now = os.clock()
 	for _, d in balls do
 		local ball = d.ball
 		local snap = d.snap
-		if d.isLocal then
+		if d.stopped then
+			-- hold still (KEEP ROLLING? is up)
+			ball.v = 0
+		elseif d.isLocal then
 			ball.steer = C.SteerController.Value
 			Roll.step(ball, dt, spline, endAt)
 			ball.done = false
@@ -255,6 +296,8 @@ function BallController:Start()
 	Net.event("RunStarted").OnClientEvent:Connect(onStarted)
 	Net.event("RunSnapshot").OnClientEvent:Connect(onSnapshot)
 	Net.event("RunEnded").OnClientEvent:Connect(onEnded)
+	Net.event("RunStopped").OnClientEvent:Connect(onStopped)
+	Net.event("RunContinued").OnClientEvent:Connect(onContinued)
 	RunService:BindToRenderStep("SnowballBalls", Enum.RenderPriority.Camera.Value + 1, step)
 end
 

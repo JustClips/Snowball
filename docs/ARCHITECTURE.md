@@ -46,7 +46,9 @@ All in `Shared/Net.luau` (events and functions with per-player rate limits). Add
 
 ## Products
 
-`Config/Products.luau`. Every product and pass has `Id = 0` until they are created for the Snowball universe; buttons show SOON and the server refuses to prompt them.
+`Config/Products.luau`. Every product and pass has `Id = 0` until they are created for the Snowball universe; buttons show SOON and the server refuses to prompt them, except in Studio, where `Products.StudioTestBuys` grants them for free so offers can be tested.
+
+Money moments (DIRECTION.md in the project files): Starter Pack window after the tutorial (`OfferService` -> `StarterPackController`, HUD chest tile with the countdown), KEEP ROLLING? when a roll stops short (`RollService` phase `Stopped` -> `ContinueController`; a purchase calls `RollService:Continue`, which pushes the ball on and adds a new stretch of pickups), contextual offers (`OfferService`), the Shop (`ShopController`, Sweep layout) and the "BOUGHT!" stamp (`PurchaseController`).
 
 ## UI
 

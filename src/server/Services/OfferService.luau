@@ -11,6 +11,7 @@
 --   7 returning player: Double Offline (on the welcome-back card, PetService)
 --   8 3rd "not enough cash": opens the Shop at Cash (ShopService:OfferCashFor)
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local BigNum = require(Shared.BigNum)
@@ -37,7 +38,8 @@ end
 
 local function isLive(productKey: string): boolean
 	local def = Products.ProductByKey[productKey] or Products.PassByKey[productKey]
-	return def ~= nil and def.Id ~= 0
+	-- Studio test buys (Products.StudioTestBuys) make offers testable before products exist.
+	return def ~= nil and (def.Id ~= 0 or (Products.StudioTestBuys and RunService:IsStudio()))
 end
 
 type Offer = { Key: string, Product: string?, Title: string, Text: string, Open: string? }
@@ -73,25 +75,35 @@ local function show(player: Player, offer: Offer, ignoreGlobal: boolean?): boole
 	return true
 end
 
+-- Rule 1: the Starter Pack window (StarterPackController), a few seconds after the tutorial
+-- ends (after its reward toast), then once per session on later joins while it's still for
+-- sale. The HUD tile keeps a countdown until it leaves.
 local function tryStarterPack(player: Player)
-	local data = S.DataService:GetData(player)
-	if not data or data.Flags.StarterOfferShown or data.Flags.StarterPackBought then
+	local session = S.DataService:GetSession(player)
+	local data = session and session.Data
+	if not data or session.Runtime.StarterShown or not Economy.starterPackLive(data, os.time()) then
 		return
 	end
-	local ends = data.Flags.StarterPackEnds
-	if type(ends) ~= "number" or os.time() >= ends or data.Stats.Hatches < 1 then
+	if S.RollService and S.RollService:IsBusy(player) then
+		return -- not in the middle of a roll
+	end
+	local doneAt = session.Runtime.TutorialDoneAt
+	if not doneAt then
+		session.Runtime.TutorialDoneAt = os.clock()
 		return
 	end
-	local pack = Economy.StarterPack
+	if os.clock() - doneAt < Economy.StarterPack.ShowDelay then
+		return
+	end
 	if
 		show(player, {
 			Key = "StarterPack",
 			Product = "StarterPack",
 			Title = "STARTER PACK!",
-			Text = `Iron Roller + {pack.EggRarity} egg + {pack.LuckyRolls} Lucky Rolls + {pack.Train2xMinutes} min of 2x Power`,
+			Text = "",
 		}, true)
 	then
-		data.Flags.StarterOfferShown = true
+		session.Runtime.StarterShown = true
 	end
 end
 
@@ -206,7 +218,7 @@ end
 function OfferService:Start()
 	task.spawn(function()
 		while true do
-			task.wait(10)
+			task.wait(2)
 			for player, session in S.DataService:GetSessions() do
 				if session.Data and session.Data.Flags.TutorialDone then
 					tryStarterPack(player)

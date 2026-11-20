@@ -25,10 +25,20 @@ local Pickups = {
 local ORDER = { "Snow", "Coin", "Egg", "Present", "Ramp" }
 
 -- All pickups for one run, up to `limit` studs. widthAt(s) gives the track width.
-function Pickups.generate(seed: number, limit: number, widthAt: (number) -> number, firstEgg: boolean): { Pickup }
+-- from / idBase: a Keep Rolling push adds a new stretch [from, limit) with its own seed;
+-- idBase keeps its ids apart from the first stretch's.
+function Pickups.generate(
+	seed: number,
+	limit: number,
+	widthAt: (number) -> number,
+	firstEgg: boolean,
+	from: number?,
+	idBase: number?
+): { Pickup }
 	local rng = Random.new(seed)
 	local out: { Pickup } = {}
-	local id = 0
+	local id = idBase or 0
+	local start = from or 40
 	local function add(kind: string, s: number, x: number)
 		id += 1
 		table.insert(out, { Id = id, Kind = kind, s = s, x = x })
@@ -38,7 +48,7 @@ function Pickups.generate(seed: number, limit: number, widthAt: (number) -> numb
 	end
 	for _, kind in ORDER do
 		local every = Pickups.Every[kind]
-		local s = 40 + rng:NextNumber(0, every)
+		local s = start + rng:NextNumber(0, every)
 		while s < limit do
 			local half = widthAt(s) / 2 - 6
 			if not (firstEgg and kind == "Egg" and s < Pickups.FirstEggAt + 60) then

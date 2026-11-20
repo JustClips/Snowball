@@ -199,7 +199,7 @@ end
 
 local function currentMode(): string
 	local phase = player:GetAttribute("RollPhase")
-	if rolling or phase == "Rolling" or phase == "Cracking" then
+	if rolling or phase == "Rolling" or phase == "Stopped" or phase == "Cracking" then
 		return "Rolling"
 	elseif phase == "Packing" then
 		return "Packing"
