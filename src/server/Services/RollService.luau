@@ -223,7 +223,16 @@ local function launch(player: Player, run: Run, quality: string)
 		D *= 1.5
 	end
 	local core = Upgrades.Cores[data.Core] or Upgrades.Cores[1]
-	local x = World.laneX(run.lane)
+	-- The ball starts where YOU stand on the deck (Dev 2026-11-20: standing on the right, it
+	-- spawned on the left). Track x runs along the spline's Right, which at the top points
+	-- to world -X, so World.laneX can't be used as a track x directly.
+	local start = spline:sample(0)
+	local x = -World.laneX(run.lane)
+	local root = rootOf(player)
+	if root then
+		x = (root.Position - start.Pos):Dot(start.Right)
+	end
+	x = math.clamp(x, -start.Width / 2 + 6, start.Width / 2 - 6)
 	run.ball = Roll.new(x, D, core.Growth)
 	local firstEgg = data.Stats.Runs == 0 and data.Stats.EggsFound == 0
 	local limit = math.min(spline.Length, D * 1.15 + Pickups.Margin)

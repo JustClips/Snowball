@@ -112,8 +112,20 @@ local function teleport(player: Player, where: any): (boolean, string?)
 		character:PivotTo(CFrame.lookAt(spot + Vector3.yAxis * 4, Vector3.new(0, spot.Y + 4, spot.Z)))
 	elseif where == "Deck" then
 		-- Straight onto your lane pad and the launch starts (only ROLL starts one).
-		local pos = World.DeckStand + Vector3.new(World.laneX(index), 2, 0)
-		character:PivotTo(CFrame.lookAt(pos, pos + Vector3.zAxis))
+		-- Already standing on the deck: launch from right there (the ball starts in front of
+		-- you, Dev 2026-11-20). Otherwise onto your lane pad.
+		local root = character:FindFirstChild("HumanoidRootPart") :: BasePart?
+		local d = if root then root.Position - World.Deck.Center else Vector3.new(1e6, 0, 0)
+		local half = World.Deck.Size / 2
+		local onDeck = math.abs(d.X) <= half.X - 4 and math.abs(d.Z) <= half.Z and math.abs(d.Y) < 10
+		if not onDeck then
+			local pos = World.DeckStand + Vector3.new(World.laneX(index), 2, 0)
+			character:PivotTo(CFrame.lookAt(pos, pos + Vector3.zAxis))
+		elseif root then
+			-- Face down the run so the pack meter/launch look right.
+			local p = root.Position
+			character:PivotTo(CFrame.lookAt(p, p + Vector3.zAxis))
+		end
 		if S.RollService then
 			return S.RollService:StartPack(player)
 		end
