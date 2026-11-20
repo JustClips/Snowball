@@ -1,12 +1,14 @@
 --!strict
--- The tutorial card ("STEP n/5", one short line) and a beam path to where the step
--- happens (GAME_PLAN §4). The server decides the step (StateService); the player does every
--- step themselves.
+-- The tutorial (GAME_PLAN §4), icon first (Dev 2026-11-20: kids don't read): a goal chip
+-- at the top with a big icon and ONE word, a progress bar where it helps, a bouncing pin
+-- over the place to go and a beam path to it. The server decides the step (StateService);
+-- the player does every step themselves.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
+local BigNum = require(Shared.BigNum)
 local Net = require(Shared.Net)
 local World = require(Shared.Config.World)
 local State = require(script.Parent.Parent.State)
@@ -16,20 +18,24 @@ local player = Players.LocalPlayer
 
 local TutorialController = {}
 
-local STEPS: { [string]: { n: number, text: string } } = {
-	Train = { n = 1, text = "Stand by your Snow Roller to train Power. Tap the Snow Pops!" },
-	Roll = { n = 2, text = "Power 100! Go to the launch deck and ROLL!" },
-	Egg = { n = 3, text = "Place your frozen egg on your base and hatch it!" },
-	Roller = { n = 4, text = "Open UPGRADES and get the Stone Roller (FREE)!" },
-	Pine = { n = 5, text = "Train more and roll to the Pine Forest!" },
+local STEPS: { [string]: { n: number, icon: string, word: string } } = {
+	Train = { n = 1, icon = "Power", word = "TRAIN!" },
+	Roll = { n = 2, icon = "Roll", word = "ROLL!" },
+	Egg = { n = 3, icon = "Egg", word = "HATCH!" },
+	Roller = { n = 4, icon = "Upgrade", word = "UPGRADE!" },
+	Pine = { n = 5, icon = "Target", word = "GO FAR!" },
 }
+local TRAIN_GOAL = 100 -- Power for step 1's bar (StateService moves on at 100)
 
 local C: any
 local card: Frame
 local action: TextButton
 local actionKind: string? = nil
-local stepLabel: TextLabel
+local stepIcon: ImageLabel
 local textLabel: TextLabel
+local progress: Frame
+local progressFill: Frame
+local pin: BillboardGui
 local beam: Beam
 local a0: Attachment
 local a1: Attachment
@@ -46,6 +52,8 @@ local function target(step: string): Vector3?
 		return World.DeckStand
 	elseif step == "Egg" then
 		return World.baseCenter(index)
+	elseif step == "Roller" then
+		return World.rollerSpot(index)
 	end
 	return nil
 end
@@ -69,18 +77,21 @@ local function update(data)
 			end
 		end
 		actionKind = if ready then "OpenReady" elseif bagEggs then "PlaceEggs" else nil
-		Ui.setText(action, if ready then "OPEN EGG!" else "PLACE EGG")
-	elseif step == "Roller" then
-		actionKind = "Upgrades"
-		Ui.setText(action, "UPGRADES")
+		Ui.setText(action, if ready then "OPEN!" else "PLACE")
 	end
 	action.Visible = actionKind ~= nil
-	stepLabel.Text = `STEP {def.n}/5`
-	textLabel.Text = def.text
+	stepIcon.Image = Ui.Images[def.icon] or ""
+	textLabel.Text = def.word
+	progress.Visible = step == "Train"
+	if step == "Train" then
+		local power = if data.Power then BigNum.toNumber(data.Power) else 0
+		progressFill.Size = UDim2.fromScale(math.clamp(power / TRAIN_GOAL, 0, 1), 1)
+	end
 	local pos = target(step)
 	-- No path while you're already there (training on the roller) or rolling.
 	local busy = player:GetAttribute("Training") or player:GetAttribute("RollPhase")
 	beam.Enabled = pos ~= nil and not busy
+	pin.Enabled = pos ~= nil and not busy
 	if pos then
 		targetPart.Position = pos + Vector3.yAxis * 2
 	end
@@ -97,35 +108,34 @@ function TutorialController:Init(controllers)
 	local root = Ui.root(gui)
 	card = Ui.frame({
 		Name = "Card",
-		Size = UDim2.fromOffset(520, 76),
+		Size = UDim2.fromOffset(250, 70),
 		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.new(0.5, 0, 0, 56),
+		Position = UDim2.new(0.5, 0, 0, 150),
 		BackgroundColor3 = Ui.Colors.Panel,
 		Visible = false,
 	})
+	Ui.gradient(card, Ui.Colors.Panel)
 	Ui.stroke(card, 3, Ui.Colors.Yellow)
 	Ui.autoScale(card)
-	stepLabel = Ui.label({
-		Name = "Step",
-		Size = UDim2.new(1, -16, 0, 26),
-		Position = UDim2.fromOffset(8, 4),
-		Text = "",
-		TextColor3 = Ui.Colors.Yellow,
-	})
-	stepLabel.Parent = card
-	textLabel =
-		Ui.label({ Name = "Text", Size = UDim2.new(1, -16, 0, 36), Position = UDim2.fromOffset(8, 34), Text = "" })
+	stepIcon = Ui.icon("Power", { Size = UDim2.fromOffset(84, 84), AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(0, 20, 0.5, 0), ZIndex = 3 })
+	stepIcon.Parent = card
+	textLabel = Ui.label({ Name = "Text", Size = UDim2.new(1, -80, 0, 44), Position = UDim2.fromOffset(70, 6), Text = "", TextColor3 = Ui.Colors.Yellow })
 	textLabel.Parent = card
-	action = Ui.button({ Name = "Action", Size = UDim2.fromOffset(170, 50), AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 1, 8), BackgroundColor3 = Ui.Colors.Green, Visible = false }, "", function()
-		if actionKind == "Upgrades" then
-			C.UpgradesController:Toggle()
-		elseif actionKind then
+	progress = Ui.frame({ Name = "Progress", Size = UDim2.new(1, -86, 0, 12), Position = UDim2.fromOffset(72, 52), BackgroundColor3 = Ui.Colors.PanelDark })
+	Ui.stroke(progress, 2)
+	progressFill = Ui.frame({ Name = "Fill", Size = UDim2.fromScale(0, 1), BackgroundColor3 = Ui.Colors.Power })
+	progressFill.Parent = progress
+	progress.Parent = card
+	action = Ui.button({ Name = "Action", Size = UDim2.fromOffset(150, 56), AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 1, 10), BackgroundColor3 = Ui.Colors.Green, Visible = false }, "", function()
+		if actionKind then
 			local ok, why = Net.func("Pets"):InvokeServer(actionKind)
 			if not ok and why then
 				Ui.toast(why, "Bad")
 			end
 		end
 	end)
+	Ui.icon("Tap", { Size = UDim2.fromOffset(44, 44), AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(1, -6, 1, -18), ZIndex = 4 }).Parent =
+		action
 	action.Parent = card
 	card.Parent = root
 
@@ -150,6 +160,24 @@ function TutorialController:Init(controllers)
 	beam.LightEmission = 0.6
 	beam.Enabled = false
 	beam.Parent = targetPart
+	-- A big pin bouncing over the place to go.
+	pin = Instance.new("BillboardGui")
+	pin.Name = "Pin"
+	pin.Size = UDim2.fromOffset(90, 90)
+	pin.StudsOffset = Vector3.new(0, 10, 0)
+	pin.AlwaysOnTop = true
+	pin.LightInfluence = 0
+	pin.Enabled = false
+	Ui.icon("Pin", { Size = UDim2.fromScale(1, 1) }).Parent = pin
+	pin.Adornee = targetPart
+	pin.Parent = targetPart
+	task.spawn(function()
+		while true do
+			local t = os.clock()
+			pin.StudsOffset = Vector3.new(0, 10 + math.abs(math.sin(t * 3)) * 3, 0)
+			task.wait(1 / 30)
+		end
+	end)
 end
 
 function TutorialController:Start()

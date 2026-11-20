@@ -27,9 +27,11 @@ function World.baseCFrame(i: number): CFrame
 	return CFrame.lookAt(c, Vector3.new(0, c.Y, c.Z))
 end
 
--- The Snow Roller pad of base i (on the plaza side of the base).
+-- The Snow Roller of base i: out on the plaza a little away from the base and off to the
+-- side, so it never blocks the base's exit (Dev, 2026-11-20).
+World.RollerOffset = Vector3.new(20, 0, -(28 + 18))
 function World.rollerSpot(i: number): Vector3
-	return (World.baseCFrame(i) * CFrame.new(0, 0, -World.BaseSize.Z / 2 - 4)).Position
+	return (World.baseCFrame(i) * CFrame.new(World.RollerOffset)).Position
 end
 
 -- Side offset (x on the track) of lane i.

@@ -6,11 +6,12 @@ local Economy = {
 	StateFlushInterval = 0.15, -- PlayerState snapshots go out at most this often
 
 	-- Training (GAME_PLAN §5.1)
-	-- Training is automatic while you stand near your roller (Dev, 2026-11-20): this many
-	-- reps a second, x2 with the Auto Train pass ("Fast Train"). Tapping is only for pops.
-	TrainRepsPerSecond = 5,
+	-- Training is automatic while you stand near your roller (Dev, 2026-11-20): one slow,
+	-- chunky rep every 1.25 s with the push animation (not "+1" spam), x2 speed with the
+	-- Auto Train pass ("Fast Train"). Tapping is only for pops. Roller Power is per rep.
+	TrainRepsPerSecond = 0.8,
 	FastTrainMult = 2,
-	AutoTrainTapsPerSecond = 5, -- reps/s used to value Training Time products
+	AutoTrainTapsPerSecond = 0.8, -- reps/s used to value Training Time products
 	RollerRadius = 14, -- studs (flat) from the roller pad centre that count as "on the roller"
 	RollerHeight = 8,
 

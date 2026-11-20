@@ -41,7 +41,7 @@ Rewards.Daily = {
 	{ Kind = "Cash", Seconds = 600, Floor = 0.5, Bonus = { Kind = "Spin", Amount = 1 } },
 	{ Kind = "Charge", Charge = "LuckyRoll", Amount = 3 },
 	{ Kind = "Egg", Rarity = "Epic", Bonus = { Kind = "Charge", Charge = "GoldenRuns", Amount = 3 } },
-	{ Kind = "Boost", Boost = "Cash2x", Minutes = 15, Bonus = { Kind = "Power", Taps = 1500 } },
+	{ Kind = "Boost", Boost = "Cash2x", Minutes = 15, Bonus = { Kind = "Power", Taps = 240 } },
 	{ Kind = "Pet", Pet = "Daily", Bonus = { Kind = "Egg", Rarity = "Legendary" } },
 } :: { Reward }
 

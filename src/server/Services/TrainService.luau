@@ -15,6 +15,7 @@ local Net = require(Shared.Net)
 local Rollers = require(Shared.Config.Rollers)
 local Signal = require(Shared.Signal)
 local World = require(Shared.Config.World)
+local Images = require(Shared.Config.Images)
 
 local TrainService = {
 	-- (player, training: boolean) when a player steps on or off their roller
@@ -112,6 +113,7 @@ local function setTraining(player: Player, on: boolean)
 	t.on = on
 	player:SetAttribute("Training", on or nil)
 	if on then
+		t.auto = math.max(t.auto, 0.95) -- the first rep comes right away
 		t.sessionStart = os.clock()
 		t.sessionTaps = 0
 		t.sessionGain = 0
@@ -174,7 +176,7 @@ local function buyRoller(player: Player): (boolean, string?)
 		S.AnalyticsService:Funnel(player, "StoneRoller")
 	end
 	TrainService:RefreshRoller(player)
-	Net.fire("Notify", player, `{nextDef.Name}! {Format.big(nextDef.Power)} Power per tap`, "Good")
+	Net.fire("Notify", player, `{nextDef.Name}! +{Format.big(nextDef.Power)} Power`, "Good")
 	return true, nil
 end
 
@@ -229,6 +231,73 @@ function TrainService:RefreshRoller(player: Player)
 	ball.Color = Color3.fromRGB(245, 248, 255):Lerp(color, 0.25)
 	ball.Parent = model
 	model:SetAttribute("Owner", player.UserId)
+
+	-- Upgrade the station right here (Dev, 2026-11-20: like the treadmill games): a sign
+	-- over the roller with the Upgrade icon and the next price, and a prompt to buy it.
+	local nextDef = Rollers.get(data.Roller + 1)
+	local sign = Instance.new("Part")
+	sign.Name = "UpgradeSign"
+	sign.Anchored = true
+	sign.CanCollide = false
+	sign.CanQuery = false
+	sign.Transparency = 1
+	sign.Size = Vector3.new(1, 1, 1)
+	sign.CFrame = cf * CFrame.new(0, 16, 0)
+	sign.Parent = model
+	local board = Instance.new("BillboardGui")
+	board.Name = "Board"
+	board.Size = UDim2.fromScale(9, 3.2)
+	board.MaxDistance = 90
+	board.LightInfluence = 0
+	board.Parent = sign
+	local bg = Instance.new("Frame")
+	bg.Size = UDim2.fromScale(1, 1)
+	bg.BackgroundColor3 = Color3.fromRGB(16, 27, 52)
+	bg.BorderSizePixel = 0
+	bg.Parent = board
+	local stroke = Instance.new("UIStroke")
+	stroke.Thickness = 3
+	stroke.Color = Color3.fromRGB(20, 32, 58)
+	stroke.Parent = bg
+	local icon = Instance.new("ImageLabel")
+	icon.BackgroundTransparency = 1
+	icon.Size = UDim2.fromScale(0.3, 1)
+	icon.ScaleType = Enum.ScaleType.Fit
+	icon.Image = if nextDef then Images.Upgrade else Images.Star
+	icon.Parent = bg
+	local price = Instance.new("TextLabel")
+	price.BackgroundTransparency = 1
+	price.Position = UDim2.fromScale(0.32, 0.1)
+	price.Size = UDim2.fromScale(0.66, 0.8)
+	price.TextScaled = true
+	price.FontFace = Font.new("rbxasset://fonts/families/Montserrat.json", Enum.FontWeight.Heavy)
+	price.TextColor3 = Color3.fromRGB(120, 230, 120)
+	local free = nextDef ~= nil and nextDef.Index == Rollers.FreeInTutorial and not data.Flags.TutorialDone
+	price.Text = if not nextDef then "MAX" elseif free then "FREE" else Format.cash(nextDef.Price)
+	price.Parent = bg
+	local textStroke = Instance.new("UIStroke")
+	textStroke.Thickness = 2
+	textStroke.Parent = price
+	if nextDef then
+		local prompt = Instance.new("ProximityPrompt")
+		prompt.Name = "RollerUpgrade"
+		prompt.ActionText = "Upgrade"
+		prompt.ObjectText = ""
+		prompt.HoldDuration = 0
+		prompt.MaxActivationDistance = 18
+		prompt.RequiresLineOfSight = false
+		prompt.KeyboardKeyCode = Enum.KeyCode.E
+		prompt.Parent = sign
+		prompt.Triggered:Connect(function(who)
+			if who ~= player then
+				return
+			end
+			local ok, why = buyRoller(player)
+			if not ok and why then
+				Net.fire("Notify", player, why, "Bad")
+			end
+		end)
+	end
 	model.Parent = base
 end
 

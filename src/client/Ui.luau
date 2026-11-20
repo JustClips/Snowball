@@ -8,6 +8,9 @@ local SoundService = game:GetService("SoundService")
 local TweenService = game:GetService("TweenService")
 local Workspace = game:GetService("Workspace")
 
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Images = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"):WaitForChild("Images"))
+
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui") :: PlayerGui
 
@@ -308,6 +311,134 @@ function Ui.window(gui: ScreenGui, name: string, title: string, size: Vector2): 
 	body.Parent = window
 	window.Parent = gui
 	return window, body
+end
+
+-------------------------------------------------------------------------- icon-first kit
+-- Kids don't read (Dev, 2026-11-20; Tizzy playbook): buttons are big icons from the
+-- Free Icon Pack (Config/Images), with at most one short word under them.
+
+Ui.Images = Images
+
+-- An icon image (name from Config/Images).
+function Ui.icon(name: string, props: { [string]: any }?): ImageLabel
+	local i = Instance.new("ImageLabel")
+	i.Name = "Icon"
+	i.BackgroundTransparency = 1
+	i.Image = Images[name] or ""
+	i.ScaleType = Enum.ScaleType.Fit
+	for k, v in props or {} do
+		(i :: any)[k] = v
+	end
+	return i
+end
+
+-- A vertical two-tone gradient: lighter top, base colour bottom (the chunky toy look).
+function Ui.gradient(parent: GuiObject, color: Color3)
+	local g = Instance.new("UIGradient")
+	local h, sat, v = color:ToHSV()
+	g.Color = ColorSequence.new(Color3.fromHSV(h, sat * 0.75, math.min(1, v * 1.18)), Color3.fromHSV(h, sat, v * 0.82))
+	g.Rotation = 90
+	g.Parent = parent
+	return g
+end
+
+-- Red square badge with a count (hidden at 0).
+function Ui.badge(parent: GuiObject, count: number)
+	local b = parent:FindFirstChild("Badge") :: TextLabel?
+	if not b then
+		local nb = Ui.label({
+			Name = "Badge",
+			Size = UDim2.fromOffset(26, 26),
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.new(1, -4, 0, 4),
+			BackgroundTransparency = 0,
+			BackgroundColor3 = Ui.Colors.Red,
+			Text = "",
+			ZIndex = 8,
+		})
+		Ui.stroke(nb, 2)
+		nb.Parent = parent
+		b = nb
+	end
+	local bb = b :: TextLabel
+	bb.Visible = count > 0
+	bb.Text = if count > 9 then "9+" else tostring(count)
+end
+
+-- A square icon tile (left rail): big icon, one short word under it, solid gradient body.
+function Ui.tile(name: string, icon: string, word: string, color: Color3, onClick: () -> (), size: number?): TextButton
+	local s = size or 78
+	local b = Instance.new("TextButton")
+	b.Name = name
+	b.Text = ""
+	b.AutoButtonColor = false
+	b.BorderSizePixel = 0
+	b.BackgroundColor3 = color
+	b.Size = UDim2.fromOffset(s, s)
+	Ui.gradient(b, color)
+	Ui.stroke(b, 3)
+	Ui.icon(icon, {
+		Size = UDim2.new(1, -10, 1, -24),
+		Position = UDim2.fromOffset(5, 3),
+		ZIndex = 2,
+	}).Parent = b
+	local l = Ui.label({
+		Name = "Label",
+		Size = UDim2.new(1, -4, 0, 20),
+		Position = UDim2.new(0, 2, 1, -22),
+		Text = word,
+		ZIndex = 3,
+	})
+	l.Parent = b
+	local scale = Instance.new("UIScale")
+	scale.Parent = b
+	b.Activated:Connect(function()
+		Ui.sound("Click")
+		scale.Scale = 0.88
+		TweenService:Create(scale, TweenInfo.new(0.18, Enum.EasingStyle.Back), { Scale = 1 }):Play()
+		onClick()
+	end)
+	b.MouseEnter:Connect(function()
+		TweenService:Create(scale, TweenInfo.new(0.1), { Scale = 1.06 }):Play()
+	end)
+	b.MouseLeave:Connect(function()
+		TweenService:Create(scale, TweenInfo.new(0.1), { Scale = 1 }):Play()
+	end)
+	return b
+end
+
+-- A currency pill: icon hanging off the left, big outlined number, optional "+" button.
+function Ui.pill(name: string, icon: string, color: Color3, width: number, onPlus: (() -> ())?): (Frame, TextLabel)
+	local f = Ui.frame({ Name = name, Size = UDim2.fromOffset(width, 46), BackgroundColor3 = Ui.Colors.PanelDark })
+	Ui.stroke(f, 3)
+	local bar = Ui.frame({ Name = "Bar", Size = UDim2.new(1, 0, 0, 6), Position = UDim2.new(0, 0, 1, -6), BackgroundColor3 = color })
+	bar.Parent = f
+	Ui.icon(icon, { Size = UDim2.fromOffset(60, 60), AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(0, 4, 0.5, 0), ZIndex = 3 }).Parent =
+		f
+	local value = Ui.label({
+		Name = "Value",
+		Size = UDim2.new(1, if onPlus then -84 else -44, 1, -10),
+		Position = UDim2.fromOffset(38, 4),
+		Text = "0",
+		TextXAlignment = Enum.TextXAlignment.Left,
+	})
+	value.Parent = f
+	if onPlus then
+		local plus = Instance.new("ImageButton")
+		plus.Name = "Plus"
+		plus.BackgroundColor3 = Ui.Colors.Green
+		plus.BorderSizePixel = 0
+		plus.Size = UDim2.fromOffset(38, 38)
+		plus.Position = UDim2.new(1, -42, 0, 4)
+		plus.Image = Images.Plus or ""
+		Ui.stroke(plus, 2)
+		plus.Activated:Connect(function()
+			Ui.sound("Click")
+			onPlus()
+		end)
+		plus.Parent = f
+	end
+	return f, value
 end
 
 return Ui

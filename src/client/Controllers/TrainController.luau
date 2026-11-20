@@ -57,15 +57,10 @@ local function screenCenter(): Vector2
 	return if cam then cam.ViewportSize / 2 else Vector2.new(400, 300)
 end
 
+-- No reading while training (Dev): the spinning ball and the big "+N" pops say it all.
 local function updateReadout()
-	local data = State.data
-	local on = training()
-	readout.Visible = on
-	hint.Visible = on
-	if data and on then
-		readoutText.Text =
-			`+{Format.big(data.PowerPerTap)} per rep  ·  x{Format.number(math.floor(data.TrainMult * 10) / 10)}`
-	end
+	readout.Visible = false
+	hint.Visible = false
 end
 
 -- Spin the ball of every roller whose owner is training.
@@ -94,7 +89,7 @@ function TrainController:Init()
 	for i = 1, POOL_SIZE do
 		local l = Ui.label({
 			Name = "Float" .. i,
-			Size = UDim2.fromOffset(200, 44),
+			Size = UDim2.fromOffset(260, 64),
 			AnchorPoint = Vector2.new(0.5, 0.5),
 			Text = "",
 			Visible = false,

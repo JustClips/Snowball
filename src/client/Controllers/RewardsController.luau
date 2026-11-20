@@ -16,6 +16,8 @@ local Ui = require(script.Parent.Parent.Ui)
 
 local RewardsController = {}
 
+local C: any
+
 local windows: { [string]: Frame } = {}
 local buttons: { [string]: TextButton } = {}
 local dailyCards: { Frame } = {}
@@ -36,32 +38,6 @@ local function invoke(action: string, arg: any?): (boolean, string?, any)
 		Ui.toast(why, if ok then "Good" else "Bad")
 	end
 	return ok, why, extra
-end
-
-local function badge(button: TextButton, count: number)
-	local b = button:FindFirstChild("Badge") :: TextLabel?
-	if count <= 0 then
-		if b then
-			b.Visible = false
-		end
-		return
-	end
-	if not b then
-		local nb = Ui.label({
-			Name = "Badge",
-			Size = UDim2.fromOffset(24, 24),
-			Position = UDim2.new(1, -16, 0, -8),
-			BackgroundTransparency = 0,
-			BackgroundColor3 = Ui.Colors.Red,
-			Text = "",
-			ZIndex = 5,
-		})
-		nb.Parent = button
-		b = nb
-	end
-	local bb = b :: TextLabel
-	bb.Visible = true
-	bb.Text = tostring(count)
 end
 
 local function playtimeNow(): number
@@ -154,9 +130,9 @@ local function render()
 	renderDaily(r)
 	local giftsReady = renderGifts(r)
 	renderWheel(r)
-	badge(buttons.Daily, if r.DailyReady then 1 else 0)
-	badge(buttons.Gifts, giftsReady)
-	badge(buttons.Wheel, (if r.FreeSpin then 1 else 0) + (r.Spins or 0))
+	Ui.badge(buttons.Daily, if r.DailyReady then 1 else 0)
+	Ui.badge(buttons.Gifts, giftsReady)
+	Ui.badge(buttons.Wheel, (if r.FreeSpin then 1 else 0) + (r.Spins or 0))
 	local text = if r.FreeSpin then "SPIN" elseif r.FreeSpinAt then Format.time(math.max(0, r.FreeSpinAt - State.now())) else "SPIN"
 	Ui.setText(buttons.Wheel, text)
 end
@@ -361,40 +337,25 @@ local function buildCodes(gui: ScreenGui)
 	end).Parent = body
 end
 
-function RewardsController:Init()
+function RewardsController:Init(controllers)
+	C = controllers
 	local gui = Ui.screen("Rewards", 20)
 	buildDaily(gui)
 	buildGifts(gui)
 	buildWheel(gui)
 	buildCodes(gui)
 
-	-- Button column, left middle.
-	local hud = Ui.screen("RewardButtons", 5)
-	local root = Ui.root(hud)
-	local column = Ui.frame({
-		Name = "Column",
-		Size = UDim2.fromOffset(104, 260),
-		AnchorPoint = Vector2.new(0, 0.5),
-		Position = UDim2.new(0, 12, 0.5, 30),
-		BackgroundTransparency = 1,
-	})
-	Ui.autoScale(column)
-	local list = Instance.new("UIListLayout")
-	list.Padding = UDim.new(0, 8)
-	list.SortOrder = Enum.SortOrder.LayoutOrder
-	list.Parent = column
-	column.Parent = root
-	for i, def in {
-		{ "Daily", "DAILY", Ui.Colors.Yellow },
-		{ "Gifts", "GIFTS", Color3.fromRGB(255, 120, 160) },
-		{ "Wheel", "SPIN", Ui.Colors.Gold },
-		{ "Codes", "CODES", Ui.Colors.Ice },
-	} do
-		local b = Ui.button({ Name = def[1], LayoutOrder = i, Size = UDim2.fromOffset(100, 54), BackgroundColor3 = def[3] }, def[2], function()
-			toggle(def[1])
+	-- Tiles on the HUD's left rail (icons, one word).
+	local tiles = {
+		{ "Daily", "Daily", "DAILY", Color3.fromRGB(255, 200, 60), 5 },
+		{ "Gifts", "Gift", "GIFTS", Color3.fromRGB(255, 110, 150), 6 },
+		{ "Wheel", "Wheel", "SPIN", Color3.fromRGB(70, 200, 255), 7 },
+		{ "Codes", "Codes", "CODES", Color3.fromRGB(150, 120, 255), 8 },
+	}
+	for _, t in tiles do
+		buttons[t[1]] = C.HudController:AddTile(t[1], t[2], t[3], t[4], t[5], function()
+			toggle(t[1])
 		end)
-		b.Parent = column
-		buttons[def[1]] = b
 	end
 end
 
