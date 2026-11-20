@@ -517,7 +517,12 @@ CFmt.__index = function(cf, k)
 		return function(a, b)
 			return b
 		end
-	elseif k == "PointToWorldSpace" or k == "PointToObjectSpace" or k == "VectorToWorldSpace" or k == "VectorToObjectSpace" then
+	elseif
+		k == "PointToWorldSpace"
+		or k == "PointToObjectSpace"
+		or k == "VectorToWorldSpace"
+		or k == "VectorToObjectSpace"
+	then
 		return function(_, v)
 			return v
 		end
@@ -786,13 +791,48 @@ local CLASS_FAMILY = {
 }
 
 local IS_A = {
-	GuiObject = { "Frame", "TextLabel", "TextButton", "TextBox", "ImageLabel", "ImageButton", "ScrollingFrame", "ViewportFrame", "CanvasGroup", "VideoFrame" },
+	GuiObject = {
+		"Frame",
+		"TextLabel",
+		"TextButton",
+		"TextBox",
+		"ImageLabel",
+		"ImageButton",
+		"ScrollingFrame",
+		"ViewportFrame",
+		"CanvasGroup",
+		"VideoFrame",
+	},
 	GuiButton = { "TextButton", "ImageButton" },
-	GuiBase2d = { "Frame", "TextLabel", "TextButton", "TextBox", "ImageLabel", "ImageButton", "ScrollingFrame", "ViewportFrame", "CanvasGroup", "ScreenGui", "BillboardGui", "SurfaceGui" },
+	GuiBase2d = {
+		"Frame",
+		"TextLabel",
+		"TextButton",
+		"TextBox",
+		"ImageLabel",
+		"ImageButton",
+		"ScrollingFrame",
+		"ViewportFrame",
+		"CanvasGroup",
+		"ScreenGui",
+		"BillboardGui",
+		"SurfaceGui",
+	},
 	LayerCollector = { "ScreenGui", "BillboardGui", "SurfaceGui" },
 	BasePart = { "Part", "MeshPart", "WedgePart", "UnionOperation", "TrussPart", "SpawnLocation" },
 	PVInstance = { "Model", "Part", "MeshPart", "WedgePart", "UnionOperation" },
-	UIComponent = { "UIStroke", "UICorner", "UIGradient", "UIScale", "UIPadding", "UIListLayout", "UIGridLayout", "UIAspectRatioConstraint", "UISizeConstraint", "UITextSizeConstraint" },
+	UIComponent = {
+		"UIStroke",
+		"UICorner",
+		"UIGradient",
+		"UIScale",
+		"UIPadding",
+		"UIListLayout",
+		"UIGridLayout",
+		"UIAspectRatioConstraint",
+		"UISizeConstraint",
+		"UITextSizeConstraint",
+	},
 	UIGridStyleLayout = { "UIListLayout", "UIGridLayout" },
 	ValueBase = { "IntValue", "NumberValue", "StringValue", "BoolValue", "ObjectValue" },
 	LuaSourceContainer = { "ModuleScript", "LocalScript", "Script" },
@@ -1252,6 +1292,9 @@ local NOOPS = {
 }
 for _, n in NOOPS do
 	METHODS[n] = function() end
+end
+function METHODS:IsLoaded()
+	return true
 end
 function METHODS:GetPivot()
 	return CFrame.new()

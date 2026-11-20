@@ -156,7 +156,18 @@ local function startPack(player: Player): (boolean, string?)
 	}
 	runs[player] = run
 	setPhase(player, run, "Packing")
-	standAtDeck(player, run.lane)
+	-- Pack right where you stand on the deck (keep your x; line up on the stand row).
+	local root = rootOf(player)
+	local character = player.Character
+	if root and character then
+		local half = World.Deck.Size.X / 2 - 6
+		local x = math.clamp(root.Position.X - World.Deck.Center.X, -half, half)
+		local pos = World.DeckStand + Vector3.new(x, 0, 0)
+		character:PivotTo(CFrame.lookAt(pos, pos + Vector3.zAxis))
+		root.Anchored = true
+	else
+		standAtDeck(player, run.lane)
+	end
 	local green = Upgrades.packGreen(data.PackZone)
 	Net.fire("PackStart", player, run.packStart, RollMath.PackPeriod, green, Upgrades.PackYellow)
 	return true, nil
@@ -223,7 +234,16 @@ local function launch(player: Player, run: Run, quality: string)
 		D *= 1.5
 	end
 	local core = Upgrades.Cores[data.Core] or Upgrades.Cores[1]
-	local x = World.laneX(run.lane)
+	-- The ball starts where YOU stand on the deck (Dev 2026-11-20: standing on the right, it
+	-- spawned on the left). Track x runs along the spline's Right, which at the top points
+	-- to world -X, so World.laneX can't be used as a track x directly.
+	local start = spline:sample(0)
+	local x = -World.laneX(run.lane)
+	local root = rootOf(player)
+	if root then
+		x = (root.Position - start.Pos):Dot(start.Right)
+	end
+	x = math.clamp(x, -start.Width / 2 + 6, start.Width / 2 - 6)
 	run.ball = Roll.new(x, D, core.Growth)
 	local firstEgg = data.Stats.Runs == 0 and data.Stats.EggsFound == 0
 	local limit = math.min(spline.Length, D * 1.15 + Pickups.Margin)

@@ -10,9 +10,9 @@
   "sha": "322bc4b8cf2ca5771372393595318cc18c797db7fca2199daec65d58b4171cd8"
  },
  "Deck": {
-  "granted": true,
-  "id": 123888722656689,
-  "sha": "08574a820aa56ec389ef242037382c36681c3d324ad94ba9b132579035bcfe06"
+  "granted": false,
+  "id": 83429513921982,
+  "sha": "35520d6fbe59d6a89642828d768c37dc9bb2fa91ebb500e460975486a0a82644"
  },
  "Egg_Common": {
   "granted": true,

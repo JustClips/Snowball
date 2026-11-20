@@ -5,7 +5,7 @@
 return {
 	Base = { Id = 100921593962689, Center = Vector3.new(0.0, 7.8745, -0.358) },
 	Chevron = { Id = 137398976321369, Center = Vector3.new(-0.0, 0.25, -0.4828) },
-	Deck = { Id = 123888722656689, Center = Vector3.new(-0.0, 17.2, 0.4263) },
+	Deck = { Id = 83429513921982, Center = Vector3.new(-0.0, 17.2, 0.4263) },
 	Egg_Common = { Id = 122273844265163, Center = Vector3.new(0.0613, 2.21, -0.0544) },
 	Egg_Epic = { Id = 112784003407551, Center = Vector3.new(-0.1156, 2.21, -0.1892) },
 	Egg_Legendary = { Id = 122507356757714, Center = Vector3.new(0.0171, 2.21, 0.0) },

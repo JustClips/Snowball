@@ -10,11 +10,12 @@ import math
 import sys
 
 import kit
+kit.PALETTE.update({"PlankLight": (214, 156, 96)})
 from kit import box, cyl, cone, sphere
 
 W, D = 140, 44
 LANES, SPACING = 8, 13
-LANE_COLORS = ["Red", "RoofBlue", "Green", "Gold", "Purple", "Ice", "Plank", "Aurora"]
+LANE_COLORS = ["Red", "RoofBlue", "Green", "Gold", "Purple", "Ice", "Snow", "Aurora"]
 
 
 def rb(x, y, z):
@@ -31,11 +32,16 @@ def lane_x(i):
 
 def deck(p):
     # Plank floor (planks run along the launch direction) over a log frame.
+    # Dark subfloor under the planks so the gaps read as gaps (v2, Dev 2026-11-20: the old
+    # dark "Log" planks looked like overlapping strips). Planks: two light wood tones.
+    p.append(box("Subfloor", rsize(W, 0.5, D), rb(0, -0.95, 0), "LogDark", bevel=0.0))
     n = int(W // 2.5)
     for k in range(n):
         x = -W / 2 + 1.25 + k * 2.5
-        c = "Plank" if k % 2 == 0 else "Log"
-        p.append(box(f"Plank{k}", rsize(2.35, 1.2, D - 1), rb(x, -0.6, -0.5), c, bevel=0.12))
+        c = "Plank" if k % 2 == 0 else "PlankLight"
+        p.append(box(f"Plank{k}", rsize(2.3, 1.0, D - 1.6), rb(x, -0.5, -0.4), c, bevel=0.1))
+    # Front lip where the deck meets the track, flush with the planks.
+    p.append(box("FrontLip", rsize(W + 2.6, 1.2, 1.2), rb(0, -0.6, D / 2 - 0.6), "LogDark", bevel=0.15))
     for s in (-1, 1):
         p.append(box(f"Beam{s}", rsize(1.6, 2.4, D + 1), rb(s * (W / 2 + 0.3), -0.4, 0), "LogDark", bevel=0.2))
     p.append(box("BackBeam", rsize(W + 2.6, 2.4, 1.6), rb(0, -0.4, -D / 2 - 0.3), "LogDark", bevel=0.2))
@@ -53,12 +59,12 @@ def deck(p):
     for i in range(1, LANES + 1):
         x = lane_x(i)
         c = LANE_COLORS[i - 1]
-        p.append(cyl(f"Pad{i}", 3.6, 0.3, rb(x, 0.15, -10), c, verts=20, bevel=0.08))
-        p.append(cyl(f"PadIn{i}", 2.8, 0.34, rb(x, 0.17, -10), "Snow", verts=20, bevel=0.06))
+        p.append(cyl(f"Pad{i}", 3.6, 0.3, rb(x, 0.16, -10), c, verts=20, bevel=0.08))
+        p.append(cyl(f"PadIn{i}", 2.8, 0.3, rb(x, 0.2, -10), "Snow" if c != "Snow" else "Ice", verts=20, bevel=0.06))
         for j in range(3):
             z = 2 + j * 5
             for s in (-1, 1):
-                p.append(box(f"Chev{i}{j}{s}", rsize(2.6, 0.2, 0.9), rb(x + s * 0.9, 0.1, z), c, bevel=0.05,
+                p.append(box(f"Chev{i}{j}{s}", rsize(2.6, 0.16, 0.9), rb(x + s * 0.9, 0.08, z), c, bevel=0.05,
                              rot=(0, 0, math.radians(35 * s))))
 
 
