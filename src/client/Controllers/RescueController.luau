@@ -160,6 +160,12 @@ local function drawYeti(y: Yeti, folder: Folder, dt: number)
 	limb(y, "ArmR", root, armR)
 	limb(y, "LegL", root, CFrame.Angles(swing, 0, 0))
 	limb(y, "LegR", root, CFrame.Angles(-swing, 0, 0))
+	-- Anything else in the model (an unexpected name) just rides along with the body.
+	for name, entry in y.parts do
+		if name ~= "Body" and not JOINTS[name] then
+			entry.part.CFrame = root * entry.base
+		end
+	end
 	-- Heavy steps you can hear while it runs.
 	if moving > 0.5 and math.floor(y.phase / math.pi) ~= y.lastStomp then
 		y.lastStomp = math.floor(y.phase / math.pi)
@@ -253,7 +259,7 @@ local function buildHud()
 	bottom = Ui.frame({
 		Name = "Bottom",
 		AnchorPoint = Vector2.new(0.5, 1),
-		Position = UDim2.new(0.5, 0, 1, -14),
+		Position = UDim2.new(0.5, 0, 1, -98), -- above the bag hotbar, where ROLL sits
 		Size = UDim2.fromOffset(520, 84),
 		BackgroundTransparency = 1,
 	})
@@ -374,6 +380,10 @@ end
 
 local function onEvent(kind: string, data: any)
 	if kind == "Start" then
+		-- The result card would sit over the rescue buttons: let it be seen, then go.
+		task.delay(2.5, function()
+			C.ResultsController:Close()
+		end)
 		Ui.word(`{data.Eggs} EGG{if data.Eggs > 1 then "S" else ""} TO SAVE!`, Ui.Colors.Yellow, 1.4)
 		Ui.sound("Pop")
 	elseif kind == "Grab" then
@@ -467,6 +477,7 @@ local function step(dt: number)
 	timeText.TextColor3 = if left < 30 then Ui.Colors.Red else Color3.new(1, 1, 1)
 	-- The yeti spray only matters while the yeti is up.
 	sprayButton.Visible = state ~= nil and state ~= "Asleep"
+	sledButton.Position = if sprayButton.Visible then UDim2.fromOffset(0, 0) else UDim2.new(0.5, -135, 0, 0)
 	updateFlagSign(f, flagPos, me)
 end
 
