@@ -100,7 +100,13 @@ function HatchService:Place(player: Player, uid: any): (boolean, string?)
 	end
 	local egg = data.Eggs[uid]
 	data.Eggs[uid] = nil
-	table.insert(data.Hatching, { Uid = uid, Rarity = egg.Rarity, Zone = egg.Zone, Spot = spot, EndsAt = os.time() + hatchSeconds(data, egg.Rarity) })
+	table.insert(data.Hatching, {
+		Uid = uid,
+		Rarity = egg.Rarity,
+		Zone = egg.Zone,
+		Spot = spot,
+		EndsAt = os.time() + hatchSeconds(data, egg.Rarity),
+	})
 	S.AnalyticsService:Funnel(player, "FirstPlace")
 	S.InventoryService:Bump(player)
 	HatchService:RefreshEggs(player)
@@ -163,10 +169,22 @@ function HatchService:Open(player: Player, spot: any, force: boolean?): (boolean
 			local uid = S.PetService:GivePet(player, petId, { Zone = h.Zone, Mutation = mutation, Huge = huge or nil })
 			data.Stats.Hatches += 1
 			S.AnalyticsService:Funnel(player, "FirstHatch")
-			S.AnalyticsService:Custom(player, "EggHatched", 1, { Rarity = h.Rarity, Pet = petId, Mutation = mutation or "None" })
-			Net.fire("HatchCompleted", player, { Uid = uid, PetId = petId, Rarity = h.Rarity, Mutation = mutation, Huge = huge, Zone = h.Zone })
+			S.AnalyticsService:Custom(
+				player,
+				"EggHatched",
+				1,
+				{ Rarity = h.Rarity, Pet = petId, Mutation = mutation or "None" }
+			)
+			Net.fire(
+				"HatchCompleted",
+				player,
+				{ Uid = uid, PetId = petId, Rarity = h.Rarity, Mutation = mutation, Huge = huge, Zone = h.Zone }
+			)
 			if order >= 6 then
-				Net.fireAll("Announce", `{player.DisplayName} hatched a {mutation and (mutation .. " ") or ""}{Pets.ById[petId].Name} ({h.Rarity})!`)
+				Net.fireAll(
+					"Announce",
+					`{player.DisplayName} hatched a {mutation and (mutation .. " ") or ""}{Pets.ById[petId].Name} ({h.Rarity})!`
+				)
 			end
 			S.InventoryService:Bump(player)
 			HatchService:RefreshEggs(player)

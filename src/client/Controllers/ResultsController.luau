@@ -90,14 +90,21 @@ function ResultsController:Init()
 	card = window
 	title = Ui.label({ Name = "Title", Size = UDim2.new(1, 0, 0, 40), Text = "", TextColor3 = Ui.Colors.Gold })
 	title.Parent = body
-	distance = Ui.label({ Name = "Distance", Size = UDim2.new(1, 0, 0, 90), Position = UDim2.fromOffset(0, 40), Text = "0" })
+	distance =
+		Ui.label({ Name = "Distance", Size = UDim2.new(1, 0, 0, 90), Position = UDim2.fromOffset(0, 40), Text = "0" })
 	bigScale = Instance.new("UIScale")
 	bigScale.Parent = distance
 	distance.Parent = body
-	zoneLabel = Ui.label({ Name = "Zone", Size = UDim2.new(1, 0, 0, 30), Position = UDim2.fromOffset(0, 130), Text = "" })
+	zoneLabel =
+		Ui.label({ Name = "Zone", Size = UDim2.new(1, 0, 0, 30), Position = UDim2.fromOffset(0, 130), Text = "" })
 	zoneLabel.Parent = body
 	-- Reward row: cash icon + amount, egg icon + count.
-	local rewards = Ui.frame({ Name = "Rewards", Size = UDim2.new(1, 0, 0, 60), Position = UDim2.fromOffset(0, 170), BackgroundTransparency = 1 })
+	local rewards = Ui.frame({
+		Name = "Rewards",
+		Size = UDim2.new(1, 0, 0, 60),
+		Position = UDim2.fromOffset(0, 170),
+		BackgroundTransparency = 1,
+	})
 	local list = Instance.new("UIListLayout")
 	list.FillDirection = Enum.FillDirection.Horizontal
 	list.HorizontalAlignment = Enum.HorizontalAlignment.Center
@@ -105,12 +112,23 @@ function ResultsController:Init()
 	list.Parent = rewards
 	local cashRow = Ui.frame({ Name = "Cash", Size = UDim2.fromOffset(190, 60), BackgroundTransparency = 1 })
 	Ui.icon("Cash", { Size = UDim2.fromOffset(60, 60) }).Parent = cashRow
-	cashLabel = Ui.label({ Size = UDim2.new(1, -64, 1, -10), Position = UDim2.fromOffset(64, 5), Text = "", TextColor3 = Ui.Colors.Green, TextXAlignment = Enum.TextXAlignment.Left })
+	cashLabel = Ui.label({
+		Size = UDim2.new(1, -64, 1, -10),
+		Position = UDim2.fromOffset(64, 5),
+		Text = "",
+		TextColor3 = Ui.Colors.Green,
+		TextXAlignment = Enum.TextXAlignment.Left,
+	})
 	cashLabel.Parent = cashRow
 	cashRow.Parent = rewards
 	eggsRow = Ui.frame({ Name = "Eggs", Size = UDim2.fromOffset(130, 60), BackgroundTransparency = 1 })
 	Ui.icon("GoldenEgg", { Size = UDim2.fromOffset(60, 60) }).Parent = eggsRow
-	eggsLabel = Ui.label({ Size = UDim2.new(1, -64, 1, -10), Position = UDim2.fromOffset(64, 5), Text = "", TextXAlignment = Enum.TextXAlignment.Left })
+	eggsLabel = Ui.label({
+		Size = UDim2.new(1, -64, 1, -10),
+		Position = UDim2.fromOffset(64, 5),
+		Text = "",
+		TextXAlignment = Enum.TextXAlignment.Left,
+	})
 	eggsLabel.Parent = eggsRow
 	eggsRow.Parent = rewards
 	rewards.Parent = body

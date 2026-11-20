@@ -69,7 +69,6 @@ local function renderDaily(r)
 			then Ui.Colors.Green
 			elseif done then Ui.Colors.PanelDark
 			else Ui.Colors.Panel
-
 	end
 	dailyClaim.Visible = r.DailyReady
 	if r.DailyReady then
@@ -129,7 +128,10 @@ local function render()
 	Ui.badge(buttons.Daily, if r.DailyReady then 1 else 0)
 	Ui.badge(buttons.Gifts, giftsReady)
 	Ui.badge(buttons.Wheel, (if r.FreeSpin then 1 else 0) + (r.Spins or 0))
-	local text = if r.FreeSpin then "SPIN" elseif r.FreeSpinAt then Format.time(math.max(0, r.FreeSpinAt - State.now())) else "SPIN"
+	local text = if r.FreeSpin
+		then "SPIN"
+		elseif r.FreeSpinAt then Format.time(math.max(0, r.FreeSpinAt - State.now()))
+		else "SPIN"
 	Ui.setText(buttons.Wheel, text)
 end
 
@@ -141,7 +143,8 @@ local function rewardIcon(r: Rewards.Reward): (string, string)
 	if k == "Cash" then
 		return "Cash", ""
 	elseif k == "Egg" then
-		return if r.Rarity == "Legendary" or r.Rarity == "Mythic" then "GoldenEgg" else "Egg", string.upper(string.sub(r.Rarity or "", 1, 4))
+		return if r.Rarity == "Legendary" or r.Rarity == "Mythic" then "GoldenEgg" else "Egg",
+			string.upper(string.sub(r.Rarity or "", 1, 4))
 	elseif k == "Spin" then
 		return "Wheel", `x{r.Amount or 1}`
 	elseif k == "Pet" then
@@ -169,7 +172,8 @@ local function rewardIcons(parent: GuiObject, r: Rewards.Reward, size: number)
 		local cell = Ui.frame({ BackgroundTransparency = 1, Size = UDim2.fromOffset(size, size + 20) })
 		Ui.icon(icon, { Size = UDim2.fromOffset(size, size) }).Parent = cell
 		if caption ~= "" then
-			Ui.label({ Size = UDim2.new(1, 0, 0, 20), Position = UDim2.fromOffset(0, size), Text = caption }).Parent = cell
+			Ui.label({ Size = UDim2.new(1, 0, 0, 20), Position = UDim2.fromOffset(0, size), Text = caption }).Parent =
+				cell
 		end
 		cell.Parent = holder
 		part = part.Bonus
@@ -178,11 +182,15 @@ local function rewardIcons(parent: GuiObject, r: Rewards.Reward, size: number)
 	return holder
 end
 
-
 local function buildDaily(gui: ScreenGui)
 	local window, body = Ui.window(gui, "Daily", "DAILY", Vector2.new(600, 400))
 	windows.Daily = window
-	local grid = Ui.frame({ Name = "Grid", Size = UDim2.new(1, -16, 0, 230), Position = UDim2.fromOffset(8, 4), BackgroundTransparency = 1 })
+	local grid = Ui.frame({
+		Name = "Grid",
+		Size = UDim2.new(1, -16, 0, 230),
+		Position = UDim2.fromOffset(8, 4),
+		BackgroundTransparency = 1,
+	})
 	local layout = Instance.new("UIGridLayout")
 	layout.CellSize = UDim2.fromOffset(134, 108)
 	layout.CellPadding = UDim2.fromOffset(8, 8)
@@ -192,23 +200,35 @@ local function buildDaily(gui: ScreenGui)
 	for i = 1, #Rewards.Daily do
 		local card = Ui.frame({ Name = "Day" .. i, LayoutOrder = i, BackgroundColor3 = Ui.Colors.Panel })
 		Ui.stroke(card, 2)
-		Ui.label({ Name = "Day", Size = UDim2.new(1, -8, 0, 26), Position = UDim2.fromOffset(4, 4), Text = tostring(i), TextColor3 = if i == 7 then Ui.Colors.Gold else Ui.Colors.Snow }).Parent = card
+		Ui.label({
+			Name = "Day",
+			Size = UDim2.new(1, -8, 0, 26),
+			Position = UDim2.fromOffset(4, 4),
+			Text = tostring(i),
+			TextColor3 = if i == 7 then Ui.Colors.Gold else Ui.Colors.Snow,
+		}).Parent =
+			card
 		local icons = rewardIcons(card, Rewards.Daily[i], 44)
 		icons.Position = UDim2.fromOffset(0, 32)
 		card.Parent = grid
 		dailyCards[i] = card
 	end
-	dailyInfo = Ui.label({ Name = "Info", Size = UDim2.new(1, -16, 0, 28), Position = UDim2.new(0, 8, 1, -100), Text = "" })
+	dailyInfo =
+		Ui.label({ Name = "Info", Size = UDim2.new(1, -16, 0, 28), Position = UDim2.new(0, 8, 1, -100), Text = "" })
 	dailyInfo.Parent = body
-	dailyClaim = Ui.button({
-		Name = "Claim",
-		Size = UDim2.fromOffset(220, 60),
-		AnchorPoint = Vector2.new(0.5, 1),
-		Position = UDim2.new(0.5, 0, 1, -6),
-		BackgroundColor3 = Ui.Colors.Green,
-	}, "CLAIM", function()
-		invoke("ClaimDaily")
-	end)
+	dailyClaim = Ui.button(
+		{
+			Name = "Claim",
+			Size = UDim2.fromOffset(220, 60),
+			AnchorPoint = Vector2.new(0.5, 1),
+			Position = UDim2.new(0.5, 0, 1, -6),
+			BackgroundColor3 = Ui.Colors.Green,
+		},
+		"CLAIM",
+		function()
+			invoke("ClaimDaily")
+		end
+	)
 	dailyClaim.Parent = body
 end
 
@@ -220,18 +240,27 @@ local function buildGifts(gui: ScreenGui)
 	list.SortOrder = Enum.SortOrder.LayoutOrder
 	list.Parent = body
 	for i, entry in Rewards.Playtime do
-		local row = Ui.frame({ Name = "Gift" .. i, LayoutOrder = i, Size = UDim2.new(1, -8, 0, 54), BackgroundColor3 = Ui.Colors.PanelDark })
+		local row = Ui.frame({
+			Name = "Gift" .. i,
+			LayoutOrder = i,
+			Size = UDim2.new(1, -8, 0, 54),
+			BackgroundColor3 = Ui.Colors.PanelDark,
+		})
 		Ui.stroke(row, 2)
 		local icons = rewardIcons(row, entry.Reward, 36)
 		icons.Size = UDim2.new(0, 120, 1, 0)
 		icons.Position = UDim2.fromOffset(4, -2)
-		local button = Ui.button({
-			Name = "Claim",
-			Size = UDim2.fromOffset(150, 44),
-			Position = UDim2.new(1, -156, 0, 5),
-		}, "", function()
-			invoke("ClaimPlaytime", i)
-		end)
+		local button = Ui.button(
+			{
+				Name = "Claim",
+				Size = UDim2.fromOffset(150, 44),
+				Position = UDim2.new(1, -156, 0, 5),
+			},
+			"",
+			function()
+				invoke("ClaimPlaytime", i)
+			end
+		)
 		button.Parent = row
 		row.Parent = body
 		giftRows[i] = { frame = row, button = button }
@@ -257,81 +286,92 @@ local function buildWheel(gui: ScreenGui)
 			Position = UDim2.fromOffset(48, 4),
 			Text = caption,
 			TextXAlignment = Enum.TextXAlignment.Left,
-		}).Parent = row
+		}).Parent =
+			row
 		Ui.label({
 			Size = UDim2.new(0, 76, 1, -8),
 			Position = UDim2.new(1, -82, 0, 4),
 			Text = `{math.floor(seg.Weight / total * 1000 + 0.5) / 10}%`,
-		}).Parent = row
+		}).Parent =
+			row
 		row.Parent = body
 		wheelRows[i] = row
 	end
-	wheelInfo = Ui.label({ Name = "Info", Size = UDim2.new(1, -16, 0, 24), Position = UDim2.fromOffset(8, 362), Text = "" })
+	wheelInfo =
+		Ui.label({ Name = "Info", Size = UDim2.new(1, -16, 0, 24), Position = UDim2.fromOffset(8, 362), Text = "" })
 	wheelInfo.Parent = body
-	wheelSpin = Ui.button({
-		Name = "Spin",
-		Size = UDim2.fromOffset(200, 56),
-		Position = UDim2.fromOffset(8, 392),
-		BackgroundColor3 = Ui.Colors.Green,
-	}, "SPIN", function()
-		if spinning then
-			return
+	wheelSpin = Ui.button(
+		{
+			Name = "Spin",
+			Size = UDim2.fromOffset(200, 56),
+			Position = UDim2.fromOffset(8, 392),
+			BackgroundColor3 = Ui.Colors.Green,
+		},
+		"SPIN",
+		function()
+			if spinning then
+				return
+			end
+			local ok, why, index = Net.func("Rewards"):InvokeServer("Spin")
+			if not ok then
+				if why then
+					Ui.toast(why, "Bad")
+				end
+				return
+			end
+			-- The highlight runs down the list and slows onto the prize.
+			spinning = true
+			task.spawn(function()
+				local count = #wheelRows
+				local steps = count * 3 + (index - 1)
+				local t0 = os.clock()
+				local duration = Rewards.Wheel.SpinSeconds
+				local last = 0
+				while true do
+					local p = math.min(1, (os.clock() - t0) / duration)
+					local step = math.floor((1 - (1 - p) ^ 3) * steps)
+					if step ~= last then
+						last = step
+						Ui.sound("Tap")
+					end
+					local at = step % count + 1
+					for i, row in wheelRows do
+						(row :: any).UIStroke.Color = if i == at then Ui.Colors.Snow else Ui.Colors.Ink;
+						(row :: any).UIStroke.Thickness = if i == at then 5 else 2
+					end
+					if p >= 1 then
+						break
+					end
+					RunService.Heartbeat:Wait()
+				end
+				Ui.sound("Pop")
+				if why then
+					Ui.toast(why, "Good")
+				end
+				spinning = false
+			end)
 		end
-		local ok, why, index = Net.func("Rewards"):InvokeServer("Spin")
-		if not ok then
-			if why then
-				Ui.toast(why, "Bad")
-			end
-			return
-		end
-		-- The highlight runs down the list and slows onto the prize.
-		spinning = true
-		task.spawn(function()
-			local count = #wheelRows
-			local steps = count * 3 + (index - 1)
-			local t0 = os.clock()
-			local duration = Rewards.Wheel.SpinSeconds
-			local last = 0
-			while true do
-				local p = math.min(1, (os.clock() - t0) / duration)
-				local step = math.floor((1 - (1 - p) ^ 3) * steps)
-				if step ~= last then
-					last = step
-					Ui.sound("Tap")
-				end
-				local at = step % count + 1
-				for i, row in wheelRows do
-					(row :: any).UIStroke.Color = if i == at then Ui.Colors.Snow else Ui.Colors.Ink
-					;(row :: any).UIStroke.Thickness = if i == at then 5 else 2
-				end
-				if p >= 1 then
-					break
-				end
-				RunService.Heartbeat:Wait()
-			end
-			Ui.sound("Pop")
-			if why then
-				Ui.toast(why, "Good")
-			end
-			spinning = false
-		end)
-	end)
+	)
 	wheelSpin.Parent = body
 	-- Robux spin packs (hidden until the products exist).
 	for i, key in { "WheelSpin1", "WheelSpin5", "WheelSpin10" } do
 		local product = Products.ProductByKey[key]
-		local b = Ui.button({
-			Name = key,
-			Size = UDim2.fromOffset(92, 56),
-			Position = UDim2.fromOffset(216 + (i - 1) * 98, 392),
-			BackgroundColor3 = Ui.Colors.Robux,
-			Visible = product ~= nil and product.Id ~= 0,
-		}, if product then `{product.Count}: {Ui.ROBUX}{product.Price}` else "", function()
-			local ok, msg = Net.func("PromptPurchase"):InvokeServer(key)
-			if not ok and msg then
-				Ui.toast(msg, "Bad")
+		local b = Ui.button(
+			{
+				Name = key,
+				Size = UDim2.fromOffset(92, 56),
+				Position = UDim2.fromOffset(216 + (i - 1) * 98, 392),
+				BackgroundColor3 = Ui.Colors.Robux,
+				Visible = product ~= nil and product.Id ~= 0,
+			},
+			if product then `{product.Count}: {Ui.ROBUX}{product.Price}` else "",
+			function()
+				local ok, msg = Net.func("PromptPurchase"):InvokeServer(key)
+				if not ok and msg then
+					Ui.toast(msg, "Bad")
+				end
 			end
-		end)
+		)
 		b.Parent = body
 	end
 end
@@ -353,21 +393,26 @@ local function buildCodes(gui: ScreenGui)
 	codeBox.FontFace = Font.new("rbxasset://fonts/families/Montserrat.json", Enum.FontWeight.Bold)
 	Ui.stroke(codeBox, 2)
 	codeBox.Parent = body
-	Ui.button({
-		Name = "Redeem",
-		Size = UDim2.fromOffset(200, 56),
-		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.new(0.5, 0, 0, 72),
-		BackgroundColor3 = Ui.Colors.Green,
-	}, "REDEEM", function()
-		local ok, why = Net.func("RedeemCode"):InvokeServer(codeBox.Text)
-		if why then
-			Ui.toast(why, if ok then "Good" else "Bad")
+	Ui.button(
+		{
+			Name = "Redeem",
+			Size = UDim2.fromOffset(200, 56),
+			AnchorPoint = Vector2.new(0.5, 0),
+			Position = UDim2.new(0.5, 0, 0, 72),
+			BackgroundColor3 = Ui.Colors.Green,
+		},
+		"REDEEM",
+		function()
+			local ok, why = Net.func("RedeemCode"):InvokeServer(codeBox.Text)
+			if why then
+				Ui.toast(why, if ok then "Good" else "Bad")
+			end
+			if ok then
+				codeBox.Text = ""
+			end
 		end
-		if ok then
-			codeBox.Text = ""
-		end
-	end).Parent = body
+	).Parent =
+		body
 end
 
 function RewardsController:Init(controllers)

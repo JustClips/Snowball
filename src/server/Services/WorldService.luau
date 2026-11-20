@@ -3,12 +3,14 @@
 -- pads, the launch deck and the track strip from Config/Track. Everything here is a
 -- placeholder for the Blender models (art thread) and keeps their spots and names, so
 -- swapping in the real meshes only changes what gets parented under these folders.
+local InsertService = game:GetService("InsertService")
 local Lighting = game:GetService("Lighting")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Spline = require(Shared.Spline)
+local Models = require(Shared.Config.Models)
 local World = require(Shared.Config.World)
 local Zones = require(Shared.Config.Zones)
 
@@ -243,10 +245,88 @@ local function setLighting()
 	atmosphere.Parent = Lighting
 end
 
+-- The Blender base model (art/blender/base.py, tools/upload_models.py). Its bounding box
+-- centre in base-local space comes from the GLB (floor top sits on the pad top). The pad
+-- stays as the invisible floor; the fence gets plain invisible walls with a gate gap.
+local BASE_BOX_CENTER = Vector3.new(0, 0.5 + 7.8745, -0.358)
+
+local function loadModel(name: string): Model?
+	local id = Models[name]
+	if not id or id == 0 then
+		return nil
+	end
+	local ok, result = pcall(function()
+		return InsertService:LoadAsset(id)
+	end)
+	if not ok then
+		warn(`[WorldService] couldn't load model {name} ({id}): {result}`)
+		return nil
+	end
+	local container = result :: Model
+	local inner = container:FindFirstChildWhichIsA("Model")
+	local model = inner or container
+	model.Parent = nil
+	return model
+end
+
+local function fenceWalls(base: Model, cf: CFrame)
+	local hx, hz = World.BaseSize.X / 2 - 1, World.BaseSize.Z / 2 - 1
+	local walls = {
+		{ Vector3.new(hx * 2, 6, 1), Vector3.new(0, 3, hz) },
+		{ Vector3.new(1, 6, hz * 2), Vector3.new(hx, 3, 0) },
+		{ Vector3.new(1, 6, hz * 2), Vector3.new(-hx, 3, 0) },
+		{ Vector3.new(hx - 7, 6, 1), Vector3.new((hx + 7) / 2, 3, -hz) },
+		{ Vector3.new(hx - 7, 6, 1), Vector3.new(-(hx + 7) / 2, 3, -hz) },
+	}
+	for i, w in walls do
+		part({
+			Name = "FenceWall" .. i,
+			Size = w[1],
+			CFrame = cf * CFrame.new(w[2] + Vector3.new(0, 1, 0)),
+			Transparency = 1,
+			Parent = base,
+		})
+	end
+end
+
+local function dressBases(bases: Folder)
+	local template = loadModel("Base")
+	if not template then
+		return
+	end
+	for _, d in template:GetDescendants() do
+		if d:IsA("BasePart") then
+			d.Anchored = true
+			-- Only the cabin is solid; the pad is the floor and the fence uses plain walls.
+			d.CanCollide = d.Name == "Cabin"
+			d.CanQuery = d.Name == "Cabin"
+			d.CanTouch = false
+		end
+	end
+	local boxCf = CFrame.new((template:GetBoundingBox()).Position)
+	template.WorldPivot = boxCf
+	for i = 1, World.BaseCount do
+		local base = bases:FindFirstChild("Base" .. i) :: Model?
+		if base then
+			local cf = World.baseCFrame(i)
+			local look = template:Clone()
+			look.Name = "Look"
+			look:PivotTo(cf * CFrame.new(BASE_BOX_CENTER))
+			look.Parent = base
+			local pad = base:FindFirstChild("Pad") :: BasePart?
+			if pad then
+				pad.Transparency = 1
+			end
+			fenceWalls(base, cf)
+		end
+	end
+end
+
 function WorldService:Init()
 	local root = folder("Mountain", Workspace)
 	buildSummit(root)
 	buildTrack(root)
+	task.spawn(dressBases, root:FindFirstChild("Summit"):FindFirstChild("Bases"))
 	setLighting()
 	-- Spare the default template's baseplate/spawn if the place still has them.
 	for _, name in { "Baseplate", "SpawnLocation" } do

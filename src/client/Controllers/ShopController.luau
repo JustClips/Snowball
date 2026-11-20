@@ -120,7 +120,12 @@ local function header(name: string, order: number)
 		LayoutOrder = order,
 		BackgroundColor3 = Ui.Colors.PanelDark,
 	})
-	Ui.label({ Size = UDim2.new(1, -16, 1, -8), Position = UDim2.fromOffset(8, 4), Text = string.upper(name), TextXAlignment = Enum.TextXAlignment.Left }).Parent =
+	Ui.label({
+		Size = UDim2.new(1, -16, 1, -8),
+		Position = UDim2.fromOffset(8, 4),
+		Text = string.upper(name),
+		TextXAlignment = Enum.TextXAlignment.Left,
+	}).Parent =
 		h
 	h.Parent = list
 	headers[name] = h
@@ -137,14 +142,16 @@ local function card(def: any, pass: boolean, order: number): Frame
 	Ui.icon((if pass then PASS_ICON[def.Key] else KIND_ICON[def.Kind]) or "Gift", {
 		Size = UDim2.fromOffset(66, 66),
 		Position = UDim2.fromOffset(5, 5),
-	}).Parent = f
+	}).Parent =
+		f
 	Ui.label({
 		Name = "Name",
 		Size = UDim2.new(1, -250, 0, 32),
 		Position = UDim2.fromOffset(78, 6),
 		Text = def.Name,
 		TextXAlignment = Enum.TextXAlignment.Left,
-	}).Parent = f
+	}).Parent =
+		f
 	Ui.label({
 		Name = "Info",
 		Size = UDim2.new(1, -250, 0, 26),
@@ -152,15 +159,20 @@ local function card(def: any, pass: boolean, order: number): Frame
 		Text = describe(def),
 		TextColor3 = Ui.Colors.Ice,
 		TextXAlignment = Enum.TextXAlignment.Left,
-	}).Parent = f
-	local b = Ui.button({
-		Name = "Buy",
-		Size = UDim2.fromOffset(150, 60),
-		Position = UDim2.new(1, -158, 0, 8),
-		BackgroundColor3 = Ui.Colors.Robux,
-	}, `{Ui.ROBUX}{def.Price}`, function()
-		buy(def, pass)
-	end)
+	}).Parent =
+		f
+	local b = Ui.button(
+		{
+			Name = "Buy",
+			Size = UDim2.fromOffset(150, 60),
+			Position = UDim2.new(1, -158, 0, 8),
+			BackgroundColor3 = Ui.Colors.Robux,
+		},
+		`{Ui.ROBUX}{def.Price}`,
+		function()
+			buy(def, pass)
+		end
+	)
 	b.Parent = f
 	f.Parent = list
 	table.insert(items, { def = def, pass = pass, card = f, buy = b })
@@ -187,11 +199,15 @@ local function render(data)
 	end
 	if starterCard then
 		local ends = data.Flags.StarterPackEnds
-		local live = not data.Flags.StarterPackBought and type(ends) == "number" and ends > now and data.Flags.TutorialDone
+		local live = not data.Flags.StarterPackBought
+			and type(ends) == "number"
+			and ends > now
+			and data.Flags.TutorialDone
 		starterCard.Visible = live
 		headers.Offers.Visible = live
 		if live then
-			((starterCard :: Frame):FindFirstChild("Info") :: TextLabel).Text = `{describe(Products.ProductByKey.StarterPack)} Ends in {Format.time(ends - now)}`
+			((starterCard :: Frame):FindFirstChild("Info") :: TextLabel).Text =
+				`{describe(Products.ProductByKey.StarterPack)} Ends in {Format.time(ends - now)}`
 		end
 	end
 end
@@ -247,10 +263,21 @@ function ShopController:Init(controllers)
 	local body
 	window, body = Ui.window(gui, "Window", "SHOP", Vector2.new(760, 540))
 	-- Gift bar.
-	local giftBar = Ui.frame({ Name = "Gift", Size = UDim2.new(1, -130, 0, 44), BackgroundColor3 = Ui.Colors.PanelDark })
-	giftLabel = Ui.label({ Size = UDim2.new(1, -140, 1, -8), Position = UDim2.fromOffset(8, 4), Text = "BUYING FOR: YOU", TextXAlignment = Enum.TextXAlignment.Left })
+	local giftBar =
+		Ui.frame({ Name = "Gift", Size = UDim2.new(1, -130, 0, 44), BackgroundColor3 = Ui.Colors.PanelDark })
+	giftLabel = Ui.label({
+		Size = UDim2.new(1, -140, 1, -8),
+		Position = UDim2.fromOffset(8, 4),
+		Text = "BUYING FOR: YOU",
+		TextXAlignment = Enum.TextXAlignment.Left,
+	})
 	giftLabel.Parent = giftBar
-	Ui.button({ Name = "Change", Size = UDim2.fromOffset(124, 38), Position = UDim2.new(1, -128, 0, 3), BackgroundColor3 = Ui.Colors.Yellow }, "GIFT", nextGift).Parent =
+	Ui.button({
+		Name = "Change",
+		Size = UDim2.fromOffset(124, 38),
+		Position = UDim2.new(1, -128, 0, 3),
+		BackgroundColor3 = Ui.Colors.Yellow,
+	}, "GIFT", nextGift).Parent =
 		giftBar
 	giftBar.Parent = body
 
@@ -300,23 +327,41 @@ function ShopController:Init(controllers)
 		end
 		if s == "Codes" then
 			order += 1
-			Ui.button({ Name = "OpenCodes", Size = UDim2.new(1, -12, 0, 60), LayoutOrder = order, BackgroundColor3 = Ui.Colors.Ice }, "ENTER A CODE", function()
-				C.RewardsController:Open("Codes")
-			end).Parent =
+			Ui.button(
+				{
+					Name = "OpenCodes",
+					Size = UDim2.new(1, -12, 0, 60),
+					LayoutOrder = order,
+					BackgroundColor3 = Ui.Colors.Ice,
+				},
+				"ENTER A CODE",
+				function()
+					C.RewardsController:Open("Codes")
+				end
+			).Parent =
 				list
 		end
 	end
 
 	-- Section buttons on the right.
-	local nav = Ui.frame({ Name = "Nav", Size = UDim2.new(0, 120, 1, 0), Position = UDim2.new(1, -120, 0, 0), BackgroundTransparency = 1 })
+	local nav = Ui.frame({
+		Name = "Nav",
+		Size = UDim2.new(0, 120, 1, 0),
+		Position = UDim2.new(1, -120, 0, 0),
+		BackgroundTransparency = 1,
+	})
 	local navList = Instance.new("UIListLayout")
 	navList.Padding = UDim.new(0, 6)
 	navList.SortOrder = Enum.SortOrder.LayoutOrder
 	navList.Parent = nav
 	for i, s in SECTIONS do
-		Ui.button({ Name = s, LayoutOrder = i, Size = UDim2.new(1, 0, 0, 52), BackgroundColor3 = Ui.Colors.Panel }, string.upper(s), function()
-			ShopController:Toggle(s)
-		end).Parent =
+		Ui.button(
+			{ Name = s, LayoutOrder = i, Size = UDim2.new(1, 0, 0, 52), BackgroundColor3 = Ui.Colors.Panel },
+			string.upper(s),
+			function()
+				ShopController:Toggle(s)
+			end
+		).Parent =
 			nav
 	end
 	nav.Parent = body

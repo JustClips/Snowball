@@ -71,7 +71,9 @@ local function select(uid: string?)
 		return
 	end
 	local def = Pets.ById[pet.Id]
-	actName.Text = (if pet.Huge then "Huge " else "") .. (if pet.Mutation then pet.Mutation .. " " else "") .. (def and def.Name or pet.Id)
+	actName.Text = (if pet.Huge then "Huge " else "")
+		.. (if pet.Mutation then pet.Mutation .. " " else "")
+		.. (def and def.Name or pet.Id)
 	actName.TextColor3 = if def then Eggs.ByName[def.Rarity].Color else Ui.Colors.Snow
 	actTrain.Text = if def then `+{math.floor(def.Train * 100)}%` else ""
 	actIncome.Text = if def then Format.cash(def.Income) .. "/s" else ""
@@ -136,12 +138,19 @@ local function render(data)
 				Position = UDim2.new(0, 3, 1, -24),
 				Text = def.Name,
 				TextColor3 = rarity.Color,
-			}).Parent = card
+			}).Parent =
+				card
 			if item.pet.Equipped then
-				Ui.icon("Checkmark", { Size = UDim2.fromOffset(30, 30), Position = UDim2.fromOffset(2, 2), ZIndex = 3 }).Parent = card
+				Ui.icon("Checkmark", { Size = UDim2.fromOffset(30, 30), Position = UDim2.fromOffset(2, 2), ZIndex = 3 }).Parent =
+					card
 			end
 			if item.pet.Placed then
-				Ui.icon("Base", { Size = UDim2.fromOffset(30, 30), AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -2, 0, 2), ZIndex = 3 }).Parent =
+				Ui.icon("Base", {
+					Size = UDim2.fromOffset(30, 30),
+					AnchorPoint = Vector2.new(1, 0),
+					Position = UDim2.new(1, -2, 0, 2),
+					ZIndex = 3,
+				}).Parent =
 					card
 			end
 			card.Activated:Connect(function()
@@ -179,7 +188,12 @@ function PetsController:Init()
 	-- Top row: egg bag + three icon tiles.
 	local eggs = Ui.frame({ Name = "EggBag", Size = UDim2.fromOffset(130, 84), BackgroundTransparency = 1 })
 	Ui.icon("GoldenEgg", { Size = UDim2.fromOffset(72, 72) }).Parent = eggs
-	eggCountLabel = Ui.label({ Size = UDim2.fromOffset(60, 40), Position = UDim2.fromOffset(68, 22), Text = "x0", TextXAlignment = Enum.TextXAlignment.Left })
+	eggCountLabel = Ui.label({
+		Size = UDim2.fromOffset(60, 40),
+		Position = UDim2.fromOffset(68, 22),
+		Text = "x0",
+		TextXAlignment = Enum.TextXAlignment.Left,
+	})
 	eggCountLabel.Parent = eggs
 	eggs.Parent = body
 	placeTile = Ui.tile("PlaceEggs", "Base", "PLACE", Ui.Colors.Green, function()
@@ -214,15 +228,41 @@ function PetsController:Init()
 	list.Parent = body
 
 	-- The selected pet's actions (slides over the top row).
-	actions = Ui.frame({ Name = "Actions", Size = UDim2.new(1, 0, 0, 90), BackgroundColor3 = Ui.Colors.PanelDark, Visible = false, ZIndex = 30 })
+	actions = Ui.frame({
+		Name = "Actions",
+		Size = UDim2.new(1, 0, 0, 90),
+		BackgroundColor3 = Ui.Colors.PanelDark,
+		Visible = false,
+		ZIndex = 30,
+	})
 	Ui.stroke(actions, 3)
-	actName = Ui.label({ Size = UDim2.new(0, 200, 0, 34), Position = UDim2.fromOffset(8, 6), Text = "", TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 31 })
+	actName = Ui.label({
+		Size = UDim2.new(0, 200, 0, 34),
+		Position = UDim2.fromOffset(8, 6),
+		Text = "",
+		TextXAlignment = Enum.TextXAlignment.Left,
+		ZIndex = 31,
+	})
 	actName.Parent = actions
-	Ui.icon("Power", { Size = UDim2.fromOffset(36, 36), Position = UDim2.fromOffset(6, 46), ZIndex = 31 }).Parent = actions
-	actTrain = Ui.label({ Size = UDim2.fromOffset(70, 30), Position = UDim2.fromOffset(44, 50), Text = "", TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 31 })
+	Ui.icon("Power", { Size = UDim2.fromOffset(36, 36), Position = UDim2.fromOffset(6, 46), ZIndex = 31 }).Parent =
+		actions
+	actTrain = Ui.label({
+		Size = UDim2.fromOffset(70, 30),
+		Position = UDim2.fromOffset(44, 50),
+		Text = "",
+		TextXAlignment = Enum.TextXAlignment.Left,
+		ZIndex = 31,
+	})
 	actTrain.Parent = actions
-	Ui.icon("Cash", { Size = UDim2.fromOffset(36, 36), Position = UDim2.fromOffset(112, 46), ZIndex = 31 }).Parent = actions
-	actIncome = Ui.label({ Size = UDim2.fromOffset(90, 30), Position = UDim2.fromOffset(150, 50), Text = "", TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 31 })
+	Ui.icon("Cash", { Size = UDim2.fromOffset(36, 36), Position = UDim2.fromOffset(112, 46), ZIndex = 31 }).Parent =
+		actions
+	actIncome = Ui.label({
+		Size = UDim2.fromOffset(90, 30),
+		Position = UDim2.fromOffset(150, 50),
+		Text = "",
+		TextXAlignment = Enum.TextXAlignment.Left,
+		ZIndex = 31,
+	})
 	actIncome.Parent = actions
 	followTile = Ui.tile("Follow", "Pets", "FOLLOW", Ui.Colors.Ice, function()
 		local pet = selected and State.data and State.data.Pets[selected]

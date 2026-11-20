@@ -36,6 +36,8 @@ local zoneFill: Frame
 local zoneText: TextLabel
 local zoneBest: Frame
 local tiles: { [string]: TextButton } = {}
+local onDeck = false
+local packingOn = false
 
 -------------------------------------------------------------------------- chips
 
@@ -46,7 +48,13 @@ local function chip(name: string, icon: string, text: string, color: Color3)
 		Ui.gradient(f, color)
 		Ui.stroke(f, 3)
 		Ui.icon(icon, { Size = UDim2.fromOffset(34, 34), Position = UDim2.fromOffset(1, 1), ZIndex = 2 }).Parent = f
-		Ui.label({ Name = "Text", Size = UDim2.new(1, -40, 1, -8), Position = UDim2.fromOffset(36, 4), Text = text, ZIndex = 2 }).Parent =
+		Ui.label({
+			Name = "Text",
+			Size = UDim2.new(1, -40, 1, -8),
+			Position = UDim2.fromOffset(36, 4),
+			Text = text,
+			ZIndex = 2,
+		}).Parent =
 			f
 		f.Parent = chips
 		c = f
@@ -129,6 +137,37 @@ end
 
 -------------------------------------------------------------------------- public
 
+-- On the deck the ROLL tile turns into a green GO! tile in the same spot.
+function HudController:SetDeck(on: boolean)
+	if on == onDeck then
+		return
+	end
+	onDeck = on
+	local roll = tiles.Roll
+	if not roll then
+		return
+	end
+	local color = if on then Ui.Colors.Green else Color3.fromRGB(60, 190, 255)
+	roll.BackgroundColor3 = color
+	local grad = roll:FindFirstChildOfClass("UIGradient")
+	if grad then
+		grad:Destroy()
+	end
+	Ui.gradient(roll, color)
+	Ui.setText(roll, if on then "GO!" else "ROLL!")
+end
+
+-- While the power meter runs, the HUD buttons get out of its way.
+function HudController:SetPacking(on: boolean)
+	if on == packingOn then
+		return
+	end
+	packingOn = on
+	local show = not on and not zoneBar.Visible
+	action.Visible = show
+	rail.Visible = show
+end
+
 function HudController:ShowZoneBar(on: boolean)
 	zoneBar.Visible = on
 	avaBar.Visible = not on
@@ -162,7 +201,14 @@ function HudController:Badge(name: string, count: number)
 end
 
 -- Other controllers add their tiles to the rail (order = LayoutOrder).
-function HudController:AddTile(name: string, icon: string, word: string, color: Color3, order: number, fn: () -> ()): TextButton
+function HudController:AddTile(
+	name: string,
+	icon: string,
+	word: string,
+	color: Color3,
+	order: number,
+	fn: () -> ()
+): TextButton
 	local t = Ui.tile(name, icon, word, color, fn)
 	t.LayoutOrder = order
 	t.Parent = rail
@@ -199,7 +245,12 @@ function HudController:Init(controllers)
 	powerLabel = pv
 
 	-- Boost chips under the pills.
-	chips = Ui.frame({ Name = "Chips", Size = UDim2.fromOffset(460, 36), Position = UDim2.fromOffset(0, 60), BackgroundTransparency = 1 })
+	chips = Ui.frame({
+		Name = "Chips",
+		Size = UDim2.fromOffset(460, 36),
+		Position = UDim2.fromOffset(0, 60),
+		BackgroundTransparency = 1,
+	})
 	local chipList = Instance.new("UIListLayout")
 	chipList.FillDirection = Enum.FillDirection.Horizontal
 	chipList.HorizontalAlignment = Enum.HorizontalAlignment.Center
@@ -218,9 +269,20 @@ function HudController:Init(controllers)
 	Ui.stroke(avaBar, 3)
 	avaFill = Ui.frame({ Name = "Fill", Size = UDim2.fromScale(0, 1), BackgroundColor3 = Ui.Colors.Ice })
 	avaFill.Parent = avaBar
-	avaText = Ui.label({ Name = "Text", Size = UDim2.new(1, -8, 1, -4), Position = UDim2.fromOffset(4, 2), Text = "", ZIndex = 2 })
+	avaText = Ui.label({
+		Name = "Text",
+		Size = UDim2.new(1, -8, 1, -4),
+		Position = UDim2.fromOffset(4, 2),
+		Text = "",
+		ZIndex = 2,
+	})
 	avaText.Parent = avaBar
-	Ui.icon("Storm", { Size = UDim2.fromOffset(44, 44), AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(0, -6, 0.5, 0), ZIndex = 3 }).Parent =
+	Ui.icon("Storm", {
+		Size = UDim2.fromOffset(44, 44),
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.new(0, -6, 0.5, 0),
+		ZIndex = 3,
+	}).Parent =
 		avaBar
 	avaBar.Parent = top
 
@@ -250,7 +312,10 @@ function HudController:Init(controllers)
 	end
 	zoneBest = Ui.frame({ Name = "Best", Size = UDim2.new(0, 4, 1, 12), BackgroundColor3 = Ui.Colors.Gold })
 	zoneBest.Parent = zoneBar
-	Ui.icon("Trophy", { Size = UDim2.fromOffset(26, 26), AnchorPoint = Vector2.new(0.5, 1), Position = UDim2.new(0.5, 0, 0, 0) }).Parent =
+	Ui.icon(
+		"Trophy",
+		{ Size = UDim2.fromOffset(26, 26), AnchorPoint = Vector2.new(0.5, 1), Position = UDim2.new(0.5, 0, 0, 0) }
+	).Parent =
 		zoneBest
 	-- The live number, big, under the bar: it counts up as the ball rolls.
 	zoneText = Ui.label({
@@ -289,7 +354,8 @@ function HudController:Init(controllers)
 	end)
 	HudController:AddTile("Rebirth", "Rebirth", "REBIRTH", Color3.fromRGB(180, 100, 255), 4, function()
 		C.RebirthController:Toggle()
-	end).Visible = false
+	end).Visible =
+		false
 
 	-- Bottom centre: the giant ROLL tile and a smaller BASE tile.
 	action = Ui.frame({
@@ -302,7 +368,15 @@ function HudController:Init(controllers)
 	Ui.autoScale(action)
 	action.Parent = root
 	local roll = Ui.tile("Roll", "Roll", "ROLL!", Color3.fromRGB(60, 190, 255), function()
-		Net.func("Teleport"):InvokeServer("Deck")
+		if onDeck then
+			-- On the launch deck the same tile is the GO button (one obvious action).
+			local ok, why = Net.func("StartPack"):InvokeServer()
+			if not ok and why then
+				Ui.toast(why, "Bad")
+			end
+		else
+			Net.func("Teleport"):InvokeServer("Deck")
+		end
 	end, 124)
 	roll.Position = UDim2.fromOffset(0, 4)
 	roll.Parent = action

@@ -56,9 +56,23 @@ function OfferController:Init(controllers)
 	})
 	Ui.stroke(popup, 4, Ui.Colors.Gold)
 	Ui.autoScale(popup)
-	title = Ui.label({ Name = "Title", Size = UDim2.new(1, -70, 0, 44), Position = UDim2.fromOffset(12, 8), Text = "", TextColor3 = Ui.Colors.Gold, TextXAlignment = Enum.TextXAlignment.Left })
+	title = Ui.label({
+		Name = "Title",
+		Size = UDim2.new(1, -70, 0, 44),
+		Position = UDim2.fromOffset(12, 8),
+		Text = "",
+		TextColor3 = Ui.Colors.Gold,
+		TextXAlignment = Enum.TextXAlignment.Left,
+	})
 	title.Parent = popup
-	text = Ui.label({ Name = "Text", Size = UDim2.new(1, -24, 0, 70), Position = UDim2.fromOffset(12, 56), Text = "", TextWrapped = true, TextXAlignment = Enum.TextXAlignment.Left })
+	text = Ui.label({
+		Name = "Text",
+		Size = UDim2.new(1, -24, 0, 70),
+		Position = UDim2.fromOffset(12, 56),
+		Text = "",
+		TextWrapped = true,
+		TextXAlignment = Enum.TextXAlignment.Left,
+	})
 	text.Parent = popup
 	buy = Ui.button({
 		Name = "Buy",
@@ -73,7 +87,8 @@ function OfferController:Init(controllers)
 		Size = UDim2.fromOffset(44, 44),
 		Position = UDim2.new(1, -52, 0, 8),
 		BackgroundColor3 = Ui.Colors.Red,
-	}, "X", hide).Parent = popup
+	}, "X", hide).Parent =
+		popup
 	popup.Parent = Ui.root(gui)
 end
 

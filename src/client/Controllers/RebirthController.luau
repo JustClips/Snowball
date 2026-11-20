@@ -86,7 +86,10 @@ function RebirthController:Init(controllers)
 	villageIcon.Parent = body
 	priceLabel = stat(body, "Cash", 150, 4)
 	-- Get: training, cash, luck.
-	local arrow = Ui.icon("Upgrade", { Size = UDim2.fromOffset(50, 50), AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0, 70) })
+	local arrow = Ui.icon(
+		"Upgrade",
+		{ Size = UDim2.fromOffset(50, 50), AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0, 70) }
+	)
 	arrow.Parent = body
 	trainLabel = stat(body, "Power", 10, 130, Ui.Colors.Green)
 	cashLabel = stat(body, "Cash", 175, 130, Ui.Colors.Green)
@@ -102,19 +105,23 @@ function RebirthController:Init(controllers)
 	rebirthButton.AnchorPoint = Vector2.new(0.5, 1)
 	rebirthButton.Position = UDim2.new(0.5, -70, 1, -4)
 	rebirthButton.Parent = body
-	skipButton = Ui.button({
-		Name = "Skip",
-		Size = UDim2.fromOffset(130, 70),
-		AnchorPoint = Vector2.new(0, 1),
-		Position = UDim2.new(0.5, 10, 1, -24),
-		BackgroundColor3 = Ui.Colors.Robux,
-		Visible = false,
-	}, "", function()
-		local ok, why = Net.func("PromptPurchase"):InvokeServer("SkipRebirth")
-		if not ok and why then
-			Ui.toast(why, "Bad")
+	skipButton = Ui.button(
+		{
+			Name = "Skip",
+			Size = UDim2.fromOffset(130, 70),
+			AnchorPoint = Vector2.new(0, 1),
+			Position = UDim2.new(0.5, 10, 1, -24),
+			BackgroundColor3 = Ui.Colors.Robux,
+			Visible = false,
+		},
+		"",
+		function()
+			local ok, why = Net.func("PromptPurchase"):InvokeServer("SkipRebirth")
+			if not ok and why then
+				Ui.toast(why, "Bad")
+			end
 		end
-	end)
+	)
 	skipButton.Parent = body
 end
 

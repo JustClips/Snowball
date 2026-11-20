@@ -42,16 +42,30 @@ end
 World.HatchSpots = 4
 World.PetSpotsMax = 10
 
--- Hatch spot i (1-4) on base b: a row along the plaza side of the base.
+-- Hatch pedestals and pet pads, matching the base model (art/blender/base.py EGGS / PETS):
+-- eggs in a 2x2 block front-left, pets front-right and along the middle, gate path clear.
+local EGGS = { { -24, -20 }, { -15, -20 }, { -24, -11 }, { -15, -11 } }
+local PETS = {
+	{ 10, -20 },
+	{ 18, -20 },
+	{ 26, -20 },
+	{ 10, -11 },
+	{ 18, -11 },
+	{ 26, -11 },
+	{ -24, 2 },
+	{ -15, 2 },
+	{ 15, 2 },
+	{ 24, 2 },
+}
+
 function World.eggSpot(b: number, i: number): CFrame
-	return World.baseCFrame(b) * CFrame.new(-24 + (i - 1) * 8, 1, -16)
+	local p = EGGS[i]
+	return World.baseCFrame(b) * CFrame.new(p[1], 2, p[2])
 end
 
--- Pet slot i (1-10) on base b: two rows of five behind the eggs, facing the plaza.
 function World.petSpot(b: number, i: number): CFrame
-	local row = math.floor((i - 1) / 5)
-	local col = (i - 1) % 5
-	return World.baseCFrame(b) * CFrame.new(-24 + col * 11, 1, 2 + row * 12)
+	local p = PETS[i]
+	return World.baseCFrame(b) * CFrame.new(p[1], 1, p[2])
 end
 
 return World

@@ -1,8 +1,9 @@
 --!strict
 -- The launch (GAME_PLAN §5.5; Dev 2026-11-20: show it like Throw Food For Animals). On the
--- deck a giant GO tile starts packing; a tall power bar's needle runs up and down on the
--- server's clock and a tap (anywhere, or PUSH) stops it. Green + star = Perfect, yellow =
--- Good, red = Weak. A big PERFECT!/GOOD!/WEAK! banner pops, then the camera follows the ball.
+-- deck the HUD's ROLL tile turns into GO! (same spot, HudController:SetDeck). While packing
+-- the HUD buttons hide, a tall power bar stands at the right with its needle running on the
+-- server's clock, and a big pulsing PUSH! tile sits bottom-centre; a tap anywhere also counts.
+-- Green + star = Perfect, yellow = Good, red = Weak. Then a big PERFECT!/GOOD!/WEAK! banner.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -22,7 +23,8 @@ local PackController = {}
 
 local C: any
 local gui: ScreenGui
-local startButton: TextButton
+local pushTile: TextButton
+local pushScale: UIScale
 local quality: TextLabel
 local qualityScale: UIScale
 local meter: Frame
@@ -60,26 +62,13 @@ function PackController:Init(controllers)
 	C = controllers
 	gui = Ui.screen("Pack", 9)
 	local root = Ui.root(gui)
-	-- On the deck the HUD's ROLL tile turns into a giant GO tile right here.
-	startButton = Ui.tile("Start", "Roll", "GO!", Ui.Colors.Green, function()
-		local ok, why = Net.func("StartPack"):InvokeServer()
-		if not ok and why then
-			Ui.toast(why, "Bad")
-		end
-	end, 140)
-	startButton.AnchorPoint = Vector2.new(0.5, 1)
-	startButton.Position = UDim2.new(0.5, 0, 1, -16)
-	startButton.Visible = false
-	Ui.autoScale(startButton)
-	startButton.Parent = root
-
 	-- The power meter (Throw Food style): a tall bar, the needle runs up and down, the
 	-- target zone glows in the middle. Tap anywhere or the big PUSH tile.
 	meter = Ui.frame({
 		Name = "Meter",
-		Size = UDim2.fromOffset(420, 360),
-		AnchorPoint = Vector2.new(0.5, 1),
-		Position = UDim2.new(0.5, 0, 1, -16),
+		Size = UDim2.fromOffset(170, 360),
+		AnchorPoint = Vector2.new(1, 0.5),
+		Position = UDim2.new(1, -24, 0.5, 20),
 		BackgroundTransparency = 1,
 		Visible = false,
 	})
@@ -111,7 +100,10 @@ function PackController:Init(controllers)
 	})
 	Ui.gradient(green, Ui.Colors.Green)
 	green.Parent = bar
-	Ui.icon("Star", { Size = UDim2.fromOffset(54, 54), AnchorPoint = Vector2.new(0, 0.5), Position = UDim2.new(1, 6, 0.5, 0) }).Parent =
+	Ui.icon(
+		"Star",
+		{ Size = UDim2.fromOffset(54, 54), AnchorPoint = Vector2.new(0, 0.5), Position = UDim2.new(1, 6, 0.5, 0) }
+	).Parent =
 		green
 	needle = Ui.frame({
 		Name = "Needle",
@@ -122,10 +114,21 @@ function PackController:Init(controllers)
 	})
 	Ui.stroke(needle, 3)
 	needle.Parent = bar
-	local pushTile = Ui.tile("Push", "Roll", "PUSH!", Ui.Colors.Power, push, 150)
-	pushTile.AnchorPoint = Vector2.new(1, 1)
-	pushTile.Position = UDim2.new(1, -10, 1, 0)
-	pushTile.Parent = meter
+	-- Big PUSH! tile where the ROLL/GO tile was, so the thumb is already there.
+	local pushHolder = Ui.frame({
+		Name = "PushHolder",
+		Size = UDim2.fromOffset(160, 160),
+		AnchorPoint = Vector2.new(0.5, 1),
+		Position = UDim2.new(0.5, 0, 1, -12),
+		BackgroundTransparency = 1,
+		Visible = false,
+	})
+	Ui.autoScale(pushHolder)
+	pushHolder.Parent = root
+	pushTile = Ui.tile("Push", "Tap", "PUSH!", Ui.Colors.Power, push, 160)
+	pushTile.Parent = pushHolder
+	pushScale = Instance.new("UIScale")
+	pushScale.Parent = pushHolder
 
 	-- PERFECT! / GOOD! / WEAK! banner.
 	quality = Ui.label({
@@ -149,11 +152,14 @@ function PackController:Start()
 			green.Size = UDim2.fromScale(1, greenWidth)
 			yellow.Size = UDim2.fromScale(1, greenWidth + yellowWidth * 2)
 			meter.Visible = true
+			pushTile.Parent.Visible = true
+			C.HudController:SetPacking(true)
 		end)
 	Net.event("RunStarted").OnClientEvent:Connect(function(userId: number, info)
 		if userId == player.UserId then
 			packing = nil
 			meter.Visible = false
+			pushTile.Parent.Visible = false
 			quality.Text = `{string.upper(info.Quality)}!`
 			quality.TextColor3 = if info.Quality == "Perfect"
 				then Ui.Colors.Green
@@ -188,17 +194,18 @@ function PackController:Start()
 			if phase ~= "Packing" and phase ~= nil then
 				packing = nil
 				meter.Visible = false
+				pushTile.Parent.Visible = false
 			else
 				local t = Workspace:GetServerTimeNow() - packing.start
 				needle.Position = UDim2.fromScale(0.5, 1 - RollMath.needle(math.max(0, t)))
+				pushScale.Scale = if tapped then 0.9 else 1 + 0.06 * math.sin(os.clock() * 10)
 			end
 		end
-		local atDeck = phase == nil and packing == nil and nearDeck()
-		startButton.Visible = atDeck
-		local hudRoll = C.HudController:Tile("Roll")
-		if hudRoll then
-			hudRoll.Visible = not atDeck and phase == nil
+		-- The HUD buttons come back once the pack is over (BallController hides them while rolling).
+		if packing == nil then
+			C.HudController:SetPacking(false)
 		end
+		C.HudController:SetDeck(phase == nil and packing == nil and nearDeck())
 	end)
 end
 

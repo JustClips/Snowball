@@ -44,7 +44,9 @@ function PetModels.load()
 			end
 			result:Destroy()
 		else
-			warn(`[PetModels] couldn't load the pet pack {Assets.PetPack} ({result}). Pets show as blocks until the place is published under the account that uploaded it.`)
+			warn(
+				`[PetModels] couldn't load the pet pack {Assets.PetPack} ({result}). Pets show as blocks until the place is published under the account that uploaded it.`
+			)
 		end
 	end
 	f.Parent = ReplicatedStorage

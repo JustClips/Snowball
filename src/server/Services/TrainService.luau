@@ -235,18 +235,30 @@ function TrainService:RefreshRoller(player: Player)
 	-- Upgrade the station right here (Dev, 2026-11-20: like the treadmill games): a sign
 	-- over the roller with the Upgrade icon and the next price, and a prompt to buy it.
 	local nextDef = Rollers.get(data.Roller + 1)
+	-- A short sign post standing on the ground beside the roller (not floating over it):
+	-- the price board sits on top at eye height and the prompt is on the post itself.
+	local post = Instance.new("Part")
+	post.Name = "UpgradePost"
+	post.Anchored = true
+	post.Size = Vector3.new(0.8, 4, 0.8)
+	post.CFrame = cf * CFrame.new(10, 2, -3)
+	post.Material = Enum.Material.Wood
+	post.Color = Color3.fromRGB(120, 80, 48)
+	post.Parent = model
 	local sign = Instance.new("Part")
 	sign.Name = "UpgradeSign"
 	sign.Anchored = true
 	sign.CanCollide = false
 	sign.CanQuery = false
-	sign.Transparency = 1
-	sign.Size = Vector3.new(1, 1, 1)
-	sign.CFrame = cf * CFrame.new(0, 16, 0)
+	sign.Size = Vector3.new(5, 0.4, 0.4)
+	sign.CFrame = cf * CFrame.new(10, 4.2, -3)
+	sign.Material = Enum.Material.Wood
+	sign.Color = Color3.fromRGB(120, 80, 48)
 	sign.Parent = model
 	local board = Instance.new("BillboardGui")
 	board.Name = "Board"
-	board.Size = UDim2.fromScale(9, 3.2)
+	board.Size = UDim2.fromScale(6, 2.2)
+	board.StudsOffsetWorldSpace = Vector3.new(0, 1.5, 0)
 	board.MaxDistance = 90
 	board.LightInfluence = 0
 	board.Parent = sign
@@ -287,7 +299,7 @@ function TrainService:RefreshRoller(player: Player)
 		prompt.MaxActivationDistance = 18
 		prompt.RequiresLineOfSight = false
 		prompt.KeyboardKeyCode = Enum.KeyCode.E
-		prompt.Parent = sign
+		prompt.Parent = post
 		prompt.Triggered:Connect(function(who)
 			if who ~= player then
 				return

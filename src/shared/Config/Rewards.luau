@@ -64,11 +64,23 @@ Rewards.Wheel = {
 	FirstSpinRarity = "Rare", -- the very first spin always lands on the Rare egg (Sweep rule)
 	Segments = {
 		{ Reward = { Kind = "Cash", Seconds = 600, Floor = 0.4 }, Weight = 32, Color = Color3.fromRGB(92, 214, 92) },
-		{ Reward = { Kind = "Boost", Boost = "Train2x", Minutes = 10 }, Weight = 18, Color = Color3.fromRGB(76, 168, 255) },
+		{
+			Reward = { Kind = "Boost", Boost = "Train2x", Minutes = 10 },
+			Weight = 18,
+			Color = Color3.fromRGB(76, 168, 255),
+		},
 		{ Reward = { Kind = "Egg", Rarity = "Rare" }, Weight = 12, Color = Color3.fromRGB(155, 107, 255) },
-		{ Reward = { Kind = "Charge", Charge = "GoldenRuns", Amount = 2 }, Weight = 17, Color = Color3.fromRGB(255, 154, 60) },
+		{
+			Reward = { Kind = "Charge", Charge = "GoldenRuns", Amount = 2 },
+			Weight = 17,
+			Color = Color3.fromRGB(255, 154, 60),
+		},
 		{ Reward = { Kind = "Egg", Rarity = "Legendary" }, Weight = 1, Color = Color3.fromRGB(255, 194, 46) },
-		{ Reward = { Kind = "Charge", Charge = "LuckyRoll", Amount = 2 }, Weight = 14, Color = Color3.fromRGB(127, 211, 255) },
+		{
+			Reward = { Kind = "Charge", Charge = "LuckyRoll", Amount = 2 },
+			Weight = 14,
+			Color = Color3.fromRGB(127, 211, 255),
+		},
 		{ Reward = { Kind = "Egg", Rarity = "Mythic" }, Weight = 1, Color = Color3.fromRGB(255, 126, 182) },
 		{ Reward = { Kind = "Egg", Rarity = "Epic" }, Weight = 5, Color = Color3.fromRGB(255, 75, 85) },
 	} :: { WheelSegment },

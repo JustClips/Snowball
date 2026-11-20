@@ -69,7 +69,12 @@ function RebirthService:Rebirth(player: Player, skipped: boolean?): (boolean, st
 	S.StateService:Mark(player)
 	local n = data.Rebirths
 	local extra = if skin then " New snowball skin!" else ""
-	Net.fire("Notify", player, `REBIRTH {n}! x{Format.big(Economy.rebirthTrainMult(n))} training, x{Economy.rebirthCashMult(n)} cash.{extra}`, "Good")
+	Net.fire(
+		"Notify",
+		player,
+		`REBIRTH {n}! x{Format.big(Economy.rebirthTrainMult(n))} training, x{Economy.rebirthCashMult(n)} cash.{extra}`,
+		"Good"
+	)
 	Net.fireAll("Announce", `{player.DisplayName} reached Rebirth {n}!`)
 	return true, nil
 end

@@ -117,24 +117,56 @@ function TutorialController:Init(controllers)
 	Ui.gradient(card, Ui.Colors.Panel)
 	Ui.stroke(card, 3, Ui.Colors.Yellow)
 	Ui.autoScale(card)
-	stepIcon = Ui.icon("Power", { Size = UDim2.fromOffset(84, 84), AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(0, 20, 0.5, 0), ZIndex = 3 })
+	stepIcon = Ui.icon("Power", {
+		Size = UDim2.fromOffset(84, 84),
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.new(0, 20, 0.5, 0),
+		ZIndex = 3,
+	})
 	stepIcon.Parent = card
-	textLabel = Ui.label({ Name = "Text", Size = UDim2.new(1, -80, 0, 44), Position = UDim2.fromOffset(70, 6), Text = "", TextColor3 = Ui.Colors.Yellow })
+	textLabel = Ui.label({
+		Name = "Text",
+		Size = UDim2.new(1, -80, 0, 44),
+		Position = UDim2.fromOffset(70, 6),
+		Text = "",
+		TextColor3 = Ui.Colors.Yellow,
+	})
 	textLabel.Parent = card
-	progress = Ui.frame({ Name = "Progress", Size = UDim2.new(1, -86, 0, 12), Position = UDim2.fromOffset(72, 52), BackgroundColor3 = Ui.Colors.PanelDark })
+	progress = Ui.frame({
+		Name = "Progress",
+		Size = UDim2.new(1, -86, 0, 12),
+		Position = UDim2.fromOffset(72, 52),
+		BackgroundColor3 = Ui.Colors.PanelDark,
+	})
 	Ui.stroke(progress, 2)
 	progressFill = Ui.frame({ Name = "Fill", Size = UDim2.fromScale(0, 1), BackgroundColor3 = Ui.Colors.Power })
 	progressFill.Parent = progress
 	progress.Parent = card
-	action = Ui.button({ Name = "Action", Size = UDim2.fromOffset(150, 56), AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 1, 10), BackgroundColor3 = Ui.Colors.Green, Visible = false }, "", function()
-		if actionKind then
-			local ok, why = Net.func("Pets"):InvokeServer(actionKind)
-			if not ok and why then
-				Ui.toast(why, "Bad")
+	action = Ui.button(
+		{
+			Name = "Action",
+			Size = UDim2.fromOffset(150, 56),
+			AnchorPoint = Vector2.new(0.5, 0),
+			Position = UDim2.new(0.5, 0, 1, 10),
+			BackgroundColor3 = Ui.Colors.Green,
+			Visible = false,
+		},
+		"",
+		function()
+			if actionKind then
+				local ok, why = Net.func("Pets"):InvokeServer(actionKind)
+				if not ok and why then
+					Ui.toast(why, "Bad")
+				end
 			end
 		end
-	end)
-	Ui.icon("Tap", { Size = UDim2.fromOffset(44, 44), AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(1, -6, 1, -18), ZIndex = 4 }).Parent =
+	)
+	Ui.icon("Tap", {
+		Size = UDim2.fromOffset(44, 44),
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.new(1, -6, 1, -18),
+		ZIndex = 4,
+	}).Parent =
 		action
 	action.Parent = card
 	card.Parent = root

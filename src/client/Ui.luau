@@ -381,7 +381,8 @@ function Ui.tile(name: string, icon: string, word: string, color: Color3, onClic
 		Size = UDim2.new(1, -10, 1, -24),
 		Position = UDim2.fromOffset(5, 3),
 		ZIndex = 2,
-	}).Parent = b
+	}).Parent =
+		b
 	local l = Ui.label({
 		Name = "Label",
 		Size = UDim2.new(1, -4, 0, 20),
@@ -411,9 +412,19 @@ end
 function Ui.pill(name: string, icon: string, color: Color3, width: number, onPlus: (() -> ())?): (Frame, TextLabel)
 	local f = Ui.frame({ Name = name, Size = UDim2.fromOffset(width, 46), BackgroundColor3 = Ui.Colors.PanelDark })
 	Ui.stroke(f, 3)
-	local bar = Ui.frame({ Name = "Bar", Size = UDim2.new(1, 0, 0, 6), Position = UDim2.new(0, 0, 1, -6), BackgroundColor3 = color })
+	local bar = Ui.frame({
+		Name = "Bar",
+		Size = UDim2.new(1, 0, 0, 6),
+		Position = UDim2.new(0, 0, 1, -6),
+		BackgroundColor3 = color,
+	})
 	bar.Parent = f
-	Ui.icon(icon, { Size = UDim2.fromOffset(60, 60), AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(0, 4, 0.5, 0), ZIndex = 3 }).Parent =
+	Ui.icon(icon, {
+		Size = UDim2.fromOffset(60, 60),
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.new(0, 4, 0.5, 0),
+		ZIndex = 3,
+	}).Parent =
 		f
 	local value = Ui.label({
 		Name = "Value",

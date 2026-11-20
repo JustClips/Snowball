@@ -59,7 +59,10 @@ local function rebuild(player: Player)
 		local model = PetLook.make(item[1], if item[2] ~= "" then item[2] else nil, item[3] == 1)
 		if model then
 			model.Parent = folder
-			table.insert(out, { model = model, offset = OFFSETS[(i - 1) % #OFFSETS + 1], phase = i * 0.7, pos = Vector3.zero })
+			table.insert(
+				out,
+				{ model = model, offset = OFFSETS[(i - 1) % #OFFSETS + 1], phase = i * 0.7, pos = Vector3.zero }
+			)
 		end
 	end
 	followers[player] = { list = out, key = key }
@@ -86,7 +89,9 @@ local function step(dt: number)
 				end
 				f.pos = f.pos:Lerp(goal, math.min(1, dt * 6))
 				local speed = root.AssemblyLinearVelocity.Magnitude
-				local hop = if speed > 2 then math.abs(math.sin(t * 9 + f.phase)) * 1.2 else math.sin(t * 2 + f.phase) * 0.15 + 0.15
+				local hop = if speed > 2
+					then math.abs(math.sin(t * 9 + f.phase)) * 1.2
+					else math.sin(t * 2 + f.phase) * 0.15 + 0.15
 				-- Cheer next to the roller: bigger hops while the owner trains.
 				if player:GetAttribute("Training") then
 					hop = math.abs(math.sin(t * 7 + f.phase)) * 1.6
@@ -132,9 +137,9 @@ local function basesTick()
 						eggLabels[egg] = nil
 					end)
 				end
-				local left = (egg:GetAttribute("EndsAt") or 0) - now
-				;(label :: TextLabel).Text = if left > 0 then Format.time(left) else "READY!"
-				;(label :: TextLabel).TextColor3 = if left > 0 then Ui.Colors.Snow else Ui.Colors.Green
+				local left = (egg:GetAttribute("EndsAt") or 0) - now;
+				(label :: TextLabel).Text = if left > 0 then Format.time(left) else "READY!"
+				(label :: TextLabel).TextColor3 = if left > 0 then Ui.Colors.Snow else Ui.Colors.Green
 			end
 		end
 	end

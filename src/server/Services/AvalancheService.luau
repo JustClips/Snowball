@@ -46,7 +46,10 @@ function AvalancheService:Trigger(buyer: Player?)
 	if winner and winner.Parent then
 		S.BoostService:AddPersonal(winner, "Crown", Config.CrownMinutes)
 		S.StateService:GetServerState():SetAttribute("CrownUserId", winner.UserId)
-		Net.fireAll("Announce", `{winner.DisplayName} rolled the biggest ball ({math.floor(biggest.radius)})! Crown + luck for {Config.CrownMinutes} min`)
+		Net.fireAll(
+			"Announce",
+			`{winner.DisplayName} rolled the biggest ball ({math.floor(biggest.radius)})! Crown + luck for {Config.CrownMinutes} min`
+		)
 	end
 	biggest = { player = nil, radius = 0 }
 	for player in S.DataService:GetSessions() do
@@ -61,7 +64,8 @@ function AvalancheService:AddRadius(player: Player, radius: number)
 	end
 	if AvalancheService:IsActive() then
 		local data = S.DataService:GetData(player)
-		local rarity = S.InventoryService:AddZoneEgg(player, data and data.BestZone or 1, "Avalanche", Config.BonusEggFloor)
+		local rarity =
+			S.InventoryService:AddZoneEgg(player, data and data.BestZone or 1, "Avalanche", Config.BonusEggFloor)
 		Net.fire("Notify", player, `Avalanche bonus: {rarity} egg!`, "Good")
 		return
 	end

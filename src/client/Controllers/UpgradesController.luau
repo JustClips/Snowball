@@ -54,16 +54,12 @@ local function card(parent: Frame, id: string, order: number, onBuy: () -> ())
 		TextColor3 = Ui.Colors.Green,
 	})
 	info.Parent = f
-	local buy = Ui.button(
-		{
-			Name = "Buy",
-			Size = UDim2.fromOffset(160, 66),
-			Position = UDim2.new(1, -168, 0, 9),
-			BackgroundColor3 = Ui.Colors.Green,
-		},
-		"BUY",
-		onBuy
-	)
+	local buy = Ui.button({
+		Name = "Buy",
+		Size = UDim2.fromOffset(160, 66),
+		Position = UDim2.new(1, -168, 0, 9),
+		BackgroundColor3 = Ui.Colors.Green,
+	}, "BUY", onBuy)
 	Ui.gradient(buy, Ui.Colors.Green)
 	buy.Parent = f
 	f.Parent = parent
