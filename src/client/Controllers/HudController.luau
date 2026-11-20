@@ -287,9 +287,17 @@ function HudController:AddTile(
 	order: number,
 	fn: () -> ()
 ): TextButton
+	-- UIGridLayout forces every child to the cell size, so the tile sits in a holder the
+	-- size of the cell (tile + its word underneath); the tile itself stays square on top
+	-- and its word gets its own row space (Dev 2026-11-20: words were hidden under tiles).
+	local holder = Ui.frame({ Name = name, BackgroundTransparency = 1 })
+	holder.LayoutOrder = order
 	local t = Ui.tile(name, icon, word, color, fn, L.Tile)
-	t.LayoutOrder = order
-	t.Parent = if order >= 5 then rightRail else leftRail
+	t.Name = "Button"
+	t.AnchorPoint = Vector2.new(0.5, 0)
+	t.Position = UDim2.new(0.5, 0, 0, 0)
+	t.Parent = holder
+	holder.Parent = if order >= 5 then rightRail else leftRail
 	tiles[name] = t
 	return t
 end
@@ -406,8 +414,9 @@ function HudController:Init(controllers)
 	local reb = HudController:AddTile("Rebirth", "Rebirth", "Rebirth", Color3.fromRGB(180, 90, 255), 4, function()
 		C.RebirthController:Toggle()
 	end)
-	reb.LayoutOrder = 10
-	reb.Visible = false
+	local rebHolder = reb.Parent :: Frame
+	rebHolder.LayoutOrder = 10
+	rebHolder.Visible = false
 
 	-- Bottom centre: ONE button. ROLL (snowball) takes you onto your lane pad, which starts
 	-- the launch. While training it is a red STOP.
