@@ -1,9 +1,9 @@
 --!strict
 -- Training Power on the Snow Roller next to your base (GAME_PLAN §5.1).
--- Standing on your own roller pad = training. Each tap gives
+-- Standing near your own roller = training, automatically (Dev, 2026-11-20: no tapping to
+-- train; taps are only for Snow Pops). Each rep gives
 --   roller Power x Robux roller x pets x pop x rebirth x boosts   (BoostService:GetTrainMult)
--- Manual taps are capped at Economy.TapsPerSecond. Holding the screen trains at
--- HoldTapsPerSecond and the Auto Train pass at AutoTrainTapsPerSecond, both server-driven.
+-- at Economy.TrainRepsPerSecond, x FastTrainMult with the Auto Train pass.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -23,14 +23,9 @@ local TrainService = {
 
 local S: any
 local TICK = 0.1
-local HOLD_AFTER_TAP = 0.4 -- holding only counts when no manual tap came this recently
 
 type Train = {
 	on: boolean,
-	tokens: number,
-	last: number,
-	lastTap: number,
-	holding: boolean,
 	auto: number, -- fractional server-driven taps
 	sessionStart: number,
 	sessionTaps: number,
@@ -43,10 +38,6 @@ local function trainOf(player: Player): Train
 	if not t then
 		t = {
 			on = false,
-			tokens = Economy.TapsPerSecond,
-			last = os.clock(),
-			lastTap = 0,
-			holding = false,
 			auto = 0,
 			sessionStart = 0,
 			sessionTaps = 0,
@@ -96,22 +87,6 @@ function TrainService:Grant(player: Player, taps: number, quiet: boolean?): numb
 	return gain
 end
 
-local function onTap(player: Player)
-	local t = trainOf(player)
-	if not t.on then
-		return
-	end
-	local now = os.clock()
-	t.tokens = math.min(Economy.TapsPerSecond, t.tokens + (now - t.last) * Economy.TapsPerSecond)
-	t.last = now
-	if t.tokens < 1 then
-		return -- over 8/s: dropped
-	end
-	t.tokens -= 1
-	t.lastTap = now
-	TrainService:Grant(player, 1)
-end
-
 local function onRoller(player: Player): boolean
 	local index = player:GetAttribute("BaseIndex")
 	local character = player.Character
@@ -152,18 +127,15 @@ local function setTraining(player: Player, on: boolean)
 end
 
 local function tick()
-	local now = os.clock()
 	for player in S.DataService:GetSessions() do
 		local on = onRoller(player)
 		setTraining(player, on)
 		local t = state[player]
 		if t and t.on then
 			local data = S.DataService:GetData(player)
-			local rate = 0
+			local rate = Economy.TrainRepsPerSecond
 			if data and data.Gamepasses.AutoTrain then
-				rate = Economy.AutoTrainTapsPerSecond
-			elseif t.holding and now - t.lastTap > HOLD_AFTER_TAP then
-				rate = Economy.HoldTapsPerSecond
+				rate *= Economy.FastTrainMult
 			end
 			t.auto += rate * TICK
 			if t.auto >= 1 then
@@ -262,10 +234,6 @@ end
 
 function TrainService:Init(services)
 	S = services
-	Net.onEvent("Tap", onTap)
-	Net.onEvent("SetHolding", function(player, holding)
-		trainOf(player).holding = holding == true
-	end)
 	Net.onInvoke("BuyRoller", buyRoller)
 	S.BaseService.BaseAssigned:Connect(function(player)
 		TrainService:RefreshRoller(player)

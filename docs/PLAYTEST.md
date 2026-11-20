@@ -22,7 +22,7 @@
 
 ## Checklist
 
-1. Spawn on a base. Tutorial card says STEP 1/5. Stand on the Snow Roller and tap: Power goes up, the roller spins.
+1. Spawn on a base. Tutorial card says STEP 1/5. Walk up to the Snow Roller: it trains Power by itself and the ball spins. Tapping is only for Snow Pops.
 2. First Snow Pop at about 5 s is x5. Tap it.
 3. At 100 Power walk to the deck, press ROLL, tap in the green, push. Steer by dragging (phone) or A/D.
 4. The ball grows on snow piles, smashes small obstacles, bonks big ones, cracks and shows results. A Common egg is on the first run.

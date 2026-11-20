@@ -1,12 +1,11 @@
 --!strict
--- Training on your Snow Roller (GAME_PLAN §5.1): tap anywhere that isn't a button (or
--- click, gamepad A, space) while standing on your roller. Holding trains at 3/s on the
--- server. "+N" floaters are pooled. Every roller's ball spins while its owner trains.
+-- Training on your Snow Roller (GAME_PLAN §5.1): automatic while you stand near your
+-- roller (Dev, 2026-11-20); tapping is only for Snow Pops (PopController). "+N" floaters
+-- are pooled. Every roller's ball spins while its owner trains.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
-local UserInputService = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
@@ -19,7 +18,6 @@ local player = Players.LocalPlayer
 
 local TrainController = {}
 
-local HOLD_AFTER = 0.35 -- seconds of holding before it counts as "holding"
 local POOL_SIZE = 24
 
 local gui: ScreenGui
@@ -28,9 +26,6 @@ local readoutText: TextLabel
 local hint: TextLabel
 local pool: { TextLabel } = {}
 local poolIndex = 0
-local lastTapPos = Vector2.new(0, 0)
-local holdingSent = false
-local pressStarted: number? = nil
 
 local function training(): boolean
 	return player:GetAttribute("Training") == true
@@ -57,33 +52,9 @@ local function floater(text: string, at: Vector2, color: Color3?)
 	}):Play()
 end
 
-local function tap(pos: Vector2)
-	if not training() then
-		return
-	end
-	lastTapPos = pos
-	Net.event("Tap"):FireServer()
-	Ui.sound("Tap", 0.9 + math.random() * 0.2)
-end
-
-local function isTapInput(input: InputObject): boolean
-	local t = input.UserInputType
-	return t == Enum.UserInputType.Touch
-		or t == Enum.UserInputType.MouseButton1
-		or (t == Enum.UserInputType.Gamepad1 and input.KeyCode == Enum.KeyCode.ButtonA)
-		or (t == Enum.UserInputType.Keyboard and input.KeyCode == Enum.KeyCode.Space)
-end
-
 local function screenCenter(): Vector2
 	local cam = Workspace.CurrentCamera
 	return if cam then cam.ViewportSize / 2 else Vector2.new(400, 300)
-end
-
-local function setHolding(on: boolean)
-	if holdingSent ~= on then
-		holdingSent = on
-		Net.event("SetHolding"):FireServer(on)
-	end
 end
 
 local function updateReadout()
@@ -93,7 +64,7 @@ local function updateReadout()
 	hint.Visible = on
 	if data and on then
 		readoutText.Text =
-			`+{Format.big(data.PowerPerTap)} per tap  ·  x{Format.number(math.floor(data.TrainMult * 10) / 10)}`
+			`+{Format.big(data.PowerPerTap)} per rep  ·  x{Format.number(math.floor(data.TrainMult * 10) / 10)}`
 	end
 end
 
@@ -149,7 +120,7 @@ function TrainController:Init()
 		Size = UDim2.fromOffset(420, 46),
 		AnchorPoint = Vector2.new(0.5, 1),
 		Position = UDim2.new(0.5, 0, 1, -160),
-		Text = "TAP TO TRAIN!",
+		Text = "AUTO TRAINING! TAP THE SNOW POPS",
 		TextColor3 = Ui.Colors.Yellow,
 		Visible = false,
 	})
@@ -157,47 +128,17 @@ function TrainController:Init()
 end
 
 function TrainController:Start()
-	UserInputService.InputBegan:Connect(function(input, processed)
-		if processed or not isTapInput(input) then
-			return
-		end
-		local pos = if input.UserInputType == Enum.UserInputType.Touch
-				or input.UserInputType == Enum.UserInputType.MouseButton1
-			then Vector2.new(input.Position.X, input.Position.Y)
-			else screenCenter()
-		tap(pos)
-		pressStarted = os.clock()
-	end)
-	UserInputService.InputEnded:Connect(function(input)
-		if isTapInput(input) then
-			pressStarted = nil
-			setHolding(false)
-		end
-	end)
-	Net.event("PowerGained").OnClientEvent:Connect(function(amount: number, taps: number)
-		local at = if taps > 1 or (pressStarted and os.clock() - pressStarted > HOLD_AFTER)
-			then screenCenter() + Vector2.new(0, 40)
-			else lastTapPos
+	Net.event("PowerGained").OnClientEvent:Connect(function(amount: number, _reps: number)
 		local popMult = State.data and State.data.PopMult or 1
 		floater(
 			"+" .. Format.big(amount),
-			at,
+			screenCenter() + Vector2.new(0, 60),
 			if popMult >= 25 then Color3.fromRGB(255, 130, 220) elseif popMult > 1 then Ui.Colors.Ice else nil
 		)
 	end)
-	player:GetAttributeChangedSignal("Training"):Connect(function()
-		if not training() then
-			setHolding(false)
-		end
-		updateReadout()
-	end)
+	player:GetAttributeChangedSignal("Training"):Connect(updateReadout)
 	State.observe(updateReadout)
-	RunService.RenderStepped:Connect(function(dt)
-		if pressStarted and training() and os.clock() - pressStarted > HOLD_AFTER then
-			setHolding(true)
-		end
-		spinRollers(dt)
-	end)
+	RunService.RenderStepped:Connect(spinRollers)
 end
 
 return TrainController

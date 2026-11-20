@@ -6,10 +6,12 @@ local Economy = {
 	StateFlushInterval = 0.15, -- PlayerState snapshots go out at most this often
 
 	-- Training (GAME_PLAN §5.1)
-	TapsPerSecond = 8, -- server cap on manual taps
-	HoldTapsPerSecond = 3, -- holding the screen trains at this rate
-	AutoTrainTapsPerSecond = 5, -- Auto Train pass, while standing on the roller
-	RollerRadius = 9, -- studs (flat) from the roller pad centre that count as "on the roller"
+	-- Training is automatic while you stand near your roller (Dev, 2026-11-20): this many
+	-- reps a second, x2 with the Auto Train pass ("Fast Train"). Tapping is only for pops.
+	TrainRepsPerSecond = 5,
+	FastTrainMult = 2,
+	AutoTrainTapsPerSecond = 5, -- reps/s used to value Training Time products
+	RollerRadius = 14, -- studs (flat) from the roller pad centre that count as "on the roller"
 	RollerHeight = 8,
 
 	-- Rebirth (GAME_PLAN §5.11)

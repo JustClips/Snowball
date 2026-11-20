@@ -17,7 +17,7 @@ local player = Players.LocalPlayer
 local TutorialController = {}
 
 local STEPS: { [string]: { n: number, text: string } } = {
-	Train = { n = 1, text = "Stand on your Snow Roller and TAP to train Power!" },
+	Train = { n = 1, text = "Stand by your Snow Roller to train Power. Tap the Snow Pops!" },
 	Roll = { n = 2, text = "Power 100! Go to the launch deck and ROLL!" },
 	Egg = { n = 3, text = "Place your frozen egg on your base and hatch it!" },
 	Roller = { n = 4, text = "Open UPGRADES and get the Stone Roller (FREE)!" },

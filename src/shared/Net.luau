@@ -12,8 +12,6 @@ local EVENTS: { [string]: number } = {
 	Notify = 0, -- server -> one: short toast (text, kind?)
 	Announce = 0, -- server -> all: server-wide message
 	-- Training (TrainService / PopService)
-	Tap = 9, -- client: one training tap (TrainService also caps at Economy.TapsPerSecond)
-	SetHolding = 4, -- client: (bool) holding the screen = 3 taps/s server-driven
 	PowerGained = 0, -- server -> owner: (amount BigNum, taps) for the "+N" floaters
 	PopShown = 0, -- server -> owner: (id, tierId, x 0-1, y 0-1, seconds, priceText?) a Snow Pop
 	PopGone = 0, -- server -> owner: (id, claimed: bool, reward?) the pop ended

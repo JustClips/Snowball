@@ -11,8 +11,8 @@ local Gamepasses: { ProductDef } = {
 		Key = "AutoTrain",
 		Id = 0,
 		Price = 129,
-		Name = "Auto Train",
-		Description = "Trains 5 taps a second while you stand on your roller.",
+		Name = "Fast Train",
+		Description = "Your roller trains 2x as fast, forever.",
 	},
 	{
 		Key = "PopMagnet",
