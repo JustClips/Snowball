@@ -52,7 +52,7 @@ function CashService:Spend(player: Player, price: BigNum.BigNum | number, sku: s
 		if S.ShopService then
 			S.ShopService:OfferCashFor(player, short)
 		end
-		return false, "Not enough cash"
+		return false, nil -- the Notify above already told them
 	end
 	data.Cash = BigNum.sub(data.Cash, price)
 	S.StateService:Mark(player)

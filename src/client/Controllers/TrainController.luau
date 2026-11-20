@@ -141,7 +141,8 @@ local function spinRollers(dt: number)
 	end
 	for _, base in bases:GetChildren() do
 		local roller = base:FindFirstChild("Roller")
-		local ball = roller and roller:FindFirstChild("Ball") :: BasePart?
+		local found = roller and roller:FindFirstChild("Ball")
+		local ball = if found and found:IsA("BasePart") then found else nil
 		if roller and ball then
 			local owner = Players:GetPlayerByUserId(roller:GetAttribute("Owner") or 0)
 			if owner and owner:GetAttribute("Training") then
@@ -197,7 +198,8 @@ function TrainController:Start()
 		-- A snow puff where the ball meets the deck on every rep.
 		local pad = myRollerPad()
 		local roller = pad and pad.Parent and pad.Parent:FindFirstChild("Roller")
-		local ball = roller and roller:FindFirstChild("Ball") :: BasePart?
+		local found = roller and roller:FindFirstChild("Ball")
+		local ball = if found and found:IsA("BasePart") then found else nil
 		if ball then
 			Fx.burst("Puff", ball.Position - Vector3.yAxis * (ball.Size.Y / 2 - 0.8), 0.8)
 			if (State.data and State.data.PopMult or 1) > 1 then

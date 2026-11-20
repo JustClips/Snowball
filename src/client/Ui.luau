@@ -173,33 +173,58 @@ end
 
 -- Short toast at the top of the screen.
 local toastGui: ScreenGui? = nil
+local toastSerial = 0
 function Ui.toast(text: string, kind: string?)
+	-- ONE small toast pill under the top status bar. A new toast replaces the old one
+	-- (Dev 2026-11-20: stacked toasts covered the windows).
 	local gui = toastGui or Ui.screen("Toasts", 50)
 	toastGui = gui
 	local color = if kind == "Bad" then Ui.Colors.Red elseif kind == "Info" then Ui.Colors.Ice else Ui.Colors.Green
-	local holder = gui:FindFirstChild("List") :: Frame?
-	if not holder then
+	local item = gui:FindFirstChild("Toast") :: Frame?
+	if not item then
 		local f = Ui.frame({
-			Name = "List",
-			BackgroundTransparency = 1,
-			Size = UDim2.new(0.6, 0, 0.3, 0),
-			Position = UDim2.fromScale(0.2, 0.1),
+			Name = "Toast",
+			AutomaticSize = Enum.AutomaticSize.X,
+			Size = UDim2.fromOffset(0, 34),
+			AnchorPoint = Vector2.new(0.5, 0),
+			Position = UDim2.new(0.5, 0, 0, 96),
+			BackgroundColor3 = Ui.Colors.PanelDark,
+			Visible = false,
 		})
-		local layout = Instance.new("UIListLayout")
-		layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-		layout.Padding = UDim.new(0, 6)
-		layout.SortOrder = Enum.SortOrder.LayoutOrder
-		layout.Parent = f
+		local pad = Instance.new("UIPadding")
+		pad.PaddingLeft = UDim.new(0, 14)
+		pad.PaddingRight = UDim.new(0, 14)
+		pad.Parent = f
+		Ui.stroke(f, 3, color)
+		local l = Ui.label({
+			Name = "Text",
+			AutomaticSize = Enum.AutomaticSize.X,
+			Size = UDim2.fromOffset(0, 26),
+			Position = UDim2.fromOffset(0, 4),
+			TextScaled = false,
+			TextSize = 20,
+			Text = "",
+		})
+		l.Parent = f
+		Ui.autoScale(f)
 		f.Parent = gui
-		holder = f
+		item = f
 	end
-	local item =
-		Ui.frame({ Size = UDim2.new(1, 0, 0, 38), BackgroundColor3 = Ui.Colors.Panel, LayoutOrder = os.clock() * 100 })
-	Ui.stroke(item, 3, color)
-	Ui.label({ Size = UDim2.new(1, -16, 1, -8), Position = UDim2.fromOffset(8, 4), Text = text }).Parent = item
-	item.Parent = holder
-	task.delay(2.6, function()
-		item:Destroy()
+	local toast = item :: Frame
+	local stroke = toast:FindFirstChildOfClass("UIStroke")
+	if stroke then
+		stroke.Color = color
+	end
+	local label = toast:FindFirstChild("Text") :: TextLabel
+	label.Text = text
+	label.TextColor3 = if kind == "Bad" then Color3.fromRGB(255, 150, 150) else Ui.Colors.Snow
+	toast.Visible = true
+	toastSerial += 1
+	local mine = toastSerial
+	task.delay(1.8, function()
+		if toastSerial == mine then
+			toast.Visible = false
+		end
 	end)
 end
 

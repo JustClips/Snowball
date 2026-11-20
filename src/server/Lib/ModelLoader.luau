@@ -26,6 +26,23 @@ local function fetch(name: string): Model?
 	local container = result :: Model
 	local model = container:FindFirstChildWhichIsA("Model") or container
 	model.Parent = nil
+	-- The GLB import wraps each Blender object in its own Model ("Ball" -> Model > MeshPart).
+	-- Flatten those so every object is one named part (code moves Ball as a BasePart).
+	for _, child in model:GetChildren() do
+		if child:IsA("Model") then
+			local parts = {}
+			for _, d in child:GetDescendants() do
+				if d:IsA("BasePart") then
+					table.insert(parts, d)
+				end
+			end
+			if #parts == 1 then
+				parts[1].Name = child.Name
+				parts[1].Parent = model
+				child:Destroy()
+			end
+		end
+	end
 	for _, d in model:GetDescendants() do
 		if d:IsA("BasePart") then
 			d.Anchored = true
