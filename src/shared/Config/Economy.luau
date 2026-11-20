@@ -39,6 +39,18 @@ local Economy = {
 	-- A pop's cash payouts use at least this much income per second (before pets earn).
 	MinIncomeForRewards = 5,
 
+	-- Contextual offers (GAME_PLAN §6 "When offers appear", OfferService)
+	Offers = {
+		GlobalCooldown = 180, -- at most one offer every 3 minutes
+		PerOfferCooldown = 900, -- the same offer at most every 15 minutes
+		StuckIncomeMinutes = 5, -- next roller costs more than this much income...
+		StuckSeconds = 180, -- ...for this long: offer training time
+		FullBounces = 3, -- eggs bounced off a full ball: Egg Slots nudge
+		Bonks = 3, -- bonks in a session: Golden Snowball offer
+		AvalancheMeter = 0.8, -- meter at 80%+: Server Luck offer
+		SkipHatchFrom = "Rare", -- placing an egg this rare or better: Skip Hatch offer
+	},
+
 	-- Starter Pack (GAME_PLAN §6)
 	StarterPack = { Hours = 2, HideAtZone = 4, EggRarity = "Epic", LuckyRolls = 3, Train2xMinutes = 15 },
 }

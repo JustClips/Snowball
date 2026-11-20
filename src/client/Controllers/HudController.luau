@@ -273,7 +273,7 @@ function HudController:Init(controllers)
 	-- Core buttons, right side (mobile thumb reach).
 	local buttons = Ui.frame({
 		Name = "Buttons",
-		Size = UDim2.fromOffset(130, 370),
+		Size = UDim2.fromOffset(130, 440),
 		AnchorPoint = Vector2.new(1, 0.5),
 		Position = UDim2.new(1, -12, 0.5, 0),
 		BackgroundTransparency = 1,
@@ -288,6 +288,9 @@ function HudController:Init(controllers)
 		Ui.button({ Name = name, Size = UDim2.fromOffset(124, 54), BackgroundColor3 = color }, text, fn).Parent =
 			buttons
 	end
+	core("Shop", "SHOP", Ui.Colors.Robux, function()
+		C.ShopController:Toggle()
+	end)
 	core("Upgrades", "UPGRADES", Ui.Colors.Yellow, function()
 		C.UpgradesController:Toggle()
 	end)

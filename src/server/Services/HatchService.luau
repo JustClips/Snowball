@@ -104,6 +104,9 @@ function HatchService:Place(player: Player, uid: any): (boolean, string?)
 	S.AnalyticsService:Funnel(player, "FirstPlace")
 	S.InventoryService:Bump(player)
 	HatchService:RefreshEggs(player)
+	if S.OfferService then
+		S.OfferService:OnEggPlaced(player, egg.Rarity)
+	end
 	return true, nil
 end
 
@@ -167,6 +170,13 @@ function HatchService:Open(player: Player, spot: any, force: boolean?): (boolean
 			end
 			S.InventoryService:Bump(player)
 			HatchService:RefreshEggs(player)
+			if S.OfferService then
+				task.delay(4, function() -- after the hatch show
+					if player.Parent then
+						S.OfferService:OnHatch(player)
+					end
+				end)
+			end
 			return true, nil
 		end
 	end

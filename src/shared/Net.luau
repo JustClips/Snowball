@@ -26,6 +26,7 @@ local EVENTS: { [string]: number } = {
 	RunSnapshot = 0, -- server -> all: buffer of every rolling ball (10 Hz)
 	RunEvent = 0, -- server -> all: (userId, kind, data) Pickup / Smash / Bonk / Zone / Full
 	RunEnded = 0, -- server -> all: (userId, result) the ball cracked
+	ShowOffer = 0, -- server -> owner: { Key, Product?, Title, Text, Price?, Open? } offer popup
 	OpenShop = 0, -- server -> owner: open the Shop at a section (3rd "not enough cash")
 	Purchased = 0, -- server -> one: (product or pass key, { From?, To? }) celebration
 	HatchCompleted = 0, -- server -> owner: { PetId, Mutation?, Huge?, Rarity } the hatch show

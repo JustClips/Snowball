@@ -27,6 +27,7 @@ local ORDER = {
 	"RebirthService",
 	"RewardService",
 	"CodeService",
+	"OfferService",
 	"ShopService",
 	"AdminService",
 }
