@@ -388,6 +388,19 @@ local function opener(ctrl, method, ...)
 		c[method](c, table.unpack(args, 1, args.n))
 	end
 end
+SCENARIOS.offer = function()
+	fire("ShowOffer", {
+		Key = "HatchLuck",
+		Product = "LuckyRoll10",
+		Title = "EPIC PET! YOU'RE LUCKY!",
+		Text = "Keep the luck going: 10 Lucky Rolls.",
+		Price = 69,
+		Pic = "Shop_Lucky10",
+	})
+end
+SCENARIOS.bought = function()
+	fire("Purchased", "Cash3", { Got = "+$424M CASH" })
+end
 SCENARIOS.shop = opener("ShopController", "Open")
 SCENARIOS.shop2 = opener("ShopController", "Open", "Boosts")
 SCENARIOS.shop3 = opener("ShopController", "Open", "Money")

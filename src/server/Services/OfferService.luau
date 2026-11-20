@@ -9,7 +9,15 @@
 --   5 3 bonks in a session: Golden Snowball (1 run)
 --   6 Avalanche meter at 80%+: Server Luck
 --   7 returning player: Double Offline (on the welcome-back card, PetService)
---   8 3rd "not enough cash": opens the Shop at Cash (ShopService:OfferCashFor)
+--   8 3rd "not enough cash": prompts the cash pack that covers it (ShopService:OfferCashFor)
+-- Added 2026-11-20 (Dev: "start improving monetization like where packs and stuff start to
+-- appear on screen"), the moments the top games use:
+--   9 a rare hatch (Epic+): you feel lucky, so Lucky Rolls
+--  10 3 rolls in a row without a new best: a Power pack ("roll further")
+--  11 saving for the next roller takes long: the cash pack that buys it now (rule 2 now
+--     offers cash first, Training Time when no pack is live)
+--  12 8 min into a session with no cash boost running: 2x Cash for 15 min
+-- Never while rolling or during the egg rescue (yeti chase), never stacked.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
@@ -17,6 +25,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local BigNum = require(Shared.BigNum)
 local Economy = require(Shared.Config.Economy)
 local Eggs = require(Shared.Config.Eggs)
+local Format = require(Shared.Format)
 local Net = require(Shared.Net)
 local Products = require(Shared.Config.Products)
 local Rollers = require(Shared.Config.Rollers)
@@ -24,6 +33,7 @@ local Rollers = require(Shared.Config.Rollers)
 local Rules = Economy.Offers
 
 local OfferService = {}
+local cashPackFor: (Player, number) -> any
 
 local S: any
 
@@ -42,7 +52,7 @@ local function isLive(productKey: string): boolean
 	return def ~= nil and (def.Id ~= 0 or (Products.StudioTestBuys and RunService:IsStudio()))
 end
 
-type Offer = { Key: string, Product: string?, Title: string, Text: string, Open: string? }
+type Offer = { Key: string, Product: string?, Title: string, Text: string, Open: string?, Pic: string? }
 
 local function show(player: Player, offer: Offer, ignoreGlobal: boolean?): boolean
 	local session = S.DataService:GetSession(player)
@@ -50,6 +60,16 @@ local function show(player: Player, offer: Offer, ignoreGlobal: boolean?): boole
 		return false
 	end
 	if offer.Product and not isLive(offer.Product) then
+		return false
+	end
+	-- Nothing pops over a roll or the yeti chase.
+	local phase = if S.RollService then S.RollService:GetPhase(player) else "Idle"
+	if
+		phase == "Packing"
+		or phase == "Rolling"
+		or phase == "Stopped"
+		or (S.EggRescueService and S.EggRescueService:IsRescuing(player))
+	then
 		return false
 	end
 	local state = offerState(session)
@@ -70,6 +90,7 @@ local function show(player: Player, offer: Offer, ignoreGlobal: boolean?): boole
 		Text = offer.Text,
 		Price = def and def.Price,
 		Open = offer.Open,
+		Pic = offer.Pic,
 	})
 	S.AnalyticsService:Custom(player, "OfferShown", 1, { Offer = offer.Key })
 	return true
@@ -107,6 +128,31 @@ local function tryStarterPack(player: Player)
 	end
 end
 
+-- The cheapest live cash pack that gives at least `need` (else the biggest live one).
+cashPackFor = function(player: Player, need: number): any
+	if not S.ShopService then
+		return nil
+	end
+	local amounts = S.ShopService:CashPackAmounts(player)
+	local best, biggest = nil, nil
+	local packs = {}
+	for _, def in Products.Products do
+		if def.Kind == "CashPack" and isLive(def.Key) then
+			table.insert(packs, def)
+		end
+	end
+	table.sort(packs, function(a, b)
+		return a.Price < b.Price
+	end)
+	for _, def in packs do
+		biggest = def
+		if not best and (amounts[def.Key] or 0) >= need then
+			best = def
+		end
+	end
+	return best or biggest
+end
+
 -- Rule 2: saving up for the next roller is taking a while.
 local function checkStuck(player: Player, session)
 	local data = session.Data
@@ -122,14 +168,25 @@ local function checkStuck(player: Player, session)
 	end
 	state.stuckSince = state.stuckSince or os.clock()
 	if os.clock() - state.stuckSince >= Rules.StuckSeconds then
-		if
-			show(player, {
+		-- The smallest cash pack that buys the next roller right now.
+		local short = nextRoller.Price - BigNum.toNumber(data.Cash)
+		local pack = cashPackFor(player, short)
+		local shown = if pack
+			then show(player, {
+				Key = "RollerCash",
+				Product = pack.Key,
+				Title = `GET THE {string.upper(nextRoller.Name)} NOW!`,
+				Text = `You're {Format.cash(short)} short. This pack covers it.`,
+				Pic = "Shop_" .. pack.Key,
+			})
+			else show(player, {
 				Key = "TrainTime",
 				Product = "TrainTime15",
 				Title = "TRAIN FASTER!",
 				Text = "15 minutes of training right now, at your best speed.",
+				Pic = "Power",
 			})
-		then
+		if shown then
 			state.stuckSince = nil
 		end
 	end
@@ -150,6 +207,7 @@ local function checkAvalanche(player: Player, session)
 		show(player, {
 			Key = "ServerLuck",
 			Product = "ServerLuck2",
+			Pic = "Shop_ServerLuck",
 			Title = "AVALANCHE SOON!",
 			Text = "Add 2x Server Luck for everyone before it hits.",
 		})
@@ -167,6 +225,28 @@ function OfferService:AfterRun(player: Player, result)
 	state.full += result.Full or 0
 	state.bonks += result.Bonks or 0
 	tryStarterPack(player)
+	-- Rule 10: rolls without a new best in a row.
+	if result.Record then
+		state.noRecord = 0
+	else
+		state.noRecord = (state.noRecord or 0) + 1
+	end
+	if state.noRecord >= Rules.FailRuns then
+		local pack = Products.ProductByKey.PowerPack2
+		local gain = if pack and S.TrainService then S.TrainService:PowerPerTap(player) * pack.Taps else 0
+		if
+			show(player, {
+				Key = "FailPower",
+				Product = "PowerPack2",
+				Title = "ROLL FURTHER!",
+				Text = `+{Format.big(gain)} Power: a bigger ball rolls further.`,
+				Pic = "Shop_Power2",
+			})
+		then
+			state.noRecord = 0
+			return
+		end
+	end
 	if state.full >= Rules.FullBounces then
 		if
 			show(player, {
@@ -174,6 +254,7 @@ function OfferService:AfterRun(player: Player, result)
 				Title = "YOUR BALL IS FULL!",
 				Text = "Eggs bounced off. Buy Egg Slots to carry more.",
 				Open = "Upgrades",
+				Pic = "Egg",
 			})
 		then
 			state.full = 0
@@ -183,6 +264,7 @@ function OfferService:AfterRun(player: Player, result)
 			show(player, {
 				Key = "GoldenRuns",
 				Product = "GoldenRuns1",
+				Pic = "Shop_PassGoldBall",
 				Title = "SMASH EVERYTHING!",
 				Text = "A Golden Snowball smashes obstacles 1.5x its size and gets x2 coins.",
 			})
@@ -204,11 +286,47 @@ function OfferService:OnEggPlaced(player: Player, rarity: string)
 		Product = key,
 		Title = `{string.upper(rarity)} EGG!`,
 		Text = "Hatch it right now instead of waiting.",
+		Pic = "Clock",
 	})
 end
 
-function OfferService:OnHatch(player: Player)
+function OfferService:OnHatch(player: Player, order: number?, rarity: string?)
 	tryStarterPack(player)
+	-- Rule 9: a rare pet just came out, the player feels lucky.
+	local from = Eggs.ByName[Rules.LuckyAfterHatch]
+	if order and from and order >= from.Order then
+		show(player, {
+			Key = "HatchLuck",
+			Product = "LuckyRoll10",
+			Title = `{string.upper(rarity or "RARE")} PET! YOU'RE LUCKY!`,
+			Text = "Keep the luck going: 10 Lucky Rolls.",
+			Pic = "Shop_Lucky10",
+		})
+	end
+end
+
+-- Rule 12: a while into the session, 2x Cash if no cash boost is running.
+local function checkSessionBoost(player: Player, session)
+	local state = offerState(session)
+	state.joinedAt = state.joinedAt or os.clock()
+	if state.boostShown or os.clock() - state.joinedAt < Rules.SessionBoostMinutes * 60 then
+		return
+	end
+	local boosts = session.Data.Boosts
+	if type(boosts) == "table" and boosts.Cash2x ~= nil then
+		return
+	end
+	if
+		show(player, {
+			Key = "SessionCash",
+			Product = "Cash2xBoost",
+			Title = "DOUBLE YOUR CASH!",
+			Text = "2x cash from every pet for 15 minutes.",
+			Pic = "Shop_Pass2xCash",
+		})
+	then
+		state.boostShown = true
+	end
 end
 
 function OfferService:Init(services)
@@ -224,6 +342,7 @@ function OfferService:Start()
 					tryStarterPack(player)
 					checkStuck(player, session)
 					checkAvalanche(player, session)
+					checkSessionBoost(player, session)
 				end
 			end
 		end

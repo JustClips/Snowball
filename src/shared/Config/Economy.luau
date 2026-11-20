@@ -60,6 +60,9 @@ local Economy = {
 		Bonks = 3, -- bonks in a session: Golden Snowball offer
 		AvalancheMeter = 0.8, -- meter at 80%+: Server Luck offer
 		SkipHatchFrom = "Rare", -- placing an egg this rare or better: Skip Hatch offer
+		LuckyAfterHatch = "Epic", -- hatching this rare or better: Lucky Rolls offer
+		FailRuns = 3, -- rolls in a row without a new best: Power pack offer
+		SessionBoostMinutes = 8, -- this far into a session: 2x Cash offer (once)
 	},
 
 	-- Starter Pack (GAME_PLAN §6)

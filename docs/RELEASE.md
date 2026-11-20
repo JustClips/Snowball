@@ -26,9 +26,10 @@ yet confirmed in Studio, `[ ]` = to do. Owner = the thread that does it.
 
 ### Money (Shop thread)
 - [ ] Every product and pass created on universe 10778042297, ids in ProductIds.luau, prices match Products.luau (YetiRepellent 9, SledHome 25)
-- [ ] Buying shows what you got ("+$424M", "+2x Power"), not the product name, off-centre
-- [ ] "Not enough cash" 3rd time prompts the cash product that covers it
-- [ ] Offer timing: Starter Pack, Keep Rolling, Sled Home, No Yeti never stack on screen
+- [x] Buying shows what you got ("+$424M CASH", "+9.6K POWER"), not the product name, top centre
+- [x] "Not enough cash" 3rd time prompts the cash product that covers it
+- [ ] Offer timing: Starter Pack, Keep Rolling, Sled Home, No Yeti never stack on screen (offers now never show while rolling or rescuing; check in a live session)
+- [x] Offers at the right moments: rare hatch -> Lucky Rolls, 3 rolls without a best -> Power pack, stuck on the next roller -> the cash pack that buys it, 8 min in -> 2x Cash (OfferService rules 9-12)
 
 ### Look (UI thread, Pet thread)
 - [ ] One UI style everywhere (HUD, windows, rescue buttons, results, hatch, bag)

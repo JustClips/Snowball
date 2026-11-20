@@ -304,7 +304,7 @@ function HatchService:Open(player: Player, spot: any, force: boolean?): (boolean
 			if S.OfferService then
 				task.delay(4, function() -- after the hatch show
 					if player.Parent then
-						S.OfferService:OnHatch(player)
+						S.OfferService:OnHatch(player, order, h.Rarity)
 					end
 				end)
 			end
