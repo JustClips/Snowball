@@ -305,9 +305,11 @@ def preview(name, target=(0, 0, 4), dist=70, elev=32, azim=-38, res=(960, 640), 
     return path
 
 
-def bake_many(objs, name, size=2048, samples=24):
+def bake_many(objs, name, size=2048, samples=24, isolate=False):
     """Like bake(), but packs every object's UVs into ONE shared atlas (multi-object edit)
-    so a model made of several MeshParts uses a single texture."""
+    so a model made of several MeshParts uses a single texture.
+    isolate=True bakes each object with the others hidden, so parts that move in game (a
+    rigged character's limbs) carry no shadows from their neighbours' rest pose."""
     scene = bpy.context.scene
     scene.render.engine = "CYCLES"
     scene.cycles.device = "CPU"
@@ -339,7 +341,20 @@ def bake_many(objs, name, size=2048, samples=24):
     b.use_pass_transmission = False
     b.use_pass_emit = True
     b.margin = 3
-    bpy.ops.object.bake(type="COMBINED")
+    if isolate:
+        for i, o in enumerate(objs):
+            for other in objs:
+                other.hide_render = other is not o
+            bpy.ops.object.select_all(action="DESELECT")
+            o.select_set(True)
+            bpy.context.view_layer.objects.active = o
+            b.use_clear = i == 0
+            bpy.ops.object.bake(type="COMBINED")
+        for o in objs:
+            o.hide_render = False
+        b.use_clear = True
+    else:
+        bpy.ops.object.bake(type="COMBINED")
     os.makedirs(OUT, exist_ok=True)
     path = os.path.join(OUT, f"{name}_Atlas.png")
     img.filepath_raw = path

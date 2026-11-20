@@ -5,8 +5,9 @@
 -- flag (TutorialController:Guide), a SAFE! sign over the flag with the distance, the Robux
 -- buttons at the bottom (SLED HOME, YETI SPRAY) and LEAVE, big words (RUN! / OUCH! /
 -- SAVED!), a fade when you're taken back to the pile, and the yeti itself: the Blender
--- model from ReplicatedStorage.Assets.Yeti, following the server's YetiPos with its six
--- limbs swung around their joints (walk, run, roar, celebrate).
+-- model from ReplicatedStorage.Assets.Yeti (12 parts), following the server's YetiPos and
+-- posed through a real joint hierarchy: idle (breathing, looking round, head scratch), walk,
+-- gallop, roar + chest pound, the grab slam, and a victory hop.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -26,14 +27,41 @@ local RescueController = {}
 
 local C: any
 
--- Yeti joints, model-local (art/blender/yeti.py): shoulders, hips, neck.
+-- The yeti's skeleton (art/blender/yeti.py v2: 12 parts). Joint pivots are model-local
+-- (floor centre at the origin, front = -Z); every part sits unrotated in the model, so a
+-- joint's rotation is about the model's own axes: +X swings a hanging limb FORWARD, +X on
+-- the torso leans it BACK, -X on the jaw opens the mouth, -Z/+Z lifts the left/right arm
+-- out to the side.
 local JOINTS: { [string]: Vector3 } = {
-	ArmL = Vector3.new(-2.7, 6.6, 0),
-	ArmR = Vector3.new(2.7, 6.6, 0),
-	LegL = Vector3.new(-1.2, 3.2, 0),
-	LegR = Vector3.new(1.2, 3.2, 0),
-	Head = Vector3.new(0, 7.4, 0),
+	Torso = Vector3.new(0, 4.4, 0.1),
+	Head = Vector3.new(0, 8.0, -0.2),
+	Jaw = Vector3.new(0, 8.7, -0.9),
+	UpperArmL = Vector3.new(-3.0, 7.3, 0.2),
+	LowerArmL = Vector3.new(-3.5, 5.0, 0.0),
+	UpperArmR = Vector3.new(3.0, 7.3, 0.2),
+	LowerArmR = Vector3.new(3.5, 5.0, 0.0),
+	ThighL = Vector3.new(-1.35, 3.6, 0.1),
+	ShinL = Vector3.new(-1.45, 1.9, -0.1),
+	ThighR = Vector3.new(1.35, 3.6, 0.1),
+	ShinR = Vector3.new(1.45, 1.9, -0.1),
 }
+-- Parents first, so a child always reads its parent's finished frame.
+local BONES: { { string } } = {
+	{ "Torso", "Hips" },
+	{ "Head", "Torso" },
+	{ "Jaw", "Head" },
+	{ "UpperArmL", "Torso" },
+	{ "LowerArmL", "UpperArmL" },
+	{ "UpperArmR", "Torso" },
+	{ "LowerArmR", "UpperArmR" },
+	{ "ThighL", "Hips" },
+	{ "ShinL", "ThighL" },
+	{ "ThighR", "Hips" },
+	{ "ShinR", "ThighR" },
+}
+
+-- A pose: joint -> (pitch X, yaw Y, roll Z) in radians, plus the body's lift and pitch.
+type Pose = { [string]: Vector3 }
 
 local gui: ScreenGui
 local top: Frame
@@ -55,6 +83,10 @@ type Yeti = {
 	phase: number,
 	lastStomp: number,
 	shown: boolean,
+	pose: Pose, -- what's on screen (eases toward each frame's target)
+	swipeAt: number, -- os.clock() of the last grab/swipe (one-shot)
+	state: string,
+	stateAt: number,
 }
 local yeti: Yeti? = nil
 -- One thing on screen at a time (Dev 2026-11-20 "tf is this ui spam"): the run's result
@@ -91,6 +123,19 @@ local function makeYeti(folder: Folder): Yeti?
 			parts[d.Name] = { part = d, base = d.CFrame } -- template sits at the origin
 		end
 	end
+	local missing = {}
+	for name in JOINTS do
+		if not parts[name] then
+			table.insert(missing, name)
+		end
+	end
+	if not parts.Hips or #missing > 0 then
+		local found = {}
+		for name in parts do
+			table.insert(found, name)
+		end
+		warn(`[Rescue] yeti model is missing parts {table.concat(missing, ",")}; has {table.concat(found, ",")}`)
+	end
 	model.Parent = folder
 	return {
 		model = model,
@@ -100,20 +145,135 @@ local function makeYeti(folder: Folder): Yeti?
 		phase = 0,
 		lastStomp = 0,
 		shown = true,
+		pose = {},
+		swipeAt = -10,
+		state = "Den",
+		stateAt = os.clock(),
 	}
 end
 
-local function limb(y: Yeti, name: string, root: CFrame, rot: CFrame)
-	local entry = y.parts[name]
-	if not entry then
-		return
+local function v(x: number, y: number?, z: number?): Vector3
+	return Vector3.new(x, y or 0, z or 0)
+end
+
+local function smooth(x: number): number
+	x = math.clamp(x, 0, 1)
+	return x * x * (3 - 2 * x)
+end
+
+-- The animation clips. Each returns the target pose for this frame. `p` is the gait
+-- phase (advances with speed), `t` the clock, `age` seconds in this state.
+local function idlePose(t: number): Pose
+	local breathe = math.sin(t * 1.7)
+	local look = math.sin(t * 0.45) * 0.55 + math.sin(t * 1.3) * 0.1
+	-- Every few seconds it scratches its head with the right paw.
+	local scratch = smooth((math.sin(t * 0.5) - 0.75) * 5)
+	local rub = math.sin(t * 16) * 0.12 * scratch
+	return {
+		Body = v(0, 0.05 * breathe, 0), -- lift, pitch
+		Torso = v(-0.06 + breathe * 0.04, look * 0.25, math.sin(t * 0.9) * 0.04),
+		Head = v(0.05 + breathe * 0.03, look * 0.6, scratch * 0.2),
+		Jaw = v(-0.06 - breathe * 0.05),
+		UpperArmL = v(0.12 + breathe * 0.05, 0, -0.14 - breathe * 0.04),
+		LowerArmL = v(0.25),
+		UpperArmR = v(0.12 + breathe * 0.05 + scratch * 2.4, 0, 0.14 + breathe * 0.04 + scratch * 0.35),
+		LowerArmR = v(0.25 + scratch * 1.9 + rub, 0, scratch * -0.4),
+		ThighL = v(0.05),
+		ShinL = v(-0.08),
+		ThighR = v(0.05),
+		ShinR = v(-0.08),
+	}
+end
+
+local function walkPose(p: number, amount: number, run: boolean): Pose
+	local s, c = math.sin(p), math.cos(p)
+	local legs = if run then 0.95 else 0.6
+	local arms = if run then 1.05 else 0.5
+	local lean = if run then -0.42 else -0.12
+	return {
+		Body = v(math.abs(s) * (if run then 0.75 else 0.3), 0),
+		Torso = v(lean + math.abs(s) * 0.06, s * (if run then 0.22 else 0.12), c * 0.05),
+		-- Head up against the lean so it keeps glaring at you; mouth open while it runs.
+		Head = v(-lean * 0.8 + s * 0.05, -s * 0.15, 0),
+		Jaw = v(if run then -0.42 + math.abs(c) * 0.12 else -0.08),
+		UpperArmL = v(-s * arms + (if run then 0.35 else 0.05), 0, -0.22),
+		LowerArmL = v(0.35 + math.max(0, s) * 0.6),
+		UpperArmR = v(s * arms + (if run then 0.35 else 0.05), 0, 0.22),
+		LowerArmR = v(0.35 + math.max(0, -s) * 0.6),
+		ThighL = v(s * legs - lean * 0.6),
+		ShinL = v(-math.max(0, -c) * legs * 1.1 - 0.1),
+		ThighR = v(-s * legs - lean * 0.6),
+		ShinR = v(-math.max(0, c) * legs * 1.1 - 0.1),
+	}
+end
+
+-- Wake: it rears up, throws its head back and pounds its chest with both fists.
+local function roarPose(t: number, age: number): Pose
+	local up = smooth(age / 0.35)
+	local pound = math.sin(t * 15)
+	local shake = math.sin(t * 40) * 0.04
+	return {
+		Body = v(0.35 * up, 0),
+		Torso = v(0.22 * up, shake, 0),
+		Head = v(0.55 * up + shake, 0, shake),
+		Jaw = v(-0.75 * up),
+		UpperArmL = v(1.25 * up + math.max(0, pound) * 0.35, 0.5 * up, -0.35 * up),
+		LowerArmL = v(1.55 * up),
+		UpperArmR = v(1.25 * up + math.max(0, -pound) * 0.35, -0.5 * up, 0.35 * up),
+		LowerArmR = v(1.55 * up),
+		ThighL = v(0, 0, -0.18 * up),
+		ShinL = v(-0.15 * up),
+		ThighR = v(0, 0, 0.18 * up),
+		ShinR = v(-0.15 * up),
+	}
+end
+
+-- Grab: both arms come up over its head and slam down in front (one-shot, 0.7 s).
+local function swipePose(age: number): Pose
+	local raise = smooth(age / 0.22)
+	local slam = smooth((age - 0.22) / 0.14)
+	local arm = 2.9 * raise - 2.1 * slam
+	return {
+		Body = v(0.4 * raise - 0.55 * slam, 0),
+		Torso = v(0.25 * raise - 0.75 * slam),
+		Head = v(0.3 * raise + 0.35 * slam),
+		Jaw = v(-0.9 * raise + 0.3 * slam),
+		UpperArmL = v(arm, 0, -0.25),
+		LowerArmL = v(0.4 - 0.3 * slam),
+		UpperArmR = v(arm, 0, 0.25),
+		LowerArmR = v(0.4 - 0.3 * slam),
+		ThighL = v(0.35 * slam),
+		ShinL = v(-0.55 * slam),
+		ThighR = v(-0.2 * slam),
+		ShinR = v(-0.2 * slam),
+	}
+end
+
+-- Stun (after it got you): hops about with both fists in the air, mouth wide.
+local function cheerPose(t: number): Pose
+	local hop = math.abs(math.sin(t * 7))
+	local wave = math.sin(t * 7)
+	return {
+		Body = v(hop * 0.8, 0),
+		Torso = v(0.12, wave * 0.15, wave * 0.08),
+		Head = v(0.35, wave * 0.3, 0),
+		Jaw = v(-0.6 - hop * 0.15),
+		UpperArmL = v(2.7 + wave * 0.15, 0, -0.45),
+		LowerArmL = v(0.3 + hop * 0.4),
+		UpperArmR = v(2.7 - wave * 0.15, 0, 0.45),
+		LowerArmR = v(0.3 + hop * 0.4),
+		ThighL = v(0.3 * hop),
+		ShinL = v(-0.5 * hop),
+		ThighR = v(0.3 * hop),
+		ShinR = v(-0.5 * hop),
+	}
+end
+
+local function rot(a: Vector3?): CFrame
+	if not a then
+		return CFrame.identity
 	end
-	local j = JOINTS[name]
-	if j then
-		entry.part.CFrame = root * CFrame.new(j) * rot * CFrame.new(-j) * entry.base
-	else
-		entry.part.CFrame = root * rot * entry.base
-	end
+	return CFrame.Angles(a.X, a.Y, a.Z)
 end
 
 local function drawYeti(y: Yeti, folder: Folder, dt: number)
@@ -129,51 +289,66 @@ local function drawYeti(y: Yeti, folder: Folder, dt: number)
 	if asleep then
 		return
 	end
+	local t = os.clock()
+	if state ~= y.state then
+		y.state = state
+		y.stateAt = t
+	end
+	local age = t - y.stateAt
 	local before = y.pos
 	y.pos = y.pos:Lerp(target, math.min(1, dt * 10))
 	local yawTarget = folder:GetAttribute("YetiYaw") or y.yaw
 	local dy = (yawTarget - y.yaw + math.pi) % (math.pi * 2) - math.pi
 	y.yaw += dy * math.min(1, dt * 8)
 	local speed = (Vector3.new(y.pos.X, 0, y.pos.Z) - Vector3.new(before.X, 0, before.Z)).Magnitude / math.max(dt, 1e-3)
-	local moving = math.clamp(speed / 14, 0, 1)
-	y.phase += dt * (3 + speed * 0.55)
-	local t = os.clock()
-	local swing = math.sin(y.phase) * 0.75 * moving
-	local bob = math.abs(math.sin(y.phase)) * 0.45 * moving
-	local lean = 0.18 * moving
-	local root = CFrame.new(y.pos + Vector3.new(0, bob, 0)) * CFrame.Angles(0, y.yaw, 0) * CFrame.Angles(-lean, 0, 0)
-	local armL, armR, head = CFrame.Angles(-swing, 0, 0), CFrame.Angles(swing, 0, 0), CFrame.identity
-	if state == "Wake" or state == "Stun" then
-		-- Roar / celebrate: both arms up and shaking, head back.
-		local shake = math.sin(t * 30) * 0.08
-		armL = CFrame.Angles(-2.7 + shake, 0, -0.35)
-		armR = CFrame.Angles(-2.7 - shake, 0, 0.35)
-		head = CFrame.Angles(0.35, 0, 0)
-		root *= CFrame.new(0, math.abs(math.sin(t * 9)) * 0.3, 0)
-	elseif state == "Chase" then
-		-- Running: arms reach forward for you.
-		armL = CFrame.Angles(-1.3 - swing * 0.6, 0, 0)
-		armR = CFrame.Angles(-1.3 + swing * 0.6, 0, 0)
-	elseif state == "Den" then
-		-- Idle breathing.
-		local breathe = math.sin(t * 1.6) * 0.06
-		armL = CFrame.Angles(0, 0, -breathe)
-		armR = CFrame.Angles(0, 0, breathe)
-		head = CFrame.Angles(breathe, math.sin(t * 0.7) * 0.4, 0)
+	local moving = math.clamp(speed / 6, 0, 1)
+	y.phase += dt * (2 + speed * 0.62)
+
+	-- Pick the clip for this frame.
+	local goal: Pose
+	local swipeAge = t - y.swipeAt
+	if swipeAge < 0.75 then
+		goal = swipePose(swipeAge)
+	elseif state == "Wake" then
+		goal = roarPose(t, age)
+	elseif state == "Stun" then
+		goal = cheerPose(t)
+	elseif moving > 0.15 then
+		goal = walkPose(y.phase, moving, state == "Chase" or speed > 9)
+	else
+		goal = idlePose(t)
 	end
-	limb(y, "Body", root, CFrame.identity)
-	limb(y, "Head", root, head)
-	limb(y, "ArmL", root, armL)
-	limb(y, "ArmR", root, armR)
-	limb(y, "LegL", root, CFrame.Angles(swing, 0, 0))
-	limb(y, "LegR", root, CFrame.Angles(-swing, 0, 0))
-	-- Anything else in the model (an unexpected name) just rides along with the body.
+	-- Ease toward it, fast enough that a gait still reads, slow enough to blend clips.
+	local k = math.min(1, dt * (if swipeAge < 0.75 then 30 else 14))
+	for name, a in goal do
+		local cur = y.pose[name]
+		y.pose[name] = if cur then cur:Lerp(a, k) else a
+	end
+
+	local body = y.pose.Body or Vector3.zero
+	local root = CFrame.new(y.pos + Vector3.new(0, body.X, 0)) * CFrame.Angles(0, y.yaw, 0)
+	local frames: { [string]: CFrame } = { Hips = root }
+	local hips = y.parts.Hips
+	if hips then
+		hips.part.CFrame = root * hips.base
+	end
+	for _, bone in BONES do
+		local name, parent = bone[1], bone[2]
+		local j = JOINTS[name]
+		local frame = (frames[parent] or root) * CFrame.new(j) * rot(y.pose[name]) * CFrame.new(-j)
+		frames[name] = frame
+		local entry = y.parts[name]
+		if entry then
+			entry.part.CFrame = frame * entry.base
+		end
+	end
+	-- Anything else in the model (an unexpected name) rides along with the hips.
 	for name, entry in y.parts do
-		if name ~= "Body" and not JOINTS[name] then
+		if name ~= "Hips" and not JOINTS[name] then
 			entry.part.CFrame = root * entry.base
 		end
 	end
-	-- Heavy steps you can hear while it runs.
+	-- Heavy steps you can hear (and feel) while it runs.
 	if moving > 0.5 and math.floor(y.phase / math.pi) ~= y.lastStomp then
 		y.lastStomp = math.floor(y.phase / math.pi)
 		Ui.sound("Stomp", 0.9 + math.random() * 0.2)
@@ -407,6 +582,9 @@ local function onEvent(kind: string, data: any)
 			C.BallController:Shake(0.6)
 		end
 	elseif kind == "Knocked" then
+		if yeti then
+			yeti.swipeAt = os.clock()
+		end
 		-- Your character's physics run here, so the hit that throws you is applied here too.
 		local character = player.Character
 		local r = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?

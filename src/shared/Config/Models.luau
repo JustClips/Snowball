@@ -61,5 +61,5 @@ return {
 	VfxIceChip = { Id = 85586489129017, Center = Vector3.new(-0.015, 0.02, 0.0045) },
 	VfxIceShard = { Id = 87943619558104, Center = Vector3.new(0.0125, 0.05, -0.0055) },
 	VfxShellChunk = { Id = 117557914812906, Center = Vector3.new(-0.034, -0.0235, 0.0) },
-	Yeti = { Id = 109041727198269, Center = Vector3.new(-0.0, 5.2267, 0.03) },
+	Yeti = { Id = 111132864575600, Center = Vector3.new(0.0013, 5.6316, 0.3497) },
 } :: { [string]: { Id: number, Center: Vector3 } }
