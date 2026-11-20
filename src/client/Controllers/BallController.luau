@@ -198,6 +198,13 @@ local function hideJuice()
 end
 local debrisPool: { BasePart } = {}
 
+-- How big the ball LOOKS (Dev 2026-11-20: "the ball grows so big"): true size up to
+-- VIS_KNEE, then it grows much slower on screen; the game rules still use the real radius.
+local VIS_KNEE = 6
+local function visR(r: number): number
+	return if r <= VIS_KNEE then r else VIS_KNEE + (r - VIS_KNEE) * 0.3
+end
+
 local SNOW = Color3.fromRGB(245, 249, 255)
 local GOLD = Color3.fromRGB(255, 205, 60)
 
@@ -445,8 +452,9 @@ local function step(dt: number)
 			ball.v = snap.v
 		end
 		local smp = spline:sample(ball.s)
-		local center = smp.Pos + smp.Right * ball.x + Vector3.yAxis * ball.r
-		local drawR = ball.r
+		local vr = visR(ball.r)
+		local center = smp.Pos + smp.Right * ball.x + Vector3.yAxis * vr
+		local drawR = vr
 		if d.isLocal then
 			-- Hop off ramps (a parabola), land with a thump.
 			local t = (now - jumpAt) / JUMP_TIME
@@ -455,7 +463,7 @@ local function step(dt: number)
 			elseif not landed then
 				landed = true
 				BallController:Shake(1.4)
-				Fx.burst("Puff", center - Vector3.yAxis * ball.r, math.clamp(ball.r / 2, 1, 4))
+				Fx.burst("Puff", center - Vector3.yAxis * visR(ball.r), math.clamp(ball.r / 2, 1, 4))
 				Ui.sound("SnowHit", 0.7)
 			end
 			-- Grow pop: the ball bulges for a moment every time it picks up snow.
@@ -464,11 +472,11 @@ local function step(dt: number)
 			end
 			lastR = ball.r
 			pop = math.max(0, pop - dt * 5)
-			drawR = ball.r * (1 + 0.16 * math.sin(pop * math.pi))
+			drawR = vr * (1 + 0.16 * math.sin(pop * math.pi))
 			-- Snow spray from where the ball touches the ground, thrown backwards.
 			if spray and sprayEmitter then
 				local grounded = not (t >= 0 and t < 1)
-				local contact = center - Vector3.yAxis * (ball.r * 0.85)
+				local contact = center - Vector3.yAxis * (vr * 0.85)
 				spray.CFrame = CFrame.lookAt(contact, contact - smp.Forward + Vector3.yAxis * 0.6)
 				sprayEmitter.Rate = if grounded then math.clamp(ball.v * 0.8, 0, 60) else 0
 				sprayEmitter.Size = NumberSequence.new({
@@ -478,7 +486,7 @@ local function step(dt: number)
 			end
 		end
 		-- Roll: spin around the side axis by distance / radius.
-		d.spin = CFrame.fromAxisAngle(Vector3.xAxis, -(ball.v * dt) / math.max(ball.r, 1)) * d.spin
+		d.spin = CFrame.fromAxisAngle(Vector3.xAxis, -(ball.v * dt) / math.max(vr, 1)) * d.spin
 		local facing = CFrame.lookAt(center, center + smp.Forward)
 		d.part.Size = Vector3.one * (drawR * 2)
 		d.part.CFrame = facing * d.spin
@@ -496,10 +504,11 @@ local function step(dt: number)
 		local cam = Workspace.CurrentCamera
 		local ball = cb.ball
 		local smp = spline:sample(ball.s)
-		local center = smp.Pos + smp.Right * ball.x + Vector3.yAxis * ball.r
+		local vr = visR(ball.r)
+		local center = smp.Pos + smp.Right * ball.x + Vector3.yAxis * vr
 		local flat = Vector3.new(smp.Forward.X, 0, smp.Forward.Z).Unit
-		local back = 22 + ball.r * 2.4
-		local up = 10 + ball.r * 1.3
+		local back = 24 + vr * 2.8
+		local up = 10 + vr * 1.4
 		local t = (os.clock() - jumpAt) / JUMP_TIME
 		if t >= 0 and t < 1 then
 			center += Vector3.yAxis * (4 * jumpHeight * t * (1 - t) * 0.7)

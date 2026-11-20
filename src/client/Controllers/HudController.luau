@@ -216,24 +216,6 @@ function HudController:Mode(): string
 	return mode
 end
 
--- Luck during a roll: your roll luck times how rich the ground under the ball is (the zone
--- income multiplier, blended between zones). It only ever goes up, like Throw Food's.
-local function luckAt(s: number): number
-	local list = Zones.List
-	for i = #list, 1, -1 do
-		local z = list[i]
-		if s >= z.Start then
-			local nextZone = list[i + 1]
-			if not nextZone then
-				return z.IncomeMult
-			end
-			local t = math.clamp((s - z.Start) / (nextZone.Start - z.Start), 0, 1)
-			return z.IncomeMult + (nextZone.IncomeMult - z.IncomeMult) * t
-		end
-	end
-	return 1
-end
-
 -------------------------------------------------------------------------- public
 
 -- Compatibility for older callers: the mode now follows the player's state by itself.
@@ -250,8 +232,8 @@ function HudController:ShowZoneBar(on: boolean, info: any?)
 end
 
 function HudController:SetZoneProgress(s: number)
-	local value = runLuck * luckAt(s)
-	luckValue.Text = `{Format.big(math.floor(value * 100) / 100)}X`
+	-- How far you've rolled (Dev 2026-11-20: "92.9KX LUCK" meant nothing to players).
+	luckValue.Text = `{Format.number(math.floor(s))}m`
 	local zone = Zones.at(s)
 	if zone.Index ~= lastZone then
 		lastZone = zone.Index
@@ -505,7 +487,7 @@ function HudController:Init(controllers)
 		Name = "Word",
 		Size = UDim2.new(1, 0, 0, 20),
 		Position = UDim2.new(0, 0, 1, -24),
-		Text = "LUCK",
+		Text = "DISTANCE",
 		ZIndex = 2,
 	})
 	Ui.maxText(lw, 18)
