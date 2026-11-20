@@ -68,6 +68,24 @@ function World.petSpot(b: number, i: number): CFrame
 	return World.baseCFrame(b) * CFrame.new(p[1], 1, p[2])
 end
 
+-- The pet park inside a base's fence (base local X/Z studs, gate side = -Z): pets wander
+-- here and eggs can be put down anywhere in it (Shared/EggSpots). The cabin starts at
+-- z = 15, so the park stops short of it. ParkProps are footprints pets walk around and
+-- eggs can't sit on (art/blender/base.py: egg pedestals, lanterns).
+World.ParkMin = Vector2.new(-29, -25)
+World.ParkMax = Vector2.new(29, 12)
+World.ParkTop = 0.5 -- floor top above the base centre (art/blender/base.py FLOOR)
+World.ParkProps = {
+	{ Position = Vector3.new(-4.5, 0, -14), Radius = 1.2 },
+	{ Position = Vector3.new(4.5, 0, -14), Radius = 1.2 },
+	{ Position = Vector3.new(-4.5, 0, 4), Radius = 1.2 },
+	{ Position = Vector3.new(4.5, 0, 4), Radius = 1.2 },
+	{ Position = Vector3.new(-24, 0, -20), Radius = 3.2 },
+	{ Position = Vector3.new(-15, 0, -20), Radius = 3.2 },
+	{ Position = Vector3.new(-24, 0, -11), Radius = 3.2 },
+	{ Position = Vector3.new(-15, 0, -11), Radius = 3.2 },
+} :: { { Position: Vector3, Radius: number } }
+
 -- Summit props (Blender Prop_* models): pines around the plaza edge, lamps and benches
 -- along the middle walk, snowmen by the spawn, flags by the deck, crystals by the wheel.
 -- The middle of the plaza and the paths between bases, rollers and the deck stay clear.

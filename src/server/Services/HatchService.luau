@@ -1,6 +1,7 @@
 --!strict
--- Hatching on your base (GAME_PLAN §5.9): eggs from the bag go on the 4 hatch spots of
--- your base, wait their rarity's time (Fast Hatch halves it; a new player's first egg takes
+-- Hatching on your base (GAME_PLAN §5.9), Steal an Egg style: you carry an egg from your
+-- bag (CarryService) and put it down anywhere in your pet park (Shared/EggSpots, up to
+-- World.HatchSpots growing at once). It waits its rarity's time (Fast Hatch halves it; a new player's first egg takes
 -- 3 s), then open into a pet with a roll for mutation and Huge. Ready eggs open with a
 -- ProximityPrompt on the egg or the Pets window. Egg looks are graybox until the Blender
 -- frozen eggs (Assets Egg_<Rarity>) are uploaded.
@@ -10,6 +11,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Eggs = require(Shared.Config.Eggs)
 local Net = require(Shared.Net)
 local Pets = require(Shared.Config.Pets)
+local EggSpots = require(Shared.EggSpots)
 local World = require(Shared.Config.World)
 local ModelLoader = require(script.Parent.Parent.Lib.ModelLoader)
 
@@ -59,16 +61,18 @@ function HatchService:RefreshEggs(player: Player)
 	for _, h in data.Hatching do
 		local rarity = Eggs.ByName[h.Rarity]
 		-- The Blender egg for this rarity (art/blender/track.py), graybox until it loads.
-		local spotCf = World.eggSpot(index :: number, h.Spot)
+		local spotCf = World.baseCFrame(index :: number) * CFrame.new(h.X or 0, World.ParkTop, h.Z or 0)
 		local egg = ModelLoader.part("Egg_" .. h.Rarity, spotCf)
 		if not egg then
 			local p = Instance.new("Part")
-			p.Shape = Enum.PartType.Ball
 			p.Size = Vector3.new(3.4, 4.4, 3.4)
 			p.Material = Enum.Material.Glass
 			p.Transparency = 0.15
 			p.Color = if rarity then rarity.Color else Color3.new(1, 1, 1)
 			p.CFrame = spotCf * CFrame.new(0, 2.2, 0)
+			local mesh = Instance.new("SpecialMesh")
+			mesh.MeshType = Enum.MeshType.Sphere
+			mesh.Parent = p
 			egg = p
 		end
 		egg.Name = "Egg" .. h.Spot
@@ -95,15 +99,59 @@ function HatchService:RefreshEggs(player: Player)
 	folder.Parent = base
 end
 
--- Puts an egg from the bag on a free hatch spot.
-function HatchService:Place(player: Player, uid: any): (boolean, string?)
+-- The first egg in the bag of a rarity (what you carry when you hold that egg stack).
+function HatchService:FirstEggOf(player: Player, rarity: string): string?
+	local data = S.DataService:GetData(player)
+	for uid, egg in (data and data.Eggs or {}) do
+		if egg.Rarity == rarity then
+			return uid
+		end
+	end
+	return nil
+end
+
+function HatchService:HasRoom(player: Player): boolean
+	local data = S.DataService:GetData(player)
+	return data ~= nil and freeSpot(data) ~= nil
+end
+
+local PLACE_REACH = 70 -- studs from the park centre the player may stand
+
+-- Puts an egg from the bag down in your park. pos = the spot picked (world space); without
+-- it a free spot near the gate is chosen.
+function HatchService:Place(player: Player, uid: any, pos: Vector3?): (boolean, string?)
 	local data = S.DataService:GetData(player)
 	if not data or type(uid) ~= "string" or not data.Eggs[uid] then
 		return false, "No such egg"
 	end
 	local spot = freeSpot(data)
 	if not spot then
-		return false, "All hatch spots are busy"
+		return false, `Only {World.HatchSpots} eggs can hatch at once! Open one first.`
+	end
+	local x, z
+	if pos then
+		local index = player:GetAttribute("BaseIndex")
+		if type(index) ~= "number" then
+			return false, "You don't have a base yet"
+		end
+		local cf = World.baseCFrame(index)
+		local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart") :: BasePart?
+		local c = (World.ParkMin + World.ParkMax) / 2
+		local centre = cf * Vector3.new(c.X, 0, c.Y)
+		if not root or (Vector3.new(root.Position.X, centre.Y, root.Position.Z) - centre).Magnitude > PLACE_REACH then
+			return false, "Go to your base first!"
+		end
+		local p = cf:PointToObjectSpace(pos)
+		x, z = p.X, p.Z
+		local problem = EggSpots.problem(data.Hatching, x, z)
+		if problem then
+			return false, problem
+		end
+	else
+		x, z = EggSpots.auto(data.Hatching)
+		if not x then
+			return false, "No room left in your base"
+		end
 	end
 	local egg = data.Eggs[uid]
 	data.Eggs[uid] = nil
@@ -112,6 +160,8 @@ function HatchService:Place(player: Player, uid: any): (boolean, string?)
 		Rarity = egg.Rarity,
 		Zone = egg.Zone,
 		Spot = spot,
+		X = x,
+		Z = z,
 		EndsAt = os.time() + hatchSeconds(data, egg.Rarity),
 	})
 	S.AnalyticsService:Funnel(player, "FirstPlace")
@@ -173,7 +223,9 @@ function HatchService:Open(player: Player, spot: any, force: boolean?): (boolean
 			local mutation = Eggs.rollMutation(rng, luck)
 			local order = (Eggs.ByName[h.Rarity] or Eggs.Rarities[1]).Order
 			local huge = order >= Eggs.HugeMinOrder and rng:NextNumber() < luck / Eggs.HugeChance
-			local uid = S.PetService:GivePet(player, petId, { Zone = h.Zone, Mutation = mutation, Huge = huge or nil })
+			-- The pet pops out where the egg was (or goes in the bag when the park is full).
+			local at = if h.X and h.Z then Vector2.new(h.X, h.Z) else nil
+			local uid = S.PetService:GivePet(player, petId, { Zone = h.Zone, Mutation = mutation, Huge = huge or nil }, at)
 			data.Stats.Hatches += 1
 			S.AnalyticsService:Funnel(player, "FirstHatch")
 			S.AnalyticsService:Custom(
@@ -251,6 +303,14 @@ end
 function HatchService:Init(services)
 	S = services
 	S.BaseService.BaseAssigned:Connect(function(player)
+		-- Eggs saved before free placement get a park spot.
+		local data = S.DataService:GetData(player)
+		for _, h in (data and data.Hatching or {}) do
+			if not h.X then
+				local x, z = EggSpots.auto(data.Hatching, h.Uid)
+				h.X, h.Z = x or 0, z or -15
+			end
+		end
 		HatchService:RefreshEggs(player)
 	end)
 	S.DataService.ProfileReleasing:Connect(function(player)

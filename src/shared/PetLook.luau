@@ -37,7 +37,8 @@ local function graybox(def: Pets.PetDef): Model
 	return m
 end
 
-function PetLook.make(petId: string, mutation: string?, huge: boolean?): Model?
+-- size: extra scale for the pet's weight (PetStats.sizeMult), 1 if left out.
+function PetLook.make(petId: string, mutation: string?, huge: boolean?, size: number?): Model?
 	local def = Pets.ById[petId]
 	if not def then
 		return nil
@@ -47,13 +48,13 @@ function PetLook.make(petId: string, mutation: string?, huge: boolean?): Model?
 	local model: Model
 	if source and source:IsA("Model") then
 		model = source:Clone()
-		local _, size = model:GetBoundingBox()
-		local height = math.max(size.Y, 0.1)
+		local _, box = model:GetBoundingBox()
+		local height = math.max(box.Y, 0.1)
 		model:ScaleTo(model:GetScale() * PetLook.PetHeight / height)
 	else
 		model = graybox(def)
 	end
-	local scale = (def.Scale or 1) * (if huge then PetLook.HugeScale else 1)
+	local scale = (def.Scale or 1) * (if huge then PetLook.HugeScale else 1) * (size or 1)
 	if scale ~= 1 then
 		model:ScaleTo(model:GetScale() * scale)
 	end

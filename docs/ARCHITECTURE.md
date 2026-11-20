@@ -31,7 +31,7 @@ Server-authoritative 2D sim: a ball is `(s, x)` on the track spline (`Config/Tra
 | Data, Analytics, State | saves, funnels/custom events, snapshots |
 | World, Base | graybox summit/track/wheel stand, base assignment and teleports |
 | Cash, Boost | cash in/out, every multiplier (training, cash, luck) |
-| Inventory, Pet, Hatch | eggs bag, pets (income, training bonus, base slots, followers), hatching |
+| Inventory, Pet, Hatch, Carry | egg bag; pets out in the park (income, training bonus from the best ones) or in the bag; carrying a pet/egg in your arms and putting it down anywhere in your park (Shared/EggSpots); hatching |
 | Train, Pop | Snow Roller training, Snow Pops and the Rainbow Pop |
 | Roll | pack meter, launch, sim, hits, results |
 | Upgrade, Rebirth | cash upgrades, rebirth |
@@ -53,3 +53,9 @@ Money moments (DIRECTION.md in the project files): Starter Pack window after the
 ## UI
 
 Placeholder look from `Ui.luau` follows the house rules (Montserrat, solid buttons, no rounded corners, one window per feature, mobile first). ForgeUI art replaces it later without renaming frames.
+
+## Pets and eggs (Steal an Egg / Sweep the World style, 2026-11-20)
+
+- Bag = eggs + pets not out in the park. Client: `InventoryController` (hotbar bottom right + Bag window), `PlacementController` (carry, ghost + green/red ring, click/tap to put down, HOME button when far), `HoldPoseController` (arms), `PetWorldController` (pets wander in every park, Pick Up prompt, egg timers), `HoverController` (name in rarity colour, rarity, weight, $/s).
+- Server: `CarryService` (welds HeldPet / HeldEgg, PlaceHeld), `PetService` (park = `base.Pets` folders with PetId/Weight/Income/X/Z; clients build the models), `HatchService` (eggs saved with X/Z in the park; the pet pops out where the egg was).
+- Pet weight: `Config/Pets.Kg` + `rollWeight`; `Shared/PetStats` turns it into size and income. Pet clips: `Config/Anims` `Pet_<PackModel>_Idle/_Walk/_Happy` (procedural hop until a pet has them).
