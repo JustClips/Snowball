@@ -1,16 +1,18 @@
 --!strict
--- The Robux Shop, laid out like Sweep the World's (Dev 2026-11-20: "replicate what we have
--- in Sweep the World", which copied the top games): ONE scrolling list, no tabs or pages.
---   * the Starter Pack banner on top while it's for sale (pictures, timer, -x%, buy)
---   * sections one under the other, each under a centred coloured "-- EGGS --" heading
---   * square picture cards: big picture on a light glow, ONE short line, a purple gift
---     button and a green price button (OWNED / SOON / locked when they can't be bought)
---   * a Server Luck card with the four levels in a row and the live server timer
---   * a Codes box last, with its own text field
---   * section buttons (icon + one word) to the RIGHT of the window jump the list there.
--- Kid order: Offers, Rollers, Eggs, Passes, Boosts, Money, Codes; cheapest first inside a
--- section. Opens from the HUD Shop tile or the server (OpenShop, e.g. at Money after the 3rd
--- "not enough cash").
+-- The Robux Shop, copied from the games Dev picked (Dev 2026-11-20: "copy the popular games,
+-- not Sweep the World"):
+--   * Steal an Egg sells only a few things in its Shop (a handful of passes, Robux speed
+--     boosts from small to huge, timer skips), so we sell a short list too: Passes, Power,
+--     Luck, Server Luck and Cash. Rollers are sold on the roller's upgrade board, egg skips
+--     and rescue items where you need them, the rest through contextual offers.
+--   * Throw Food For Animals' Food Shop look: magenta gradient header + red X (Ui.window),
+--     dark body, rows of cards that scroll SIDEWAYS. A card is tinted like a rarity (grey >
+--     green > blue > purple > orange > pink as the item gets bigger), has its name on top
+--     with a small word under it, a big picture, a grey plate with what it does, and ONE
+--     full-width button (green Robux price / dark OWNED / grey SOON).
+--   * Steal an Egg's cheap pill under the Shop button ("x2 Speed / ONLY 13 R$").
+-- Every product has its own picture (art/icons_shop, ForgeUI); a product whose picture isn't
+-- uploaded yet falls back to a pack icon.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -20,7 +22,7 @@ local Economy = require(Shared.Config.Economy)
 local Format = require(Shared.Format)
 local Net = require(Shared.Net)
 local Products = require(Shared.Config.Products)
-local Rollers = require(Shared.Config.Rollers)
+local Buy = require(script.Parent.Parent.Buy)
 local State = require(script.Parent.Parent.State)
 local Ui = require(script.Parent.Parent.Ui)
 
@@ -31,345 +33,389 @@ local ShopController = {}
 local C: any
 local window: Frame
 local list: ScrollingFrame
-local headings: { [string]: GuiObject } = {}
-type Card = { def: any, pass: boolean, frame: Frame, buy: TextButton, gift: TextButton, tag: TextLabel }
+local rows: { [string]: GuiObject } = {}
+type Card = { def: any, pass: boolean, buy: TextButton, gift: GuiButton, stroke: UIStroke, plate: TextLabel }
 local cards: { Card } = {}
 local starterBanner: Frame
 local starterTimer: TextLabel
 local luckNow: TextLabel
-local luckButtons: { { def: any, button: TextButton } } = {}
 local giftPicker: Frame
 local giftList: ScrollingFrame
 local giftFor: Card? = nil
+local pill: Frame? = nil
 
-local YELLOW = "#FFE34D"
 local GIFT = Color3.fromRGB(170, 90, 255)
 local PRICE = Color3.fromRGB(70, 205, 95)
 local GREY = Color3.fromRGB(90, 96, 120)
+local DARK = Color3.fromRGB(40, 44, 66)
 
-type Section = { Key: string, Title: string, Icon: string, Word: string, Color: Color3 }
-local SECTIONS: { Section } = {
-	{ Key = "Offers", Title = "OFFERS", Icon = "Chest", Word = "Offers", Color = Color3.fromRGB(255, 110, 60) },
-	{ Key = "Rollers", Title = "ROLLERS", Icon = "Power", Word = "Rollers", Color = Color3.fromRGB(255, 150, 40) },
-	{ Key = "Eggs", Title = "EGGS", Icon = "Egg", Word = "Eggs", Color = Color3.fromRGB(170, 90, 255) },
-	{ Key = "Passes", Title = "PASSES", Icon = "Crown", Word = "Passes", Color = Color3.fromRGB(60, 170, 255) },
-	{ Key = "Boosts", Title = "BOOSTS", Icon = "Bolt", Word = "Boosts", Color = Color3.fromRGB(255, 80, 150) },
-	{ Key = "Money", Title = "MONEY", Icon = "Cash", Word = "Money", Color = Color3.fromRGB(70, 205, 95) },
-	{ Key = "Codes", Title = "CODES", Icon = "Codes", Word = "Codes", Color = Color3.fromRGB(150, 120, 255) },
+-- Rarity-style tints (Throw Food card backgrounds), smallest to biggest.
+local TINT = {
+	Color3.fromRGB(150, 156, 172), -- grey
+	Color3.fromRGB(80, 190, 90), -- green
+	Color3.fromRGB(70, 140, 240), -- blue
+	Color3.fromRGB(160, 90, 240), -- purple
+	Color3.fromRGB(255, 150, 40), -- orange
+	Color3.fromRGB(255, 90, 170), -- pink
 }
-local SECTION_COLOR: { [string]: Color3 } = {}
-for _, s in SECTIONS do
-	SECTION_COLOR[s.Key] = s.Color
+
+-- What the Shop sells, in kid order. Each entry: product/pass key, its picture, the small
+-- word under the name, the plate line, the tint step, and a fallback pack icon.
+type Item = { Key: string, Pass: boolean?, Pic: string, Word: string, Plate: string, Tint: number, Fallback: string }
+type Row = { Key: string, Title: string, Icon: string, Items: { Item } }
+local ROWS: { Row } = {
+	{
+		Key = "Passes",
+		Title = "PASSES",
+		Icon = "Crown",
+		Items = {
+			{
+				Key = "Cash2x",
+				Pass = true,
+				Pic = "Pass2xCash",
+				Word = "FOREVER",
+				Plate = "2x CASH",
+				Tint = 2,
+				Fallback = "Cash",
+			},
+			{
+				Key = "Train2x",
+				Pass = true,
+				Pic = "Pass2xPower",
+				Word = "FOREVER",
+				Plate = "2x POWER",
+				Tint = 5,
+				Fallback = "Power",
+			},
+			{
+				Key = "AutoTrain",
+				Pass = true,
+				Pic = "PassFastTrain",
+				Word = "FOREVER",
+				Plate = "2x SPEED",
+				Tint = 3,
+				Fallback = "Shoe",
+			},
+			{
+				Key = "Lucky",
+				Pass = true,
+				Pic = "PassLucky",
+				Word = "FOREVER",
+				Plate = "+50% LUCK",
+				Tint = 2,
+				Fallback = "Luck",
+			},
+			{
+				Key = "GoldenSnowball",
+				Pass = true,
+				Pic = "PassGoldBall",
+				Word = "FOREVER",
+				Plate = "GOLD BALL",
+				Tint = 5,
+				Fallback = "Star",
+			},
+			{
+				Key = "VIP",
+				Pass = true,
+				Pic = "PassVIP",
+				Word = "FOREVER",
+				Plate = "VIP",
+				Tint = 6,
+				Fallback = "Crown",
+			},
+		},
+	},
+	{
+		Key = "Power",
+		Title = "POWER",
+		Icon = "Power",
+		Items = {
+			{ Key = "PowerPack1", Pic = "Power1", Word = "SMALL", Plate = "+POWER", Tint = 1, Fallback = "Power" },
+			{ Key = "PowerPack2", Pic = "Power2", Word = "BIG", Plate = "+POWER", Tint = 2, Fallback = "Power" },
+			{ Key = "PowerPack3", Pic = "Power3", Word = "HUGE", Plate = "+POWER", Tint = 4, Fallback = "Power" },
+			{ Key = "PowerPack4", Pic = "Power4", Word = "MEGA", Plate = "+POWER", Tint = 5, Fallback = "Power" },
+		},
+	},
+	{
+		Key = "Luck",
+		Title = "LUCKY ROLLS",
+		Icon = "Luck",
+		Items = {
+			{
+				Key = "SuperLucky",
+				Pic = "SuperLucky",
+				Word = "1 ROLL",
+				Plate = "x100 LUCK",
+				Tint = 6,
+				Fallback = "Luck",
+			},
+			{ Key = "LuckyRoll3", Pic = "Lucky3", Word = "ROLLS", Plate = "x3", Tint = 1, Fallback = "Luck" },
+			{ Key = "LuckyRoll10", Pic = "Lucky10", Word = "ROLLS", Plate = "x10", Tint = 2, Fallback = "Luck" },
+			{ Key = "LuckyRoll35", Pic = "Lucky35", Word = "ROLLS", Plate = "x35", Tint = 4, Fallback = "Luck" },
+			{ Key = "LuckyRoll100", Pic = "Lucky100", Word = "ROLLS", Plate = "x100", Tint = 5, Fallback = "Luck" },
+		},
+	},
+	{
+		Key = "ServerLuck",
+		Title = "SERVER LUCK",
+		Icon = "Luck",
+		Items = {
+			{ Key = "ServerLuck2", Pic = "ServerLuck", Word = "15 MIN", Plate = "2x ALL", Tint = 2, Fallback = "Luck" },
+			{ Key = "ServerLuck4", Pic = "ServerLuck", Word = "15 MIN", Plate = "4x ALL", Tint = 3, Fallback = "Luck" },
+			{ Key = "ServerLuck8", Pic = "ServerLuck", Word = "15 MIN", Plate = "8x ALL", Tint = 4, Fallback = "Luck" },
+			{
+				Key = "ServerLuck16",
+				Pic = "ServerLuck",
+				Word = "15 MIN",
+				Plate = "16x ALL",
+				Tint = 5,
+				Fallback = "Luck",
+			},
+		},
+	},
+	{
+		Key = "Money",
+		Title = "CASH",
+		Icon = "Cash",
+		Items = {
+			{ Key = "Cash1", Pic = "Cash1", Word = "PILE", Plate = "+CASH", Tint = 1, Fallback = "Cash" },
+			{ Key = "Cash2", Pic = "Cash2", Word = "BAG", Plate = "+CASH", Tint = 2, Fallback = "Cash" },
+			{ Key = "Cash3", Pic = "Cash3", Word = "CRATE", Plate = "+CASH", Tint = 4, Fallback = "Cash" },
+			{ Key = "Cash4", Pic = "Cash4", Word = "VAULT", Plate = "+CASH", Tint = 5, Fallback = "Cash" },
+		},
+	},
+}
+
+local function pic(name: string, fallback: string): string
+	return Ui.Images["Shop_" .. name] or Ui.Images[fallback] or ""
 end
-
-local KIND_SECTION: { [string]: string } = {
-	RobuxRoller = "Rollers",
-	EggPack = "Eggs",
-	HugePet = "Eggs",
-	LuckyRoll = "Boosts",
-	SuperLucky = "Boosts",
-	GoldenRuns = "Boosts",
-	TrainTime = "Boosts",
-	PowerPack = "Boosts",
-	Boost = "Boosts",
-	Avalanche = "Boosts",
-	CashPack = "Money",
-}
-
-local KIND_ICON: { [string]: string } = {
-	RobuxRoller = "Power",
-	EggPack = "GoldenEgg",
-	HugePet = "Pets",
-	LuckyRoll = "Luck",
-	SuperLucky = "Luck",
-	GoldenRuns = "Star",
-	TrainTime = "Clock",
-	PowerPack = "Power",
-	Boost = "Bolt",
-	Avalanche = "Storm",
-	CashPack = "Cash",
-}
-local PASS_ICON: { [string]: string } = {
-	Train2x = "Power",
-	Cash2x = "Cash",
-	AutoTrain = "Shoe",
-	PopMagnet = "Magnet",
-	Lucky = "Luck",
-	GoldenSnowball = "Star",
-	VIP = "Crown",
-	ExtraEquips = "Pets",
-	ExtraSlots = "Base",
-	FastHatch = "Clock",
-}
--- One short line per pass: big yellow part + small white part.
-local PASS_LINE: { [string]: { string } } = {
-	Train2x = { "2x", "POWER" },
-	Cash2x = { "2x", "CASH" },
-	AutoTrain = { "2x", "SPEED" },
-	PopMagnet = { "AUTO", "POPS" },
-	Lucky = { "+50%", "LUCK" },
-	GoldenSnowball = { "GOLD", "BALL" },
-	VIP = { "VIP", "" },
-	ExtraEquips = { "+2", "EQUIP" },
-	ExtraSlots = { "+4", "SLOTS" },
-	FastHatch = { "FAST", "HATCH" },
-}
-local CASH_WORD = { Cash1 = "PILE", Cash2 = "BAG", Cash3 = "CRATE", Cash4 = "VAULT" }
-
-local function line(hi: string, lo: string): string
-	if lo == "" then
-		return `<font color="{YELLOW}">{hi}</font>`
-	end
-	return `<font color="{YELLOW}">{hi}</font> {lo}`
-end
-
-local function cardLine(def: any, pass: boolean): string
-	if pass then
-		local l = PASS_LINE[def.Key] or { "", string.upper(def.Name) }
-		return line(l[1], l[2])
-	end
-	local k = def.Kind
-	if k == "RobuxRoller" then
-		local r = Rollers.RobuxById[def.Roller]
-		return line(if r then `x{Format.number(r.Mult)}` else "", "TRAIN")
-	elseif k == "EggPack" then
-		return line(`x{def.Count}`, string.upper(def.Egg))
-	elseif k == "HugePet" then
-		return line("HUGE", string.upper((string.gsub(def.Name, "^Huge ", ""))))
-	elseif k == "LuckyRoll" then
-		return line(`x{def.Count}`, "LUCKY")
-	elseif k == "SuperLucky" then
-		return line("x100", "LUCK")
-	elseif k == "GoldenRuns" then
-		return line(`x{def.Count}`, "GOLD")
-	elseif k == "TrainTime" then
-		return line(`{def.Minutes}m`, "TRAIN")
-	elseif k == "PowerPack" then
-		return line(`+{Format.number(def.Taps)}`, "REPS")
-	elseif k == "Boost" then
-		return line("2x", if def.Boost == "Cash2x" then `CASH {def.Minutes}m` else `POWER {def.Minutes}m`)
-	elseif k == "Avalanche" then
-		return line("NOW", "AVALANCHE")
-	elseif k == "CashPack" then
-		return line(CASH_WORD[def.Key] or "CASH", "")
-	end
-	return line("", string.upper(def.Name))
-end
+ShopController.Pic = pic
 
 local function canBuy(def: any): boolean
 	return def.Id ~= 0 or (Products.StudioTestBuys and RunService:IsStudio())
 end
 
+-- Shop hides, "Processing..." shows, the Shop comes back after (Buy).
 local function prompt(key: string, giftTo: number?)
-	local ok, why = Net.func("PromptPurchase"):InvokeServer(key, giftTo)
-	if not ok and why then
-		Ui.toast(why, "Bad")
-	end
+	task.spawn(Buy.prompt, key, giftTo, window)
 end
 
 -------------------------------------------------------------------------- pieces
 
-local function heading(section: Section, order: number)
-	local h = Ui.label({
-		Name = "Heading_" .. section.Key,
-		LayoutOrder = order,
-		Size = UDim2.new(1, -20, 0, 50),
-		Text = `-- {section.Title} --`,
-		TextColor3 = section.Color,
-	})
-	local st = h:FindFirstChildOfClass("UIStroke")
-	if st then
-		st.Thickness = 4
-	end
-	h.Parent = list
-	headings[section.Key] = h
-end
+local CARD = Vector2.new(150, 214)
 
-local CELL = Vector2.new(164, 210)
-local function grid(name: string, order: number): Frame
-	local g = Ui.frame({
-		Name = "Grid_" .. name,
-		LayoutOrder = order,
-		Size = UDim2.new(1, -16, 0, 0),
-		AutomaticSize = Enum.AutomaticSize.Y,
-		BackgroundTransparency = 1,
-	})
-	local layout = Instance.new("UIGridLayout")
-	layout.CellSize = UDim2.fromOffset(CELL.X, CELL.Y)
-	layout.CellPadding = UDim2.fromOffset(10, 12)
-	layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-	layout.SortOrder = Enum.SortOrder.LayoutOrder
-	layout.Parent = g
-	g.Parent = list
-	return g
-end
-
-local function smallButton(name: string, color: Color3, props: { [string]: any }, onClick: () -> ()): TextButton
-	local b = Ui.button(props, "", onClick)
-	b.Name = name
-	b.BackgroundColor3 = color
-	return b
-end
-
-local function card(parent: Frame, def: any, pass: boolean, order: number, color: Color3): Card
-	local f = Ui.frame({ Name = def.Key, LayoutOrder = order, BackgroundColor3 = color })
-	Ui.corner(f, 18)
+local function card(parent: GuiObject, item: Item, def: any, order: number)
+	local tint = TINT[item.Tint] or TINT[1]
+	local f = Ui.frame({ Name = item.Key, LayoutOrder = order, Size = UDim2.fromOffset(CARD.X, CARD.Y) })
+	f.BackgroundColor3 = tint
+	Ui.corner(f, 14)
 	Ui.gradient(f)
-	Ui.stroke(f, 4)
-	local glow = Ui.frame({
-		Name = "Glow",
-		Size = UDim2.fromOffset(120, 120),
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.new(0.5, 0, 0, 72),
-		BackgroundColor3 = Color3.new(1, 1, 1),
-		BackgroundTransparency = 0.72,
-	})
-	Ui.corner(glow, 60)
-	glow.Parent = f
-	Ui.icon((if pass then PASS_ICON[def.Key] else KIND_ICON[def.Kind]) or "Gift", {
-		Size = UDim2.fromOffset(116, 116),
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.new(0.5, 0, 0, 72),
-		ZIndex = 2,
-	}).Parent =
-		f
+	local stroke = Ui.stroke(f, 3)
 	Ui.label({
-		Name = "Line",
-		Size = UDim2.new(1, -12, 0, 32),
-		AnchorPoint = Vector2.new(0.5, 1),
-		Position = UDim2.new(0.5, 0, 1, -58),
-		Text = cardLine(def, pass),
-		RichText = true,
+		Name = "Name",
+		Size = UDim2.new(1, -12, 0, 26),
+		Position = UDim2.fromOffset(6, 6),
+		Text = string.upper(def.Name),
 		ZIndex = 3,
 	}).Parent =
 		f
-	local tag = Ui.label({
-		Name = "Tag",
-		Size = UDim2.fromOffset(82, 26),
-		Position = UDim2.fromOffset(-6, 6),
-		Rotation = -8,
-		BackgroundTransparency = 0,
-		BackgroundColor3 = Ui.Colors.Red,
-		Text = "",
-		Visible = false,
-		ZIndex = 5,
+	Ui.label({
+		Name = "Word",
+		Size = UDim2.new(1, -12, 0, 16),
+		Position = UDim2.fromOffset(6, 32),
+		Text = item.Word,
+		TextColor3 = Color3.fromRGB(235, 240, 255),
+		ZIndex = 3,
+	}).Parent =
+		f
+	local image = Instance.new("ImageLabel")
+	image.Name = "Picture"
+	image.BackgroundTransparency = 1
+	image.Image = pic(item.Pic, item.Fallback)
+	image.ScaleType = Enum.ScaleType.Fit
+	image.Size = UDim2.fromOffset(96, 96)
+	image.AnchorPoint = Vector2.new(0.5, 0)
+	image.Position = UDim2.new(0.5, 0, 0, 50)
+	image.ZIndex = 2
+	image.Parent = f
+	-- Grey plate (Throw Food's "Tier N").
+	local plate = Ui.frame({
+		Name = "Plate",
+		Size = UDim2.new(1, -16, 0, 26),
+		Position = UDim2.fromOffset(8, CARD.Y - 80),
+		BackgroundColor3 = Color3.fromRGB(70, 74, 92),
+		BackgroundTransparency = 0.1,
+		ZIndex = 3,
 	})
-	Ui.corner(tag, 8)
-	tag.Parent = f
-	local entry: Card
-	local gift = smallButton("Gift", GIFT, {
-		Size = UDim2.fromOffset(48, 44),
-		AnchorPoint = Vector2.new(0, 1),
-		Position = UDim2.new(0, 8, 1, -8),
+	Ui.corner(plate, 6)
+	local plateText = Ui.label({
+		Name = "Text",
+		Size = UDim2.new(1, -8, 1, -4),
+		Position = UDim2.fromOffset(4, 2),
+		Text = item.Plate,
+		TextColor3 = Color3.fromRGB(255, 227, 77),
 		ZIndex = 4,
-	}, function()
+	})
+	plateText.Parent = plate
+	plate.Parent = f
+	local buy = Ui.button(
+		{
+			Name = "Buy",
+			Size = UDim2.new(1, -16, 0, 42),
+			Position = UDim2.new(0, 8, 1, -50),
+			BackgroundColor3 = PRICE,
+			ZIndex = 3,
+		},
+		"",
+		function()
+			prompt(def.Key)
+		end
+	)
+	buy.Parent = f
+	-- Small purple gift corner (only on giftable products).
+	local gift = Instance.new("ImageButton")
+	gift.Name = "Gift"
+	gift.BackgroundColor3 = GIFT
+	gift.BorderSizePixel = 0
+	gift.Size = UDim2.fromOffset(34, 34)
+	gift.AnchorPoint = Vector2.new(1, 0)
+	gift.Position = UDim2.new(1, 6, 0, 44)
+	gift.Image = Ui.Images.Gift or ""
+	gift.ZIndex = 5
+	Ui.corner(gift, 10)
+	Ui.stroke(gift, 2)
+	gift.Parent = f
+	local entry: Card =
+		{ def = def, pass = item.Pass == true, buy = buy, gift = gift, stroke = stroke, plate = plateText }
+	gift.Activated:Connect(function()
+		Ui.sound("Click")
 		ShopController:OpenGift(entry)
 	end)
-	Ui.icon("Gift", { Size = UDim2.new(1, -8, 1, -8), Position = UDim2.fromOffset(4, 4), ZIndex = 5 }).Parent = gift
-	gift.Visible = def.Giftable == true and not pass
-	gift.Parent = f
-	local buy = smallButton("Buy", PRICE, {
-		Size = if gift.Visible then UDim2.new(1, -70, 0, 44) else UDim2.new(1, -16, 0, 44),
-		AnchorPoint = Vector2.new(1, 1),
-		Position = UDim2.new(1, -8, 1, -8),
-		ZIndex = 4,
-	}, function()
-		prompt(def.Key)
-	end)
-	buy.Parent = f
 	f.Parent = parent
-	entry = { def = def, pass = pass, frame = f, buy = buy, gift = gift, tag = tag }
 	table.insert(cards, entry)
-	return entry
 end
 
--- Starter Pack banner (pictures of what's inside, timer, buy).
+local function row(r: Row, order: number)
+	local holder = Ui.frame({
+		Name = "Row_" .. r.Key,
+		LayoutOrder = order,
+		Size = UDim2.new(1, -12, 0, CARD.Y + 56),
+		BackgroundTransparency = 1,
+	})
+	Ui.icon(r.Icon, { Size = UDim2.fromOffset(36, 36), Position = UDim2.fromOffset(4, 2), ZIndex = 2 }).Parent = holder
+	local title = Ui.label({
+		Name = "Title",
+		Size = UDim2.new(0.6, 0, 0, 32),
+		Position = UDim2.fromOffset(46, 4),
+		Text = r.Title,
+		TextXAlignment = Enum.TextXAlignment.Left,
+	})
+	title.Parent = holder
+	if r.Key == "ServerLuck" then
+		luckNow = Ui.label({
+			Name = "Now",
+			Size = UDim2.new(0.45, 0, 0, 26),
+			AnchorPoint = Vector2.new(1, 0),
+			Position = UDim2.new(1, -6, 0, 8),
+			Text = "",
+			TextColor3 = Color3.fromRGB(140, 255, 150),
+			TextXAlignment = Enum.TextXAlignment.Right,
+		})
+		luckNow.Parent = holder
+	end
+	local strip = Instance.new("ScrollingFrame")
+	strip.Name = "Cards"
+	strip.Size = UDim2.new(1, 0, 0, CARD.Y + 14)
+	strip.Position = UDim2.fromOffset(0, 42)
+	strip.BackgroundTransparency = 1
+	strip.BorderSizePixel = 0
+	strip.ScrollBarThickness = 6
+	strip.ScrollingDirection = Enum.ScrollingDirection.X
+	strip.AutomaticCanvasSize = Enum.AutomaticSize.X
+	strip.CanvasSize = UDim2.new()
+	strip.ElasticBehavior = Enum.ElasticBehavior.Always
+	local l = Instance.new("UIListLayout")
+	l.FillDirection = Enum.FillDirection.Horizontal
+	l.Padding = UDim.new(0, 10)
+	l.SortOrder = Enum.SortOrder.LayoutOrder
+	l.Parent = strip
+	local pad = Instance.new("UIPadding")
+	pad.PaddingLeft = UDim.new(0, 4)
+	pad.PaddingTop = UDim.new(0, 2)
+	pad.Parent = strip
+	strip.Parent = holder
+	local n = 0
+	for _, item in r.Items do
+		local def = if item.Pass then Products.PassByKey[item.Key] else Products.ProductByKey[item.Key]
+		if def then
+			n += 1
+			card(strip, item, def, n)
+		end
+	end
+	holder.Parent = list
+	rows[r.Key] = holder
+end
+
+-- Starter Pack banner on top while it's for sale (straight, no tilted tags).
 local function buildStarter(order: number)
 	local b = Ui.frame({
 		Name = "StarterBanner",
 		LayoutOrder = order,
-		Size = UDim2.new(1, -16, 0, 176),
-		BackgroundColor3 = Color3.fromRGB(255, 90, 70),
+		Size = UDim2.new(1, -12, 0, 170),
+		BackgroundColor3 = Color3.fromRGB(255, 110, 70),
 	})
-	Ui.corner(b, 18)
-	Ui.stroke(b, 4, Color3.fromRGB(255, 190, 40))
-	local g = Instance.new("UIGradient")
-	g.Color = ColorSequence.new(Color3.fromRGB(255, 255, 255), Color3.fromRGB(255, 190, 120))
-	g.Rotation = 90
-	g.Parent = b
-	local strip = Ui.frame({
-		Name = "Strip",
-		Size = UDim2.new(1, 0, 0, 44),
-		BackgroundColor3 = Color3.new(0, 0, 0),
-		BackgroundTransparency = 0.6,
-	})
-	Ui.corner(strip, 18)
-	strip.Parent = b
-	local tag = Ui.label({
-		Name = "Tag",
-		Size = UDim2.fromOffset(92, 30),
-		Position = UDim2.fromOffset(8, 7),
-		Rotation = -5,
-		BackgroundTransparency = 0,
-		BackgroundColor3 = Ui.Colors.Red,
-		Text = "ONCE!",
-		ZIndex = 3,
-	})
-	Ui.corner(tag, 8)
-	tag.Parent = strip
+	Ui.corner(b, 16)
+	Ui.gradient(b)
+	Ui.stroke(b, 4, Color3.fromRGB(255, 200, 50))
 	Ui.label({
 		Name = "Title",
-		Size = UDim2.new(1, -330, 0, 34),
-		Position = UDim2.fromOffset(112, 5),
+		Size = UDim2.new(1, -260, 0, 36),
+		Position = UDim2.fromOffset(14, 8),
 		Text = "STARTER PACK",
-		TextColor3 = Color3.fromRGB(255, 227, 77),
+		TextColor3 = Color3.fromRGB(255, 240, 120),
 		TextXAlignment = Enum.TextXAlignment.Left,
-		ZIndex = 3,
 	}).Parent =
-		strip
-	local pill = Ui.frame({
+		b
+	local timerPill = Ui.frame({
 		Name = "TimerPill",
-		Size = UDim2.fromOffset(190, 32),
-		AnchorPoint = Vector2.new(1, 0.5),
-		Position = UDim2.new(1, -8, 0.5, 0),
+		Size = UDim2.fromOffset(170, 34),
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.new(1, -12, 0, 10),
 		BackgroundColor3 = Color3.fromRGB(27, 16, 48),
 		BackgroundTransparency = 0.2,
-		ZIndex = 3,
 	})
-	Ui.corner(pill, 16)
-	Ui.icon("Clock", { Size = UDim2.fromOffset(30, 30), Position = UDim2.fromOffset(2, 1), ZIndex = 4 }).Parent = pill
+	Ui.corner(timerPill, 17)
+	Ui.icon("Clock", { Size = UDim2.fromOffset(30, 30), Position = UDim2.fromOffset(2, 2), ZIndex = 2 }).Parent =
+		timerPill
 	starterTimer = Ui.label({
 		Name = "Timer",
-		Size = UDim2.new(1, -44, 1, -6),
-		Position = UDim2.fromOffset(38, 3),
+		Size = UDim2.new(1, -44, 1, -8),
+		Position = UDim2.fromOffset(38, 4),
 		Text = "",
-		ZIndex = 4,
+		ZIndex = 2,
 	})
-	starterTimer.Parent = pill
-	pill.Parent = strip
-	strip.Parent = b
-	-- What's inside.
+	starterTimer.Parent = timerPill
+	timerPill.Parent = b
 	local pack = Economy.StarterPack
 	local chips = {
-		{ "Power", "ROLLER" },
-		{ "GoldenEgg", string.upper(pack.EggRarity) },
-		{ "Luck", `x{pack.LuckyRolls}` },
-		{ "Bolt", `2x {pack.Train2xMinutes}m` },
+		{ "StarterRoller", "Power", "ROLLER" },
+		{ "EpicEgg", "GoldenEgg", string.upper(pack.EggRarity) },
+		{ "Lucky3", "Luck", `x{pack.LuckyRolls}` },
+		{ "Pass2xPower", "Bolt", `2x {pack.Train2xMinutes}m` },
 	}
-	local row = Ui.frame({
+	local items = Ui.frame({
 		Name = "Items",
-		Size = UDim2.new(1, -250, 0, 116),
-		Position = UDim2.fromOffset(10, 52),
+		Size = UDim2.new(1, -250, 0, 112),
+		Position = UDim2.fromOffset(12, 50),
 		BackgroundTransparency = 1,
 	})
 	local rl = Instance.new("UIListLayout")
 	rl.FillDirection = Enum.FillDirection.Horizontal
 	rl.Padding = UDim.new(0, 8)
-	rl.Parent = row
+	rl.Parent = items
 	for i, c in chips do
-		local chip = Ui.frame({ Name = "Chip" .. i, Size = UDim2.fromOffset(92, 116), BackgroundTransparency = 1 })
+		local chip = Ui.frame({ Name = "Chip" .. i, Size = UDim2.fromOffset(90, 112), BackgroundTransparency = 1 })
 		local back = Ui.frame({
-			Name = "Back",
 			Size = UDim2.fromOffset(84, 84),
 			AnchorPoint = Vector2.new(0.5, 0),
 			Position = UDim2.new(0.5, 0, 0, 0),
@@ -377,169 +423,43 @@ local function buildStarter(order: number)
 			BackgroundTransparency = 0.7,
 		})
 		Ui.corner(back, 14)
-		Ui.stroke(back, 2, Color3.new(1, 1, 1))
 		back.Parent = chip
-		Ui.icon(c[1], { Size = UDim2.new(1, -8, 1, -8), Position = UDim2.fromOffset(4, 4), ZIndex = 2 }).Parent = back
+		local im = Instance.new("ImageLabel")
+		im.BackgroundTransparency = 1
+		im.Image = pic(c[1], c[2])
+		im.ScaleType = Enum.ScaleType.Fit
+		im.Size = UDim2.new(1, -8, 1, -8)
+		im.Position = UDim2.fromOffset(4, 4)
+		im.ZIndex = 2
+		im.Parent = back
 		Ui.label({
-			Name = "Caption",
-			Size = UDim2.new(1, 6, 0, 28),
+			Size = UDim2.new(1, 6, 0, 26),
 			AnchorPoint = Vector2.new(0.5, 1),
 			Position = UDim2.new(0.5, 0, 1, 0),
-			Text = c[2],
+			Text = c[3],
 			ZIndex = 3,
 		}).Parent =
 			chip
-		chip.Parent = row
+		chip.Parent = items
 	end
-	row.Parent = b
+	items.Parent = b
 	local def = Products.ProductByKey.StarterPack
-	local buy = smallButton("Buy", PRICE, {
-		Size = UDim2.fromOffset(210, 64),
-		AnchorPoint = Vector2.new(1, 1),
-		Position = UDim2.new(1, -14, 1, -14),
-		ZIndex = 4,
-	}, function()
-		prompt("StarterPack")
-	end)
-	Ui.setText(buy, `{Ui.ROBUX}{def.Price}`)
+	local buy = Ui.button(
+		{
+			Name = "Buy",
+			Size = UDim2.fromOffset(210, 64),
+			AnchorPoint = Vector2.new(1, 1),
+			Position = UDim2.new(1, -14, 1, -14),
+			BackgroundColor3 = PRICE,
+		},
+		`{Ui.ROBUX}{def.Price}`,
+		function()
+			prompt("StarterPack")
+		end
+	)
 	buy.Parent = b
 	starterBanner = b
 	b.Parent = list
-end
-
--- Server Luck: what's on now, and the four levels side by side.
-local function buildLuck(order: number)
-	local f = Ui.frame({
-		Name = "ServerLuck",
-		LayoutOrder = order,
-		Size = UDim2.new(1, -16, 0, 168),
-		BackgroundColor3 = Color3.fromRGB(46, 158, 74),
-	})
-	Ui.corner(f, 18)
-	Ui.gradient(f)
-	Ui.stroke(f, 4)
-	Ui.icon("Luck", { Size = UDim2.fromOffset(96, 96), Position = UDim2.fromOffset(10, 8), ZIndex = 2 }).Parent = f
-	Ui.label({
-		Name = "Title",
-		Size = UDim2.new(0, 300, 0, 40),
-		Position = UDim2.fromOffset(116, 10),
-		Text = "SERVER LUCK",
-		TextColor3 = Color3.fromRGB(255, 227, 77),
-		TextXAlignment = Enum.TextXAlignment.Left,
-	}).Parent =
-		f
-	luckNow = Ui.label({
-		Name = "Now",
-		Size = UDim2.new(1, -130, 0, 30),
-		Position = UDim2.fromOffset(116, 54),
-		Text = "",
-		TextXAlignment = Enum.TextXAlignment.Left,
-	})
-	luckNow.Parent = f
-	local row = Ui.frame({
-		Name = "Levels",
-		Size = UDim2.new(1, -20, 0, 52),
-		Position = UDim2.new(0, 10, 1, -62),
-		BackgroundTransparency = 1,
-	})
-	local rl = Instance.new("UIListLayout")
-	rl.FillDirection = Enum.FillDirection.Horizontal
-	rl.Padding = UDim.new(0, 8)
-	rl.HorizontalAlignment = Enum.HorizontalAlignment.Center
-	rl.Parent = row
-	local levels = {}
-	for _, def in Products.Products do
-		if def.Kind == "ServerLuck" then
-			table.insert(levels, def)
-		end
-	end
-	table.sort(levels, function(a, b)
-		return a.Mult < b.Mult
-	end)
-	for i, def in levels do
-		local b = smallButton("Level" .. def.Mult, PRICE, {
-			LayoutOrder = i,
-			Size = UDim2.new(1 / #levels, -8, 1, 0),
-		}, function()
-			prompt(def.Key)
-		end)
-		Ui.setText(b, `<font color="{YELLOW}">{def.Mult}x</font> {Ui.ROBUX}{def.Price}`)
-		local l = b:FindFirstChild("Label") :: TextLabel?
-		if l then
-			l.RichText = true
-		end
-		b.Parent = row
-		table.insert(luckButtons, { def = def, button = b })
-	end
-	row.Parent = f
-	f.Parent = list
-end
-
--- Codes box at the very end (Sweep: a purple card with the field right in the Shop).
-local function buildCodes(order: number)
-	local f = Ui.frame({
-		Name = "CodesBox",
-		LayoutOrder = order,
-		Size = UDim2.new(1, -16, 0, 150),
-		BackgroundColor3 = Color3.fromRGB(107, 61, 240),
-	})
-	Ui.corner(f, 18)
-	Ui.gradient(f)
-	Ui.stroke(f, 4)
-	Ui.icon("Codes", {
-		Size = UDim2.fromOffset(104, 104),
-		Position = UDim2.fromOffset(12, 20),
-		Rotation = -10,
-		ZIndex = 2,
-	}).Parent =
-		f
-	Ui.label({
-		Name = "Title",
-		Size = UDim2.new(1, -150, 0, 40),
-		Position = UDim2.fromOffset(132, 12),
-		Text = "CODES",
-		TextColor3 = Color3.fromRGB(255, 227, 77),
-		TextXAlignment = Enum.TextXAlignment.Left,
-	}).Parent =
-		f
-	local box = Instance.new("TextBox")
-	box.Name = "Input"
-	box.Size = UDim2.new(1, -320, 0, 54)
-	box.Position = UDim2.fromOffset(132, 64)
-	box.BackgroundColor3 = Color3.new(1, 1, 1)
-	box.BorderSizePixel = 0
-	box.Text = ""
-	box.PlaceholderText = "Code..."
-	box.PlaceholderColor3 = Color3.fromRGB(138, 144, 160)
-	box.TextColor3 = Ui.Colors.Ink
-	box.FontFace = Ui.Font
-	box.TextSize = 26
-	box.ClearTextOnFocus = false
-	box.TextXAlignment = Enum.TextXAlignment.Left
-	local pad = Instance.new("UIPadding")
-	pad.PaddingLeft = UDim.new(0, 14)
-	pad.Parent = box
-	Ui.corner(box, 12)
-	Ui.stroke(box, 3)
-	box.Parent = f
-	local redeem = smallButton("Redeem", PRICE, {
-		Size = UDim2.fromOffset(160, 54),
-		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, -14, 0, 64),
-	}, function()
-		if box.Text == "" then
-			return
-		end
-		local ok, why = Net.func("RedeemCode"):InvokeServer(box.Text)
-		Ui.toast(why or (if ok then "Redeemed!" else "That code doesn't work"), if ok then "Good" else "Bad")
-		if ok then
-			box.Text = ""
-		end
-	end)
-	Ui.setText(redeem, "REDEEM")
-	redeem.Parent = f
-	f.Parent = list
-	headings.Codes = f
 end
 
 -------------------------------------------------------------------------- gifting
@@ -563,13 +483,18 @@ function ShopController:OpenGift(entry: Card)
 	for _, p in Players:GetPlayers() do
 		if p ~= player then
 			n += 1
-			local b = smallButton(p.Name, Ui.Colors.HeaderDark, {
-				LayoutOrder = n,
-				Size = UDim2.new(1, -12, 0, 50),
-			}, function()
-				giftTo(p)
-			end)
-			Ui.setText(b, p.DisplayName)
+			local b = Ui.button(
+				{
+					Name = p.Name,
+					LayoutOrder = n,
+					Size = UDim2.new(1, -12, 0, 50),
+					BackgroundColor3 = Ui.Colors.HeaderDark,
+				},
+				p.DisplayName,
+				function()
+					giftTo(p)
+				end
+			)
 			b.Parent = giftList
 		end
 	end
@@ -606,17 +531,22 @@ local function buildGiftPicker()
 		ZIndex = 42,
 	}).Parent =
 		head
-	local x = smallButton("Close", Ui.Colors.Red, {
-		Size = UDim2.fromOffset(42, 42),
-		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, -6, 0, 6),
-		ZIndex = 43,
-	}, function()
-		giftPicker.Visible = false
-		giftFor = nil
-	end)
-	Ui.setText(x, "X")
-	x.Parent = head
+	Ui.button(
+		{
+			Name = "Close",
+			Size = UDim2.fromOffset(42, 42),
+			AnchorPoint = Vector2.new(1, 0),
+			Position = UDim2.new(1, -6, 0, 6),
+			BackgroundColor3 = Ui.Colors.Red,
+			ZIndex = 43,
+		},
+		"X",
+		function()
+			giftPicker.Visible = false
+			giftFor = nil
+		end
+	).Parent =
+		head
 	giftList = Instance.new("ScrollingFrame")
 	giftList.Name = "Players"
 	giftList.Size = UDim2.new(1, -16, 1, -66)
@@ -636,6 +566,55 @@ local function buildGiftPicker()
 	giftPicker.Parent = window
 end
 
+-- Steal an Egg's cheap pill under the Shop button: "x2 POWER / ONLY R$13".
+local PILL_KEY = "Train2xBoost"
+local function buildPill()
+	local def = Products.ProductByKey[PILL_KEY]
+	local shopTile = C.HudController:Tile("Shop")
+	if not def or not shopTile then
+		return
+	end
+	local rail = C.HudController:Buttons()
+	local p = Ui.frame({
+		Name = "ShopPill",
+		Size = UDim2.fromOffset(138, 46),
+		AnchorPoint = Vector2.new(0, 1),
+		Position = UDim2.new(0, 0, 0, -8),
+		BackgroundColor3 = Color3.fromRGB(60, 200, 255),
+		Visible = false,
+	})
+	Ui.corner(p, 12)
+	Ui.gradient(p)
+	Ui.stroke(p, 3)
+	Ui.label({
+		Size = UDim2.new(1, -10, 0, 24),
+		Position = UDim2.fromOffset(5, 2),
+		Text = "x2 POWER",
+		ZIndex = 2,
+	}).Parent =
+		p
+	Ui.label({
+		Size = UDim2.new(1, -10, 0, 16),
+		Position = UDim2.fromOffset(5, 26),
+		Text = `ONLY {Ui.ROBUX}{def.Price}`,
+		TextColor3 = Color3.fromRGB(255, 240, 120),
+		ZIndex = 2,
+	}).Parent =
+		p
+	local hit = Instance.new("TextButton")
+	hit.BackgroundTransparency = 1
+	hit.Text = ""
+	hit.Size = UDim2.fromScale(1, 1)
+	hit.ZIndex = 3
+	hit.Activated:Connect(function()
+		Ui.sound("Click")
+		prompt(PILL_KEY)
+	end)
+	hit.Parent = p
+	p.Parent = rail
+	pill = p
+end
+
 -------------------------------------------------------------------------- live state
 
 local function setButton(b: TextButton, text: string, color: Color3)
@@ -648,47 +627,43 @@ local function render(data)
 		return
 	end
 	local now = State.now()
-	local nextRoller = Rollers.nextRobux(data.RobuxRollers)
 	for _, c in cards do
 		local def = c.def
-		local tag = ""
-		if c.pass and data.Gamepasses[def.Key] then
-			setButton(c.buy, "OWNED", GREY)
-		elseif def.Kind == "RobuxRoller" and data.RobuxRollers[def.Roller] then
-			setButton(c.buy, "OWNED", GREY)
+		local owned = c.pass and data.Gamepasses[def.Key] == true
+		if owned then
+			setButton(c.buy, "OWNED", DARK)
 		elseif not canBuy(def) then
 			setButton(c.buy, "SOON", GREY)
-		elseif def.Kind == "RobuxRoller" and (not nextRoller or nextRoller.Id ~= def.Roller) then
-			setButton(c.buy, `{Ui.ROBUX}{def.Price}`, GREY)
-			tag = "LOCKED"
 		else
 			setButton(c.buy, `{Ui.ROBUX}{def.Price}`, PRICE)
-			if def.Kind == "RobuxRoller" then
-				tag = "NEXT"
-			end
 		end
-		c.tag.Text = tag
-		c.tag.Visible = tag ~= ""
-		c.tag.BackgroundColor3 = if tag == "LOCKED" then GREY else Ui.Colors.Red
+		c.stroke.Color = if owned then Color3.fromRGB(200, 255, 200) else Ui.Colors.Ink
 		c.gift.Visible = def.Giftable == true and not c.pass and canBuy(def)
+		-- Cash packs show what they give you right now (it grows with your income).
+		if def.Kind == "CashPack" and type(data.CashPacks) == "table" and data.CashPacks[def.Key] then
+			c.plate.Text = "+" .. Format.cash(data.CashPacks[def.Key])
+		end
 	end
-	-- Starter banner.
 	local live = Economy.starterPackLive(data, now)
 	starterBanner.Visible = live
-	headings.Offers.Visible = live
 	if live then
 		starterTimer.Text = Format.countdown(data.Flags.StarterPackEnds - now)
 	end
-	-- Server Luck.
 	local mult = State.server("ServerLuck")
 	local ends = State.server("ServerLuckEnds")
-	if type(mult) == "number" and type(ends) == "number" and ends > now then
-		luckNow.Text = `NOW: {mult}x  {Format.countdown(ends - now)}`
-	else
-		luckNow.Text = "15 min for EVERYONE"
+	if luckNow then
+		luckNow.Text = if type(mult) == "number"
+				and type(ends) == "number"
+				and ends > now
+			then `NOW {mult}x  {Format.countdown(ends - now)}`
+			else ""
 	end
-	for _, l in luckButtons do
-		l.button.BackgroundColor3 = if canBuy(l.def) then PRICE else GREY
+	-- The Shop pill: after the tutorial, while 2x Power isn't running.
+	if pill then
+		local def = Products.ProductByKey[PILL_KEY]
+		local boosts = data.Boosts
+		local running = type(boosts) == "table" and boosts.Train2x ~= nil
+		pill.Visible = data.Flags.TutorialDone == true and canBuy(def) and not running
 	end
 end
 
@@ -703,14 +678,11 @@ function ShopController:Toggle(section: string?)
 	giftPicker.Visible = false
 	Net.event("Analytics"):FireServer("Open", "Shop")
 	render(State.data)
-	-- Old callers use "Cash"; the section is called Money now.
-	local key = if section == "Cash" then "Money" else section
-	if key and headings[key] then
+	local key = if section == "Cash" then "Money" elseif section == "Offers" then nil else section
+	list.CanvasPosition = Vector2.zero
+	if key and rows[key] then
 		task.defer(function()
-			local h = headings[key]
-			if not h.Visible then
-				return
-			end
+			local h = rows[key]
 			list.CanvasPosition = Vector2.new(0, h.AbsolutePosition.Y - list.AbsolutePosition.Y + list.CanvasPosition.Y)
 		end)
 	end
@@ -720,8 +692,7 @@ function ShopController:Init(controllers)
 	C = controllers
 	local gui = Ui.screen("Shop", 20)
 	local body
-	window, body = Ui.window(gui, "Window", "SHOP", Vector2.new(780, 560))
-
+	window, body = Ui.window(gui, "Window", "SHOP", Vector2.new(720, 560))
 	list = Instance.new("ScrollingFrame")
 	list.Name = "List"
 	list.Size = UDim2.fromScale(1, 1)
@@ -730,92 +701,25 @@ function ShopController:Init(controllers)
 	list.ScrollBarThickness = 8
 	list.ScrollBarImageColor3 = Color3.fromRGB(154, 163, 184)
 	list.VerticalScrollBarInset = Enum.ScrollBarInset.ScrollBar
+	list.ScrollingDirection = Enum.ScrollingDirection.Y
 	list.AutomaticCanvasSize = Enum.AutomaticSize.Y
 	list.CanvasSize = UDim2.new()
 	local layout = Instance.new("UIListLayout")
-	layout.Padding = UDim.new(0, 12)
+	layout.Padding = UDim.new(0, 8)
 	layout.SortOrder = Enum.SortOrder.LayoutOrder
 	layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 	layout.Parent = list
 	local pad = Instance.new("UIPadding")
-	pad.PaddingTop = UDim.new(0, 6)
-	pad.PaddingBottom = UDim.new(0, 14)
+	pad.PaddingTop = UDim.new(0, 4)
+	pad.PaddingBottom = UDim.new(0, 12)
 	pad.Parent = list
 	list.Parent = body
-
-	-- Sort products into sections, cheapest first.
-	local bySection: { [string]: { { def: any, pass: boolean } } } = {}
-	for _, s in SECTIONS do
-		bySection[s.Key] = {}
+	buildStarter(1)
+	for i, r in ROWS do
+		row(r, i + 1)
 	end
-	for _, def in Products.Gamepasses do
-		table.insert(bySection.Passes, { def = def, pass = true })
-	end
-	for _, def in Products.Products do
-		local key = KIND_SECTION[def.Kind]
-		if key then
-			table.insert(bySection[key], { def = def, pass = false })
-		end
-	end
-
-	local order = 0
-	local function nextOrder(): number
-		order += 1
-		return order
-	end
-	for _, s in SECTIONS do
-		if s.Key == "Codes" then
-			buildCodes(100_000)
-		else
-			heading(s, nextOrder())
-			if s.Key == "Offers" then
-				buildStarter(nextOrder())
-			end
-			local entries = bySection[s.Key]
-			table.sort(entries, function(a, b)
-				return a.def.Price < b.def.Price
-			end)
-			if #entries > 0 then
-				local g = grid(s.Key, nextOrder())
-				for i, e in entries do
-					card(g, e.def, e.pass, i, s.Color)
-				end
-			end
-			if s.Key == "Boosts" then
-				buildLuck(nextOrder())
-			end
-		end
-	end
-
-	-- Section buttons right of the window: icon + one word, tap to jump there.
-	local nav = Ui.frame({
-		Name = "Nav",
-		Size = UDim2.new(0, 84, 1, -70),
-		Position = UDim2.new(1, 10, 0, 64),
-		BackgroundTransparency = 1,
-	})
-	local navList = Instance.new("UIListLayout")
-	navList.Padding = UDim.new(0, 4)
-	navList.SortOrder = Enum.SortOrder.LayoutOrder
-	navList.Parent = nav
-	for i, s in SECTIONS do
-		local holder = Ui.frame({
-			Name = s.Key,
-			LayoutOrder = i,
-			Size = UDim2.fromOffset(84, 66),
-			BackgroundTransparency = 1,
-		})
-		local t = Ui.tile(s.Key, s.Icon, s.Word, s.Color, function()
-			ShopController:Toggle(s.Key)
-		end, 46)
-		t.AnchorPoint = Vector2.new(0.5, 0)
-		t.Position = UDim2.new(0.5, 0, 0, 0)
-		t.Parent = holder
-		holder.Parent = nav
-	end
-	nav.Parent = window
-
 	buildGiftPicker()
+	buildPill()
 end
 
 function ShopController:Start()
@@ -829,14 +733,13 @@ function ShopController:Start()
 		end
 	end)
 	Net.event("OpenShop").OnClientEvent:Connect(function(section)
-		ShopController:Toggle(if type(section) == "string" then section else "Offers")
+		ShopController:Toggle(if type(section) == "string" then section else "Passes")
 	end)
 	Players.PlayerRemoving:Connect(function(p)
 		if giftPicker.Visible then
-			for _, c in giftList:GetChildren() do
-				if c.Name == p.Name then
-					c:Destroy()
-				end
+			local b = giftList:FindFirstChild(p.Name)
+			if b then
+				b:Destroy()
 			end
 		end
 	end)

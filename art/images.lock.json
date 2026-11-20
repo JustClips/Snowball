@@ -209,6 +209,116 @@
   "id": 91305613407672,
   "sha": "045cb4b7cc585ae977052df0977a350b19170c3ca4d3753494193dcd7394119e"
  },
+ "Shop_Cash1": {
+  "granted": true,
+  "id": 101552803630583,
+  "sha": "71b3bdc2facc1cf3caa3c2a06980b2f0786f70be4a639861e4cd22cb853e2a12"
+ },
+ "Shop_Cash2": {
+  "granted": true,
+  "id": 98309050004717,
+  "sha": "35dc4f5869473086f3d8bd511f1ac6e773d569e34ee479193f15eca4140acf6c"
+ },
+ "Shop_Cash3": {
+  "granted": true,
+  "id": 132843685819004,
+  "sha": "224062e887b502dfe67ade7e41653eb31a507b5b7d8fa99bbf124b2ed5991783"
+ },
+ "Shop_Cash4": {
+  "granted": true,
+  "id": 72790636724763,
+  "sha": "6246cd38d575a00da7345a3eb0c807fe05cad2fdafd443ac10d19847f05fb317"
+ },
+ "Shop_EpicEgg": {
+  "granted": true,
+  "id": 87248294423111,
+  "sha": "d624a31105e2ce887fc73173f54bd62444eecc64e6ec90bc400c58f5f5c759d1"
+ },
+ "Shop_Lucky10": {
+  "granted": true,
+  "id": 125763881897122,
+  "sha": "4a91222d2f05d0f8e55121efdc91a97a0352a920391687a9b83be1ac8a39a8e3"
+ },
+ "Shop_Lucky100": {
+  "granted": true,
+  "id": 102972363840957,
+  "sha": "eee50486807a277d115ecbb989ce7c6b159ec0474a39d00b4d1c6ed8f1104eb2"
+ },
+ "Shop_Lucky3": {
+  "granted": true,
+  "id": 139579693363383,
+  "sha": "60f5b71a3563a0e2694c64a5a932e4af5466e9cacfbb34854a243f843ae55ede"
+ },
+ "Shop_Lucky35": {
+  "granted": true,
+  "id": 105780486208686,
+  "sha": "3b494695c5ea8b4ffd2a6cdee4526b88404a9bafe2e203186e5f50c7c176f680"
+ },
+ "Shop_Pass2xCash": {
+  "granted": true,
+  "id": 124738604131273,
+  "sha": "28c19463db51ebf71aca47c925fa45b9eebf48a99c712a7dd1a9fc5d30980ce3"
+ },
+ "Shop_Pass2xPower": {
+  "granted": true,
+  "id": 84289097848619,
+  "sha": "46a8036fc2d09d1963b637e823e8b68e7f74f88505d09d207da04cd0f66918cf"
+ },
+ "Shop_PassFastTrain": {
+  "granted": true,
+  "id": 89769414288782,
+  "sha": "e0c41e66266e44d2f92c301d979ff74a74098f3a4f9eb6d02fca9820cb2074c6"
+ },
+ "Shop_PassGoldBall": {
+  "granted": true,
+  "id": 116065222326235,
+  "sha": "a4cd4a2fcee84dfeb788da72cc3a97cf511497d3fd0f74a72eed641dbc0e1532"
+ },
+ "Shop_PassLucky": {
+  "granted": true,
+  "id": 100621999977865,
+  "sha": "cad9e5e59d86a3cdd87be610613e6196493338b08a9aa2805079e6c7ebf97213"
+ },
+ "Shop_PassVIP": {
+  "granted": true,
+  "id": 136836793717005,
+  "sha": "8af8de457317d2cb33b724a41fd6d8d5627db1947103532424b5c7854abf4831"
+ },
+ "Shop_Power1": {
+  "granted": true,
+  "id": 126372198730422,
+  "sha": "15144a79f8d79092ea5b3fffa0a6552faefa28eff469b5159b254da647f25d94"
+ },
+ "Shop_Power2": {
+  "granted": true,
+  "id": 92703764359361,
+  "sha": "1f5cd24f5eb2b8607d531b6c4966929487e54aec64335d83f909d726d46030d2"
+ },
+ "Shop_Power3": {
+  "granted": true,
+  "id": 80880095357646,
+  "sha": "9519035c6d1bae20220f15d4f5acddb5b928af651325e2ff7f22447c36cf4ebb"
+ },
+ "Shop_Power4": {
+  "granted": true,
+  "id": 96392740516641,
+  "sha": "8ded609647576a3f77bd19e21bb40158052306eebbcaa9e44650ac19d2ed6192"
+ },
+ "Shop_ServerLuck": {
+  "granted": true,
+  "id": 97452193875273,
+  "sha": "a7578e80a289ec7a268d26cd1c276f5eb374065e14a93503ed36365ee2f78096"
+ },
+ "Shop_StarterRoller": {
+  "granted": true,
+  "id": 112459980413168,
+  "sha": "9f0b2bc12525d31ca56f2d0716e351636ee45fda4698e724f887a28e130c79f1"
+ },
+ "Shop_SuperLucky": {
+  "granted": true,
+  "id": 104888229087471,
+  "sha": "fb27eec372b1f08926d36a891ee0faaf064f90e19efc827a56c3c02e8f3af849"
+ },
  "Star": {
   "granted": true,
   "id": 108181013924413,
