@@ -39,6 +39,14 @@ local Economy = {
 	VIPLuckBonus = 0.1,
 	LuckyPassBonus = 0.5,
 
+	-- Luck on every roll (RollService.launch, LuckController shows it, Dev 2026-11-20, Slime
+	-- RNG's roll counter + Throw Food's luck reveal): every LuckyEvery-th roll is a free
+	-- Lucky Roll (x LuckyEveryMult luck, the ball glows rainbow), and the pack meter hit adds
+	-- PackLuck on top.
+	LuckyEvery = 10,
+	LuckyEveryMult = 5,
+	PackLuck = { Perfect = 1.5, Good = 1.2, Weak = 1 },
+
 	-- A pop's cash payouts use at least this much income per second (before pets earn).
 	MinIncomeForRewards = 5,
 

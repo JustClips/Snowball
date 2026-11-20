@@ -53,6 +53,7 @@ type Run = {
 	luck: number,
 	golden: boolean,
 	lucky: boolean,
+	longRoll: boolean?,
 	startedAt: number,
 	limit: number, -- pickups exist up to here
 	continues: number, -- Keep Rolling pushes bought this roll
@@ -177,20 +178,39 @@ local function launch(player: Player, run: Run, quality: string)
 		return
 	end
 	run.packQuality = quality
-	-- Per-roll charges: Super Lucky (x100 luck), Lucky Roll (x10 luck, +50% distance),
-	-- Luck Pop (x3 luck), Golden Snowball rentals.
-	local luck = S.BoostService:GetLuck(player)
+	-- Luck for this roll, built up in parts so the client can reveal each one (LuckController):
+	-- your base luck (core, rebirths, passes, server boosts), the pack hit, the free Lucky
+	-- Roll every Economy.LuckyEvery rolls, and the charges (Super Lucky x100, Lucky Roll x10
+	-- with +50% distance, Luck Pop x3).
+	local base = S.BoostService:GetLuck(player)
+	local luck = base
+	local parts = {}
+	local pack = Economy.PackLuck[quality] or 1
+	if pack > 1 then
+		luck *= pack
+		table.insert(parts, { Name = string.upper(quality), Mult = pack })
+	end
+	if (data.Stats.Runs + 1) % Economy.LuckyEvery == 0 then
+		luck *= Economy.LuckyEveryMult
+		run.lucky = true
+		table.insert(parts, { Name = "LUCKY ROLL", Mult = Economy.LuckyEveryMult })
+	end
 	if data.Charges.SuperLucky > 0 then
 		data.Charges.SuperLucky -= 1
 		luck *= 100
+		run.lucky = true
+		table.insert(parts, { Name = "SUPER LUCKY", Mult = 100 })
 	elseif data.Charges.LuckyRoll > 0 then
 		data.Charges.LuckyRoll -= 1
 		luck *= 10
 		run.lucky = true
+		run.longRoll = true
+		table.insert(parts, { Name = "LUCKY CHARGE", Mult = 10 })
 	end
 	if (data.Charges.LuckPop or 0) > 0 then
 		data.Charges.LuckPop -= 1
 		luck *= 3
+		table.insert(parts, { Name = "LUCK POP", Mult = 3 })
 	end
 	run.golden = data.Gamepasses.GoldenSnowball == true
 	if not run.golden and data.Charges.GoldenRuns > 0 then
@@ -199,7 +219,7 @@ local function launch(player: Player, run: Run, quality: string)
 	end
 	run.luck = luck
 	local D = PowerCurve.distance(data.Power) * (PowerCurve.PackMult[quality] or 0.7)
-	if run.lucky then
+	if run.longRoll then
 		D *= 1.5
 	end
 	local core = Upgrades.Cores[data.Core] or Upgrades.Cores[1]
@@ -223,6 +243,8 @@ local function launch(player: Player, run: Run, quality: string)
 		Quality = quality,
 		Lucky = run.lucky,
 		Luck = luck,
+		BaseLuck = base,
+		LuckParts = parts,
 	})
 	S.AnalyticsService:Funnel(player, "FirstPush")
 end

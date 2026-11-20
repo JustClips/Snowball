@@ -232,6 +232,9 @@ local function onStarted(userId: number, info)
 		golden = info.Golden == true,
 	}
 	balls[userId] = d
+	if info.Lucky and C.LuckController then
+		C.LuckController:DecorateBall(d.part)
+	end
 	if isLocal then
 		cameraBall = d
 		C.SteerController:SetActive(true)

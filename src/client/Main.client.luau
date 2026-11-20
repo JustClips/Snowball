@@ -14,6 +14,7 @@ local ORDER = {
 	"PackController",
 	"TrackFxController",
 	"BallController",
+	"LuckController",
 	"ResultsController",
 	"UpgradesController",
 	"RebirthController",
