@@ -53,6 +53,8 @@ local function fetch(name: string): Model?
 	end
 	for _, d in model:GetDescendants() do
 		if d:IsA("BasePart") then
+			-- Same-named glTF node + mesh import as "Name_Node": code looks parts up by name.
+			d.Name = string.gsub(d.Name, "_Node$", "")
 			d.Anchored = true
 			d.CanTouch = false
 		end

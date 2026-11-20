@@ -353,7 +353,11 @@ local function onEnded(userId: number, result)
 			end
 		end)
 		C.TrackFxController:EndRun()
-		C.ResultsController:Show(result)
+		if result.Rescue then
+			C.ResultsController:Hold(result)
+		else
+			C.ResultsController:Show(result)
+		end
 		task.delay(1.6, function()
 			if cameraBall == d then
 				cameraBall = nil

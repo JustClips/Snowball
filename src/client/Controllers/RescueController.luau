@@ -139,14 +139,17 @@ local function makeYeti(folder: Folder): Yeti?
 	end
 	-- Best: put the Hips mesh where Blender had it (its bounding-box centre, model-local);
 	-- else just drop the lowest point to the floor.
-	local hipsPart = model:FindFirstChild("Hips", true) :: BasePart?
+	local hipsPart = (model:FindFirstChild("Hips", true) or model:FindFirstChild("Hips_Node", true)) :: BasePart?
 	local shift = if hipsPart
 		then CFrame.new(HIPS_CENTRE - hipsPart.Position)
 		elseif n > 0 then CFrame.new(0, -minY, 0)
 		else CFrame.identity
 	for _, d in model:GetDescendants() do
 		if d:IsA("BasePart") then
-			parts[d.Name] = { part = d, base = shift * d.CFrame }
+			-- The importer may call a part "Torso_Node" (glTF node + mesh of the same name).
+			local name = string.gsub(d.Name, "_Node$", "")
+			d.Name = name
+			parts[name] = { part = d, base = shift * d.CFrame }
 		end
 	end
 	local missing = {}
@@ -590,16 +593,13 @@ end
 
 local function onEvent(kind: string, data: any)
 	if kind == "Start" then
-		-- The result card gets the screen to itself for a moment, then the rescue starts.
+		-- The run's result card waits until the eggs are home (ResultsController:Hold).
 		ending = false
-		quietUntil = os.clock() + 2.2
+		quietUntil = 0
 		sawCard = false
-		task.delay(2.2, function()
-			sawCard = false
-			C.ResultsController:Close()
-			Ui.word(`{data.Eggs} EGG{if data.Eggs > 1 then "S" else ""} TO SAVE!`, Ui.Colors.Yellow, 1.4)
-			Ui.sound("Pop")
-		end)
+		C.ResultsController:Close()
+		Ui.word(`{data.Eggs} EGG{if data.Eggs > 1 then "S" else ""} TO SAVE!`, Ui.Colors.Yellow, 1.4)
+		Ui.sound("Pop")
 	elseif kind == "Grab" then
 		Ui.sound("Egg")
 		Ui.word(if data.Count > 1 then "GOT 2!" else "GOT IT!", Ui.Colors.Ice, 0.6)
@@ -653,6 +653,7 @@ local function onEvent(kind: string, data: any)
 		Ui.word("NO YETI!", Ui.Colors.Green, 1)
 	elseif kind == "Ended" then
 		ending = false
+		C.ResultsController:ShowHeld(data.Saved)
 		local saved = #data.Saved
 		if data.Reason == "Time" then
 			Ui.toast("Time's up! The rest of the eggs froze.", "Bad")

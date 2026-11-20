@@ -62,6 +62,22 @@ function ResultsController:Close()
 	close()
 end
 
+-- The egg rescue comes first: keep the run's card until the eggs are home, then show it
+-- with the eggs actually saved.
+local held: any = nil
+function ResultsController:Hold(result)
+	held = result
+end
+
+function ResultsController:ShowHeld(saved: { string }?)
+	local result = held
+	held = nil
+	if result then
+		result.Eggs = saved or result.Eggs
+		ResultsController:Show(result)
+	end
+end
+
 function ResultsController:IsOpen(): boolean
 	return screen ~= nil and screen.Visible
 end

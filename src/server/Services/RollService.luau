@@ -440,6 +440,9 @@ local function finish(player: Player, run: Run)
 		Bonks = run.bonks,
 		Smashes = run.smashes,
 		Full = run.fullBounces,
+		-- The eggs still have to be carried home (EggRescueService): the client keeps this
+		-- card until the rescue is over (Dev 2026-11-20).
+		Rescue = S.EggRescueService ~= nil and #run.eggs > 0,
 	}
 	Net.fireAll("RunEnded", player.UserId, result)
 	S.AnalyticsService:Funnel(player, "FirstRunEnded")
