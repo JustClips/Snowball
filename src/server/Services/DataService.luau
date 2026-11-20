@@ -1,0 +1,334 @@
+--!strict
+-- Player profiles: session-locked load, autosave, release on leave, BindToClose flush.
+-- Holds the per-player Session table that other services read and write.
+-- (Ported from Sweep the World; same lock rules, new data schema.)
+local DataStoreService = game:GetService("DataStoreService")
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local Shared = ReplicatedStorage:WaitForChild("Shared")
+local Economy = require(Shared.Config.Economy)
+local Pets = require(Shared.Config.Pets)
+local Signal = require(Shared.Signal)
+local Types = require(Shared.Types)
+local ProfileStore = require(script.Parent.Parent.Lib.ProfileStore)
+local MockDataStore = require(script.Parent.Parent.Lib.MockDataStore)
+
+local STORE_NAME = "PlayerData_v1"
+local CURRENT_VERSION = 1
+local RECEIPTS_KEPT = 100
+
+local TEMPLATE: Types.ProfileData = {
+	Version = CURRENT_VERSION,
+	Cash = { m = 0, e = 0 },
+	CashEarned = { m = 0, e = 0 },
+	Power = { m = 0, e = 0 },
+	Rebirths = 0,
+	Roller = 1, -- best cash Snow Roller (Config/Rollers)
+	RobuxRollers = {}, -- Robux roller id -> true
+	Core = 1,
+	EggSlots = 1,
+	PetSlots = Economy.StartPetSlots,
+	PackZone = 0,
+	BestDistance = 0,
+	BestZone = 1,
+	ReachedVillage = false,
+	BiggestRadius = 0,
+	Pets = {}, -- uid -> { Id, Mutation?, Huge?, Zone, Placed = slot?, Equipped = bool? }
+	Eggs = {}, -- uid -> { Rarity, Zone, Source, Floor? }
+	Hatching = {}, -- { Uid, Rarity, Zone, Slot, EndsAt }
+	NextUid = 1,
+	Index = {},
+	Boosts = {}, -- name -> EndsAt (Train2x, Cash2x...), Pop = { Mult, EndsAt }
+	Charges = { LuckyRoll = 0, SuperLucky = 0, GoldenRuns = 0, LuckPop = 0 },
+	Trails = {},
+	Gamepasses = {},
+	GiftedPasses = {},
+	ReceiptsGranted = {},
+	ReceiptOrder = {},
+	LastOnline = 0,
+	LastRainbowPop = 0,
+	Flags = {
+		TutorialDone = false,
+		StarterPackBought = false,
+		FirstPopDone = false,
+		Funnel = {},
+		OffersShown = {},
+		FavoriteAsked = false,
+	},
+	Stats = {
+		Taps = 0,
+		PopsClaimed = 0,
+		Runs = 0,
+		TotalDistance = 0,
+		Smashes = 0,
+		EggsFound = 0,
+		Hatches = 0,
+		Playtime = 0,
+	},
+	Settings = { Music = 0.6, Sfx = 0.8, Steer = 1, FreePops = true },
+}
+
+export type Session = {
+	Player: Player,
+	Profile: ProfileStore.Profile,
+	Data: Types.ProfileData,
+	JoinedAt: number,
+	IsNewPlayer: boolean,
+	-- Runtime only (not saved). Services add their own fields here.
+	Runtime: { [string]: any },
+}
+
+local DataService = {
+	ProfileLoaded = Signal.new() :: Signal.Signal<Player, Session>,
+	ProfileReleasing = Signal.new() :: Signal.Signal<Player, Session>,
+	UsingMock = false,
+}
+
+local sessions: { [Player]: Session } = {}
+local store: any = nil
+
+local function deepCopy(value: any): any
+	if type(value) ~= "table" then
+		return value
+	end
+	local out = {}
+	for k, v in value do
+		out[k] = deepCopy(v)
+	end
+	return out
+end
+
+-- Fill keys that are missing (new fields added after a player's last save).
+local function reconcile(data: any, template: any)
+	for key, value in template do
+		if data[key] == nil then
+			data[key] = deepCopy(value)
+		elseif type(value) == "table" and type(data[key]) == "table" and next(value) ~= nil and #value == 0 then
+			-- Dictionary sub-tables (Flags, Stats, Settings): fill nested defaults too.
+			reconcile(data[key], value)
+		end
+	end
+end
+
+-- Version upgrades: MIGRATIONS[n] turns a version-n profile into version n+1.
+local MIGRATIONS: { [number]: (any) -> () } = {}
+
+local function migrate(data: any)
+	data.Version = data.Version or 1
+	while data.Version < CURRENT_VERSION do
+		local step = MIGRATIONS[data.Version]
+		if step then
+			step(data)
+		end
+		data.Version += 1
+	end
+end
+
+-- A saved pet whose kind no longer exists becomes a Common pet (safe to run every load).
+local function replaceRemovedPets(data: any)
+	local commons = Pets.ByRarity.Common
+	local n = 0
+	for _, pet in data.Pets or {} do
+		if type(pet) == "table" and not Pets.ById[pet.Id] then
+			n += 1
+			pet.Id = commons[(n - 1) % #commons + 1].Id
+		end
+	end
+end
+
+local function pickStore(): any
+	if game.GameId == 0 then
+		warn("[DataService] Place isn't published: using an in-memory mock DataStore (nothing is saved).")
+		DataService.UsingMock = true
+		return MockDataStore.new()
+	end
+	local ok, result = pcall(function()
+		local ds = DataStoreService:GetDataStore(STORE_NAME)
+		ds:GetAsync("__probe")
+		return ds
+	end)
+	if ok then
+		return result
+	end
+	if RunService:IsStudio() then
+		warn(
+			"[DataService] DataStores unavailable in Studio ("
+				.. tostring(result)
+				.. "). Using an in-memory mock. Turn on Game Settings > Security > Enable Studio Access to API Services to test saving."
+		)
+		DataService.UsingMock = true
+		return MockDataStore.new()
+	end
+	-- Live server: keep the real store; loads will retry and kick on failure.
+	return DataStoreService:GetDataStore(STORE_NAME)
+end
+
+local function kick(player: Player, message: string)
+	if player.Parent then
+		player:Kick(message)
+	end
+end
+
+local function onPlayerAdded(player: Player)
+	local profile, reason = store:LoadAsync("Player_" .. player.UserId, function()
+		return player.Parent ~= nil
+	end, function(secondsLeft)
+		-- The loading screen shows "Finishing your last session..." with this countdown.
+		player:SetAttribute("SaveLockWait", secondsLeft)
+	end)
+	player:SetAttribute("SaveLockWait", nil)
+	if not profile then
+		if reason == "locked" then
+			kick(player, "Your save is still closing on another server. Please rejoin in a minute!")
+		elseif reason ~= "left" then
+			kick(player, "We couldn't load your save (Roblox data servers are busy). Please rejoin!")
+		end
+		return
+	end
+	if player.Parent == nil then
+		profile:ReleaseAsync()
+		return
+	end
+
+	local isNew = profile.Data == nil
+	local data = profile.Data or deepCopy(TEMPLATE)
+	migrate(data)
+	reconcile(data, TEMPLATE)
+	replaceRemovedPets(data)
+	profile.Data = data
+
+	local session: Session = {
+		Player = player,
+		Profile = profile,
+		Data = data,
+		JoinedAt = os.time(),
+		IsNewPlayer = isNew,
+		Runtime = {},
+	}
+	sessions[player] = session
+	DataService.ProfileLoaded:Fire(player, session)
+end
+
+local function finalize(session: Session)
+	session.Data.LastOnline = os.time()
+	session.Data.Stats.Playtime += os.time() - session.JoinedAt
+	session.JoinedAt = os.time()
+end
+
+-- Saves being written and released right now. BindToClose waits for these: a server that
+-- shut down mid-release left the save locked, so rejoining after a shutdown got stuck on
+-- "Loading your save" (Dev, 2026-10-30).
+local releasing = 0
+
+local function release(player: Player)
+	local session = sessions[player]
+	if not session then
+		return
+	end
+	-- Handlers run before the session is removed, so GetSession still works inside them.
+	DataService.ProfileReleasing:Fire(player, session)
+	sessions[player] = nil
+	finalize(session)
+	releasing += 1
+	local ok, err = pcall(function()
+		session.Profile:ReleaseAsync()
+	end)
+	releasing -= 1
+	if not ok then
+		warn(`[DataService] could not release the save of {player.Name}: {err}`)
+	end
+end
+
+function DataService:GetSession(player: Player): Session?
+	return sessions[player]
+end
+
+function DataService:GetData(player: Player): Types.ProfileData?
+	local session = sessions[player]
+	return if session then session.Data else nil
+end
+
+function DataService:GetSessions(): { [Player]: Session }
+	return sessions
+end
+
+-- Saves right away (used after purchases). Returns true if the write went through.
+function DataService:SaveNow(player: Player): boolean
+	local session = sessions[player]
+	if not session then
+		return false
+	end
+	finalize(session)
+	local ok = session.Profile:SaveAsync()
+	if session.Profile.Lost then
+		-- Someone else took the save: clean up here (base, pets...) without saving, so
+		-- nothing is left on the map, then kick.
+		if sessions[player] == session then
+			DataService.ProfileReleasing:Fire(player, session)
+			sessions[player] = nil
+		end
+		kick(player, "Your save was opened on another server.")
+	end
+	return ok
+end
+
+-- A new unique id for a pet ("p") or egg ("e").
+function DataService:NewUid(data: Types.ProfileData, prefix: string): string
+	local uid = prefix .. data.NextUid
+	data.NextUid += 1
+	return uid
+end
+
+-- Records a granted purchase id, keeping only the newest RECEIPTS_KEPT.
+function DataService:RecordReceipt(data: Types.ProfileData, purchaseId: string, grantedTo: string)
+	data.ReceiptsGranted[purchaseId] = grantedTo
+	table.insert(data.ReceiptOrder, purchaseId)
+	while #data.ReceiptOrder > RECEIPTS_KEPT do
+		local oldest = table.remove(data.ReceiptOrder, 1)
+		if oldest then
+			data.ReceiptsGranted[oldest] = nil
+		end
+	end
+end
+
+function DataService:Init()
+	store = ProfileStore.new(pickStore(), Economy.SessionStaleSeconds)
+	-- Characters spawn only once the profile is loaded (see BaseService).
+	Players.CharacterAutoLoads = false
+end
+
+function DataService:Start()
+	Players.PlayerAdded:Connect(onPlayerAdded)
+	for _, player in Players:GetPlayers() do
+		task.spawn(onPlayerAdded, player)
+	end
+	Players.PlayerRemoving:Connect(release)
+
+	task.spawn(function()
+		while true do
+			task.wait(Economy.AutosaveSeconds)
+			for player in sessions do
+				task.spawn(function()
+					DataService:SaveNow(player)
+				end)
+			end
+		end
+	end)
+
+	game:BindToClose(function()
+		-- Release everyone still here, and wait for releases already under way (players
+		-- who left as the server began shutting down).
+		for player in sessions do
+			task.spawn(release, player)
+		end
+		task.wait()
+		local deadline = os.clock() + 25
+		while releasing > 0 and os.clock() < deadline do
+			task.wait(0.1)
+		end
+	end)
+end
+
+return DataService

@@ -1,0 +1,313 @@
+--!strict
+-- UI helpers. Every placeholder element is made here so the look follows the project UI
+-- rules (Montserrat, solid button backgrounds, NO rounded corners, mobile first) and so the
+-- ForgeUI art can replace it in one place later (controllers find elements by name).
+local GuiService = game:GetService("GuiService")
+local Players = game:GetService("Players")
+local SoundService = game:GetService("SoundService")
+local TweenService = game:GetService("TweenService")
+local Workspace = game:GetService("Workspace")
+
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui") :: PlayerGui
+
+local Ui = {}
+
+Ui.ROBUX = utf8.char(0xE002)
+Ui.Colors = {
+	Ink = Color3.fromRGB(20, 32, 58),
+	Panel = Color3.fromRGB(28, 46, 84),
+	PanelDark = Color3.fromRGB(16, 27, 52),
+	Snow = Color3.fromRGB(240, 247, 255),
+	Ice = Color3.fromRGB(110, 200, 255),
+	Green = Color3.fromRGB(70, 205, 95),
+	Yellow = Color3.fromRGB(255, 205, 60),
+	Red = Color3.fromRGB(235, 70, 70),
+	Gold = Color3.fromRGB(255, 200, 40),
+	Power = Color3.fromRGB(255, 120, 60),
+	Robux = Color3.fromRGB(40, 190, 90),
+}
+
+local FONT = Font.new("rbxasset://fonts/families/Montserrat.json", Enum.FontWeight.Bold)
+local FONT_BLACK = Font.new("rbxasset://fonts/families/Montserrat.json", Enum.FontWeight.Black)
+Ui.Font = FONT
+Ui.FontBlack = FONT_BLACK
+
+-- A ScreenGui in PlayerGui (made once, kept across respawns).
+function Ui.screen(name: string, order: number?): ScreenGui
+	local gui = playerGui:FindFirstChild(name) :: ScreenGui?
+	if gui then
+		return gui
+	end
+	local g = Instance.new("ScreenGui")
+	g.Name = name
+	g.ResetOnSpawn = false
+	g.IgnoreGuiInset = true
+	g.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+	g.ScreenInsets = Enum.ScreenInsets.CoreUISafeInsets
+	g.DisplayOrder = order or 0
+	g.Parent = playerGui
+	return g
+end
+
+function Ui.frame(props: { [string]: any }): Frame
+	local f = Instance.new("Frame")
+	f.BorderSizePixel = 0
+	f.BackgroundColor3 = Ui.Colors.Panel
+	for k, v in props do
+		(f :: any)[k] = v
+	end
+	return f
+end
+
+function Ui.stroke(parent: Instance, thickness: number?, color: Color3?)
+	local s = Instance.new("UIStroke")
+	s.Thickness = thickness or 3
+	s.Color = color or Ui.Colors.Ink
+	s.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	s.Parent = parent
+	return s
+end
+
+function Ui.label(props: { [string]: any }): TextLabel
+	local l = Instance.new("TextLabel")
+	l.BackgroundTransparency = 1
+	l.FontFace = FONT_BLACK
+	l.TextColor3 = Ui.Colors.Snow
+	l.TextScaled = true
+	l.BorderSizePixel = 0
+	for k, v in props do
+		(l :: any)[k] = v
+	end
+	local stroke = Instance.new("UIStroke")
+	stroke.Thickness = 2
+	stroke.Color = Ui.Colors.Ink
+	stroke.Parent = l
+	return l
+end
+
+-- A solid button with a child "Label" (text) and a dark outline. No rounded corners.
+function Ui.button(props: { [string]: any }, text: string, onClick: (() -> ())?): TextButton
+	local b = Instance.new("TextButton")
+	b.AutoButtonColor = true
+	b.Text = ""
+	b.BorderSizePixel = 0
+	b.BackgroundColor3 = Ui.Colors.Ice
+	for k, v in props do
+		(b :: any)[k] = v
+	end
+	Ui.stroke(b, 3)
+	local l =
+		Ui.label({ Name = "Label", Size = UDim2.new(1, -10, 1, -8), Position = UDim2.fromOffset(5, 4), Text = text })
+	l.Parent = b
+	local scale = Instance.new("UIScale")
+	scale.Parent = b
+	if onClick then
+		b.Activated:Connect(function()
+			Ui.sound("Click")
+			scale.Scale = 0.92
+			TweenService:Create(scale, TweenInfo.new(0.15, Enum.EasingStyle.Back), { Scale = 1 }):Play()
+			onClick()
+		end)
+	end
+	return b
+end
+
+function Ui.setText(button: Instance, text: string)
+	local l = button:FindFirstChild("Label")
+	if l and l:IsA("TextLabel") then
+		l.Text = text
+	elseif button:IsA("TextLabel") or button:IsA("TextButton") then
+		button.Text = text
+	end
+end
+
+-- Sound effects. Ids live here until Config/Sounds is filled from the Creator Store.
+local SFX: { [string]: { Id: string, Volume: number } } = {
+	Click = { Id = "rbxasset://sounds/electronicpingshort.wav", Volume = 0.25 },
+	Pop = { Id = "rbxasset://sounds/electronicpingshort.wav", Volume = 0.5 },
+	Tap = { Id = "rbxasset://sounds/clickfast.wav", Volume = 0.3 },
+	Smash = { Id = "rbxasset://sounds/collide.wav", Volume = 0.6 },
+	Coin = { Id = "rbxasset://sounds/electronicpingshort.wav", Volume = 0.2 },
+}
+local cache: { [string]: Sound } = {}
+function Ui.sound(name: string, speed: number?)
+	local def = SFX[name]
+	if not def then
+		return
+	end
+	local s = cache[name]
+	if not s then
+		local snd = Instance.new("Sound")
+		snd.SoundId = def.Id
+		snd.Volume = def.Volume
+		snd.Parent = SoundService
+		cache[name] = snd
+		s = snd
+	end
+	local sound = s :: Sound
+	sound.PlaybackSpeed = speed or 1
+	SoundService:PlayLocalSound(sound)
+end
+
+-- Short toast at the top of the screen.
+local toastGui: ScreenGui? = nil
+function Ui.toast(text: string, kind: string?)
+	local gui = toastGui or Ui.screen("Toasts", 50)
+	toastGui = gui
+	local color = if kind == "Bad" then Ui.Colors.Red elseif kind == "Info" then Ui.Colors.Ice else Ui.Colors.Green
+	local holder = gui:FindFirstChild("List") :: Frame?
+	if not holder then
+		local f = Ui.frame({
+			Name = "List",
+			BackgroundTransparency = 1,
+			Size = UDim2.new(0.6, 0, 0.3, 0),
+			Position = UDim2.fromScale(0.2, 0.1),
+		})
+		local layout = Instance.new("UIListLayout")
+		layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+		layout.Padding = UDim.new(0, 6)
+		layout.SortOrder = Enum.SortOrder.LayoutOrder
+		layout.Parent = f
+		f.Parent = gui
+		holder = f
+	end
+	local item =
+		Ui.frame({ Size = UDim2.new(1, 0, 0, 38), BackgroundColor3 = Ui.Colors.Panel, LayoutOrder = os.clock() * 100 })
+	Ui.stroke(item, 3, color)
+	Ui.label({ Size = UDim2.new(1, -16, 1, -8), Position = UDim2.fromOffset(8, 4), Text = text }).Parent = item
+	item.Parent = holder
+	task.delay(2.6, function()
+		item:Destroy()
+	end)
+end
+
+-- Phones get bigger touch targets.
+function Ui.isPhone(): boolean
+	local cam = Workspace.CurrentCamera
+	return cam ~= nil and math.min(cam.ViewportSize.X, cam.ViewportSize.Y) < 500
+end
+
+function Ui.reducedMotion(): boolean
+	return GuiService.ReducedMotionEnabled
+end
+
+-- A full-screen root frame with a UIScale that follows the screen size, so layouts made
+-- for a 1280x720 screen fit phones (min 0.55) and big monitors (max 1.25).
+function Ui.root(gui: ScreenGui): Frame
+	local existing = gui:FindFirstChild("Root") :: Frame?
+	if existing then
+		return existing
+	end
+	local root = Ui.frame({ Name = "Root", BackgroundTransparency = 1, Size = UDim2.fromScale(1, 1) })
+	root.Parent = gui
+	return root
+end
+
+local scales: { UIScale } = {}
+local function rescale()
+	local cam = Workspace.CurrentCamera
+	if not cam then
+		return
+	end
+	local v = cam.ViewportSize
+	local s = math.clamp(math.min(v.X / 1280, v.Y / 720) * 1.05, 0.55, 1.25)
+	if Ui.isPhone() then
+		s = math.max(s, 0.62)
+	end
+	for _, scale in scales do
+		scale.Scale = s
+	end
+end
+
+-- Adds a UIScale that follows the screen to a cluster (HUD corner, window...).
+function Ui.autoScale(object: GuiObject)
+	local scale = Instance.new("UIScale")
+	scale.Parent = object
+	table.insert(scales, scale)
+	rescale()
+end
+
+task.spawn(function()
+	local cam = Workspace.CurrentCamera
+	while not cam do
+		task.wait()
+		cam = Workspace.CurrentCamera
+	end
+	(cam :: Camera):GetPropertyChangedSignal("ViewportSize"):Connect(rescale)
+	rescale()
+end)
+
+-- One modal window open at a time.
+local openWindow: GuiObject? = nil
+function Ui.openWindow(window: GuiObject)
+	if openWindow and openWindow ~= window then
+		openWindow.Visible = false
+	end
+	openWindow = window
+	window.Visible = true
+end
+
+function Ui.closeWindow(window: GuiObject)
+	window.Visible = false
+	if openWindow == window then
+		openWindow = nil
+	end
+end
+
+-- A centred window sized to its content: header with a title and a close button.
+function Ui.window(gui: ScreenGui, name: string, title: string, size: Vector2): (Frame, Frame)
+	local window = Ui.frame({
+		Name = name,
+		Size = UDim2.fromOffset(size.X, size.Y),
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		BackgroundColor3 = Ui.Colors.Panel,
+		Visible = false,
+		ZIndex = 20,
+	})
+	Ui.stroke(window, 4)
+	Ui.autoScale(window)
+	local header = Ui.frame({
+		Name = "Header",
+		Size = UDim2.new(1, 0, 0, 52),
+		BackgroundColor3 = Ui.Colors.PanelDark,
+		ZIndex = 21,
+	})
+	header.Parent = window
+	local t = Ui.label({
+		Name = "Title",
+		Size = UDim2.new(1, -80, 1, -12),
+		Position = UDim2.fromOffset(14, 6),
+		Text = title,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		ZIndex = 22,
+	})
+	t.Parent = header
+	local close = Ui.button(
+		{
+			Name = "Close",
+			Size = UDim2.fromOffset(44, 44),
+			Position = UDim2.new(1, -48, 0, 4),
+			BackgroundColor3 = Ui.Colors.Red,
+			ZIndex = 22,
+		},
+		"X",
+		function()
+			Ui.closeWindow(window)
+		end
+	)
+	close.Parent = header
+	local body = Ui.frame({
+		Name = "Body",
+		BackgroundTransparency = 1,
+		Size = UDim2.new(1, -24, 1, -64),
+		Position = UDim2.fromOffset(12, 58),
+		ZIndex = 21,
+	})
+	body.Parent = window
+	window.Parent = gui
+	return window, body
+end
+
+return Ui

@@ -1,0 +1,9 @@
+node_modules/
+*.rbxl
+*.rbxlx
+*.lock
+sourcemap.json
+art/out/*
+!art/out/meta.json
+__pycache__/
+build/
