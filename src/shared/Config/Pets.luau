@@ -100,6 +100,30 @@ local Pets = {
 	ZoneMult = { Meadow = 1, Pine = 3, Lake = 9, Cave = 27, Aurora = 80, Village = 120 } :: { [string]: number },
 	TrainZoneMult = { Meadow = 1, Pine = 1.3, Lake = 1.7, Cave = 2.2, Aurora = 3, Village = 4 } :: { [string]: number },
 }
+-- Weight (Steal an Egg style): every pet rolls a weight when it hatches. Heavier pets
+-- are drawn a bit bigger and earn a bit more (PetStats.weightMult). Kg = a normal pet of
+-- that rarity; Huge pets weigh x10.
+Pets.Kg = {
+	Common = 1.2,
+	Uncommon = 2.5,
+	Rare = 5,
+	Epic = 10,
+	Legendary = 20,
+	Mythic = 45,
+	Secret = 90,
+} :: { [string]: number }
+
+-- A weight for a new pet: mostly near normal, now and then a heavy one (up to x2.2).
+function Pets.rollWeight(rng: Random, def: PetDef, huge: boolean?): number
+	local base = (Pets.Kg[def.Rarity] or 1) * (if huge then 10 else 1)
+	local u = rng:NextNumber()
+	local f = 0.8 + 0.5 * u ^ 2
+	if rng:NextNumber() < 0.05 then
+		f = rng:NextNumber(1.4, 2.2) -- a "Big" one
+	end
+	return math.floor(base * f * 10 + 0.5) / 10
+end
+
 for _, def in List do
 	Pets.ById[def.Id] = def
 	if not def.Exclusive then

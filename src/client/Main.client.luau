@@ -23,8 +23,11 @@ local ORDER = {
 	"StarterPackController",
 	"ContinueController",
 	"PurchaseController",
-	"PetsController",
-	"FollowerController",
+	"InventoryController",
+	"PlacementController",
+	"PetWorldController",
+	"HoldPoseController",
+	"HoverController",
 	"HatchController",
 	"TutorialController",
 }

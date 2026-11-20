@@ -35,7 +35,7 @@ local TEMPLATE: Types.ProfileData = {
 	BestZone = 1,
 	ReachedVillage = false,
 	BiggestRadius = 0,
-	Pets = {}, -- uid -> { Id, Mutation?, Huge?, Zone, Placed = slot?, Equipped = bool? }
+	Pets = {}, -- uid -> { Id, Mutation?, Huge?, Zone, Weight, Placed = true? } (out in the park, else in the bag)
 	Eggs = {}, -- uid -> { Rarity, Zone, Source, Floor? }
 	Hatching = {}, -- { Uid, Rarity, Zone, Slot, EndsAt }
 	NextUid = 1,

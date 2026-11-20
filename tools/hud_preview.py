@@ -387,6 +387,28 @@ RAIL_R = [("Daily", (255, 200, 60), "Daily"), ("Gift", (255, 110, 150), "Gifts")
           ("Codes", (150, 120, 255), "Codes")]
 
 
+def hotbar(h, dev):
+    """Bag hotbar, bottom right (InventoryController): 5 slots + Bag on PC, 3 + Bag on phones."""
+    d = L["Hotbar"]
+    x0, y0, s = h.place(d)
+    n = 3 if dev == "Phone" else 4
+    slot, gap = L["Slot"], 8
+    w = (n + 1) * slot + n * gap
+    right = x0 + d["Size"][0] * s
+    x = right - w * s
+    y = y0 + (d["Size"][1] - slot) * s
+    eggs = [("Egg", (200, 205, 215)), ("Egg", (70, 150, 255)), ("Pets", (90, 220, 110)), ("Pets", (255, 200, 40)), ("Pets", (170, 90, 255))]
+    for k in range(n):
+        ic, col = eggs[k]
+        sx = x + k * (slot + gap) * s
+        h.c.rect(sx, y, slot * s, slot * s, (20, 24, 54), radius=14 * s, stroke=3 * s, stroke_color=col, grad=False)
+        h.c.icon(ic, sx + 8 * s, y + 8 * s, (slot - 16) * s, (slot - 16) * s)
+    bx = x + n * (slot + gap) * s
+    h.c.rect(bx, y, slot * s, slot * s, (255, 150, 40), radius=slot * 0.22 * s, stroke=3 * s)
+    h.c.icon("Chest", bx + 4 * s, y + 4 * s, (slot - 8) * s, (slot - 8) * s)
+    h.c.outline("Hotbar", x, y, w * s, slot * s)
+
+
 def overlaps(c):
     bad = []
     for i in range(len(c.boxes)):
@@ -407,6 +429,8 @@ def scene(dev, mode):
         h.rail("RightRail", RAIL_R)
         h.top_right()
         h.stats()
+    if mode in ("Normal", "EggStep"):
+        hotbar(h, dev)
     if mode == "Normal":
         h.action("Roll")
         h.goal("Power", "Step on your roller!")

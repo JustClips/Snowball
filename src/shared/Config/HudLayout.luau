@@ -17,5 +17,8 @@ return {
 	Goal = { Anchor = Vector2.new(0.5, 0), Pos = UDim2.new(0.5, 0, 0, 10), Size = Vector2.new(460, 58) },
 	Luck = { Anchor = Vector2.new(0.5, 0), Pos = UDim2.new(0.5, 0, 0, 10), Size = Vector2.new(300, 130) },
 	Meter = { Anchor = Vector2.new(0.5, 0.5), Pos = UDim2.new(0.5, 170, 0.5, 0), Size = Vector2.new(120, 380) },
+	Slot = 70, -- hotbar slot (InventoryController)
+	-- Bag hotbar, bottom right: 4 slots + Bag on PC, 3 + Bag on phones (sized for the PC row).
+	Hotbar = { Anchor = Vector2.new(1, 1), Pos = UDim2.new(1, -24, 1, -14), Size = Vector2.new(382, 70) },
 	Result = { Anchor = Vector2.new(0.5, 1), Pos = UDim2.new(0.5, 0, 1, -16), Size = Vector2.new(420, 250) },
 }
