@@ -301,12 +301,13 @@ function TrainService:RefreshRoller(player: Player)
 	local robuxNext = Rollers.nextRobux(data.RobuxRollers)
 	local free = nextDef ~= nil and nextDef.Index == Rollers.FreeInTutorial and not data.Flags.TutorialDone
 	local boardCf = cf * CFrame.new(11, 4.6, -2.6)
-	for _, sx in { -3.2, 3.2 } do
+	-- The posts stand BEHIND the board (Dev 2026-11-20: they cut through the sign face).
+	for _, sx in { -3.0, 3.0 } do
 		local leg = Instance.new("Part")
 		leg.Name = "UpgradeLeg"
 		leg.Anchored = true
-		leg.Size = Vector3.new(0.6, 5.6, 0.6)
-		leg.CFrame = cf * CFrame.new(11 + sx, 2.8, -2.6)
+		leg.Size = Vector3.new(0.6, 6.4, 0.6)
+		leg.CFrame = cf * CFrame.new(11 + sx, 3.2, -2.6 + 0.55)
 		leg.Material = Enum.Material.Wood
 		leg.Color = Color3.fromRGB(110, 72, 44)
 		leg.Parent = model
@@ -378,6 +379,37 @@ function TrainService:RefreshRoller(player: Player)
 	else
 		text("Tiers", cur.Name, 74, 60, Color3.fromRGB(255, 215, 70))
 	end
+	-- The pills are the buttons (Dev 2026-11-20: no big prompts, click or tap the sign like
+	-- Steal an Egg): an invisible pad with a ClickDetector sits right on each pill. Pill
+	-- pixels -> board studs: the board is 7.6 x 4.2 studs at 60 px/stud, the Front face's
+	-- left edge is the part's +X side.
+	local function clickPad(name: string, xScale: number, onClick: () -> ())
+		local pad = Instance.new("Part")
+		pad.Name = name
+		pad.Anchored = true
+		pad.CanCollide = false
+		pad.CanTouch = false
+		pad.Transparency = 1
+		pad.Size = Vector3.new(3.5, 1.2, 0.2)
+		pad.CFrame = boardCf * CFrame.new(3.8 - xScale * 7.6, 2.1 - 202 / 60, -0.3)
+		pad.Parent = model
+		local click = Instance.new("ClickDetector")
+		click.MaxActivationDistance = 40
+		click.Parent = pad
+		click.MouseClick:Connect(function(who)
+			if who == player then
+				onClick()
+			end
+		end)
+	end
+	if nextDef then
+		clickPad("BuyCash", if robuxNext then 0.27 else 0.5, function()
+			local ok, why = buyRoller(player)
+			if not ok and why then
+				Net.fire("Notify", player, why, "Bad")
+			end
+		end)
+	end
 	-- The purple Robux button next to the cash price (Steal an Egg's upgrade signs): the
 	-- next Robux roller in the ladder.
 	if robuxNext then
@@ -402,39 +434,9 @@ function TrainService:RefreshRoller(player: Player)
 		rt.Size = UDim2.new(1, -20, 1, -12)
 		rt.Position = UDim2.fromOffset(10, 6)
 		rt.Parent = rp
-		local rprompt = Instance.new("ProximityPrompt")
-		rprompt.Name = "RobuxRoller"
-		rprompt.ActionText = `x{robuxNext.Mult} {robuxNext.Name}`
-		rprompt.ObjectText = "Robux"
-		rprompt.HoldDuration = 0
-		rprompt.MaxActivationDistance = 18
-		rprompt.RequiresLineOfSight = false
-		rprompt.KeyboardKeyCode = Enum.KeyCode.F
-		rprompt.UIOffset = Vector2.new(0, -70)
-		rprompt.Parent = post
-		rprompt.Triggered:Connect(function(who)
-			if who == player and S.ShopService then
+		clickPad("BuyRobux", if nextDef then 0.75 else 0.5, function()
+			if S.ShopService then
 				S.ShopService:Prompt(player, robuxNext.Product)
-			end
-		end)
-	end
-	if nextDef then
-		local prompt = Instance.new("ProximityPrompt")
-		prompt.Name = "RollerUpgrade"
-		prompt.ActionText = "Upgrade"
-		prompt.ObjectText = ""
-		prompt.HoldDuration = 0
-		prompt.MaxActivationDistance = 18
-		prompt.RequiresLineOfSight = false
-		prompt.KeyboardKeyCode = Enum.KeyCode.E
-		prompt.Parent = post
-		prompt.Triggered:Connect(function(who)
-			if who ~= player then
-				return
-			end
-			local ok, why = buyRoller(player)
-			if not ok and why then
-				Net.fire("Notify", player, why, "Bad")
 			end
 		end)
 	end

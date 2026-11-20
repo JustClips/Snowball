@@ -238,6 +238,8 @@ class Hud:
         for name, color, val, oy in rows:
             self.c.icon(name, x, y + oy * s, 50 * s, 50 * s)
             self.c.text(x + 56 * s, y + (oy + 4) * s, (w - 58) * s, 42 * s, val, color, align="l", stroke=3)
+            if name == "Cash":
+                self.c.text(x + 58 * s, y + (oy + 44) * s, (w - 58) * s, 22 * s, "+$42K/s", (150, 255, 120), align="l")
         self.c.outline("Stats", x, y, w * s, d["Size"][1] * s)
 
     def top_right(self):
@@ -381,23 +383,22 @@ class Hud:
             self.c.text(cx + 12 * s, cy + 246 * s, 108 * s, 36 * s, "R$ 49")
 
 
-RAIL_L = [("Shop", (255, 70, 90), "Shop"), ("Pets", (255, 160, 40), "Pets"), ("Upgrade", (70, 200, 80), "Upgrade"),
+RAIL_L = [("Shop", (255, 70, 90), "Shop"), ("Upgrade", (70, 200, 80), "Upgrade"),
           ("Base", (70, 130, 255), "Home"), ("Rebirth", (180, 90, 255), "Rebirth")]
 RAIL_R = [("Daily", (255, 200, 60), "Daily"), ("Gift", (255, 110, 150), "Gifts"), ("Wheel", (70, 200, 255), "Spin"),
           ("Codes", (150, 120, 255), "Codes")]
 
 
 def hotbar(h, dev):
-    """Bag hotbar, bottom right (InventoryController): 5 slots + Bag on PC, 3 + Bag on phones."""
+    """Bag hotbar, bottom centre (InventoryController): 6 slots + Bag on PC, 4 + Bag on phones."""
     d = L["Hotbar"]
     x0, y0, s = h.place(d)
-    n = 3 if dev == "Phone" else 4
+    n = 4 if dev == "Phone" else 6
     slot, gap = L["Slot"], 8
     w = (n + 1) * slot + n * gap
-    right = x0 + d["Size"][0] * s
-    x = right - w * s
+    x = x0 + (d["Size"][0] - w) / 2 * s  # centred row
     y = y0 + (d["Size"][1] - slot) * s
-    eggs = [("Egg", (200, 205, 215)), ("Egg", (70, 150, 255)), ("Pets", (90, 220, 110)), ("Pets", (255, 200, 40)), ("Pets", (170, 90, 255))]
+    eggs = [("Egg", (200, 205, 215)), ("Egg", (70, 150, 255)), ("Pets", (90, 220, 110)), ("Pets", (255, 200, 40)), ("Pets", (170, 90, 255)), ("Pets", (70, 150, 255))]
     for k in range(n):
         ic, col = eggs[k]
         sx = x + k * (slot + gap) * s
@@ -429,7 +430,7 @@ def scene(dev, mode):
         h.rail("RightRail", RAIL_R)
         h.top_right()
         h.stats()
-    if mode in ("Normal", "EggStep"):
+    if mode in ("Normal", "EggStep", "Window", "Results"):
         hotbar(h, dev)
     if mode == "Normal":
         h.action("Roll")

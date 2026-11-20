@@ -179,6 +179,11 @@
   "id": 103771095076325,
   "sha": "a263cfce0683ae1048ba390aad39a00e18717456377cfdffcd5c01caf6599fdf"
  },
+ "Rays": {
+  "granted": true,
+  "id": 115611626493331,
+  "sha": "e47d6bfdf3822d62caf56748199d43a94d0e93c6b98870093ccb2b4db0fb9f1d"
+ },
  "Rebirth": {
   "granted": true,
   "id": 84121058927388,
@@ -318,6 +323,16 @@
   "granted": true,
   "id": 104888229087471,
   "sha": "fb27eec372b1f08926d36a891ee0faaf064f90e19efc827a56c3c02e8f3af849"
+ },
+ "SpinPointer": {
+  "granted": true,
+  "id": 125547311121820,
+  "sha": "b7e734285c5c7520948b30e5160043c37527273c9cba2c67149f8f6dbaaa9a5e"
+ },
+ "SpinWheel": {
+  "granted": true,
+  "id": 119986703402197,
+  "sha": "c5a287a4675e374b1bf7e9d479c6be33370d15f29908c46303535d949ae9ce18"
  },
  "Star": {
   "granted": true,

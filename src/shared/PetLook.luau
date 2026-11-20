@@ -33,7 +33,7 @@ local function graybox(def: Pets.PetDef): Model
 	p.CFrame = CFrame.new(0, PetLook.PetHeight / 2, 0)
 	p.Parent = m
 	m.PrimaryPart = p
-	m.WorldPivot = CFrame.new()
+	p.PivotOffset = p.CFrame:Inverse() -- pivot = bottom centre (WorldPivot is ignored with a PrimaryPart)
 	return m
 end
 
