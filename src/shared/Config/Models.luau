@@ -51,4 +51,13 @@ return {
 	Roller_NorthernLights = { Id = 109460777693098, Center = Vector3.new(-0.0, 8.5016, 0.468) },
 	Roller_Stone = { Id = 119249194850517, Center = Vector3.new(-0.0, 8.15, 0.4321) },
 	Roller_Wooden = { Id = 82071087939459, Center = Vector3.new(-0.0, 8.15, 0.5) },
+	VfxHatchCrown = { Id = 89259741940894, Center = Vector3.new(0.0055, 0.4765, -0.002) },
+	VfxHatchPillar = { Id = 116083800255269, Center = Vector3.new(0.0, 0.5, 0.0) },
+	VfxHatchRing = { Id = 112880701459569, Center = Vector3.new(0.0, 0.045, 0.0) },
+	VfxHatchSpikes = { Id = 83412611580100, Center = Vector3.new(0.041, 0.1385, -0.01) },
+	VfxHatchStar = { Id = 72951585549565, Center = Vector3.new(0.0, 0.0, 0.0) },
+	VfxHatchSwirl = { Id = 97668907653012, Center = Vector3.new(-0.056, 1.0, 0.0565) },
+	VfxIceChip = { Id = 85586489129017, Center = Vector3.new(-0.015, 0.02, 0.0045) },
+	VfxIceShard = { Id = 87943619558104, Center = Vector3.new(0.0125, 0.05, -0.0055) },
+	VfxShellChunk = { Id = 117557914812906, Center = Vector3.new(-0.034, -0.0235, 0.0) },
 } :: { [string]: { Id: number, Center: Vector3 } }

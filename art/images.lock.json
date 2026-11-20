@@ -84,10 +84,25 @@
   "id": 95871042658584,
   "sha": "6aee128826ae8d8528f460e3f87b7d8beb7fc04482ef7daef9a3baf78305c34b"
  },
+ "Fx_Confetti": {
+  "granted": true,
+  "id": 106099210614406,
+  "sha": "aa805213ce3c5e2003eefa2b91d41a2236ec16b11598f087d6eaaf9bfeeb140d"
+ },
  "Fx_Flake": {
   "granted": true,
   "id": 109810231265053,
   "sha": "9bda9974f7ffd7ad98ea2b64fbff9959f6e780743aa5688e34e7a2ed376c0324"
+ },
+ "Fx_Glow": {
+  "granted": true,
+  "id": 72313314566128,
+  "sha": "19421b5e8e99fcae85f297b2faf5050a2e0360568337215645d3354c342f1f47"
+ },
+ "Fx_Rays": {
+  "granted": true,
+  "id": 94155638692326,
+  "sha": "50e25a1cbbd1dae3c3fe388bdd8b2822a93c64bac1b7d77e79143d765b974994"
  },
  "Fx_Ring": {
   "granted": true,
@@ -253,6 +268,11 @@
   "granted": true,
   "id": 88732375742237,
   "sha": "1bc2d3089a048beeb6fe29dce9584f800a1b2e96e9ba11047544df428a42ccad"
+ },
+ "Weight": {
+  "granted": true,
+  "id": 73645276916120,
+  "sha": "62c7fa9ad24450c7327fbaa9246d1e629c71be3f80ac4cb6601f13bce8e3802f"
  },
  "Wheel": {
   "granted": true,

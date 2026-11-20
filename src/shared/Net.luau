@@ -30,7 +30,8 @@ local EVENTS: { [string]: number } = {
 	ShowOffer = 0, -- server -> owner: { Key, Product?, Title, Text, Price?, Open? } offer popup
 	OpenShop = 0, -- server -> owner: open the Shop at a section (3rd "not enough cash")
 	Purchased = 0, -- server -> one: (product or pass key, { From?, To? }) celebration
-	HatchCompleted = 0, -- server -> owner: { PetId, Mutation?, Huge?, Rarity } the hatch show
+	HatchCompleted = 0, -- server -> owner: { Uid, PetId, Rarity, EggRarity, X, Z, Weight, Income, IsNew, Placed, ... } the hatch show
+	HatchShown = 0, -- server -> everyone: { UserId, Uid, PetId, Rarity, X, Z, ... } a short show at their base
 	WelcomeBack = 0, -- server -> owner: offline income payload
 	Analytics = 6, -- client: ("Loaded") loading screen gone, ("Open", screenName) a window opened
 }

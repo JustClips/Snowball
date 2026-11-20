@@ -238,5 +238,50 @@
   "granted": true,
   "id": 82071087939459,
   "sha": "38e8cbf5f284ccd9794a96f8971b4dd279bf03428b8c568edeb6d0a60b243dd1"
+ },
+ "VfxHatchCrown": {
+  "granted": true,
+  "id": 89259741940894,
+  "sha": "31140a740b2fe29d9c59b8d2d1d5c3b89716b782572b51c7db7de03e62ea8e9b"
+ },
+ "VfxHatchPillar": {
+  "granted": true,
+  "id": 116083800255269,
+  "sha": "77974a68b53905b67e864e4f8c173952ac8f229fed3196e75599562512f36944"
+ },
+ "VfxHatchRing": {
+  "granted": true,
+  "id": 112880701459569,
+  "sha": "ce59404356d56429d70ddd6f35dc2401cda0d5682ccc91c37354da0d183ef5c7"
+ },
+ "VfxHatchSpikes": {
+  "granted": true,
+  "id": 83412611580100,
+  "sha": "2c750f2b20132d1bff0eb8f5405e42bc603b28efcc927c0a1e941e2c66e12d53"
+ },
+ "VfxHatchStar": {
+  "granted": true,
+  "id": 72951585549565,
+  "sha": "faa71fa6bf38be74f445a35b37e6527d112b62c03acb714b8fe2e9e7ce37ce71"
+ },
+ "VfxHatchSwirl": {
+  "granted": true,
+  "id": 97668907653012,
+  "sha": "25b3038a4d44c846f12f5461b37c0fd1e4086461161cee184ad9308481e754a0"
+ },
+ "VfxIceChip": {
+  "granted": true,
+  "id": 85586489129017,
+  "sha": "2648854b57102c089dfc213ff436ef8ec40aa37d933ef34b459fd65c2ac3cf63"
+ },
+ "VfxIceShard": {
+  "granted": true,
+  "id": 87943619558104,
+  "sha": "e162478595deafe08e7281091aef99d4d6e4f1d76e2cd9e1fd47617ff6bd8cfe"
+ },
+ "VfxShellChunk": {
+  "granted": true,
+  "id": 117557914812906,
+  "sha": "d4936fa36b9b0d53c63f5c7aaf30ab7b948aa1abe27a196434ea2ff2d93a8ad9"
  }
 }

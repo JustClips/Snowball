@@ -376,6 +376,14 @@ function Ui.openWindow(window: GuiObject)
 	window.Visible = true
 end
 
+-- Closes whatever window is open (the hatch show needs the screen).
+function Ui.closeOpenWindow()
+	if openWindow then
+		openWindow.Visible = false
+		openWindow = nil
+	end
+end
+
 function Ui.closeWindow(window: GuiObject)
 	window.Visible = false
 	if openWindow == window then

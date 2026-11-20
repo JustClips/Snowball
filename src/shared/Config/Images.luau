@@ -18,7 +18,10 @@ return {
 	Fire = "rbxassetid://115412445662385",
 	Friend = "rbxassetid://87998818329106",
 	Fx_Chevron = "rbxassetid://95871042658584",
+	Fx_Confetti = "rbxassetid://106099210614406",
 	Fx_Flake = "rbxassetid://109810231265053",
+	Fx_Glow = "rbxassetid://72313314566128",
+	Fx_Rays = "rbxassetid://94155638692326",
 	Fx_Ring = "rbxassetid://130894413549827",
 	Fx_Shard = "rbxassetid://87601179791834",
 	Fx_SnowPuff = "rbxassetid://80708136450981",
@@ -52,5 +55,6 @@ return {
 	Target = "rbxassetid://71723469351535",
 	Trophy = "rbxassetid://131384754269503",
 	Upgrade = "rbxassetid://88732375742237",
+	Weight = "rbxassetid://73645276916120",
 	Wheel = "rbxassetid://88053052363856",
 } :: { [string]: string }
