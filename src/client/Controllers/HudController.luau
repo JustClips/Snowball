@@ -430,8 +430,16 @@ function HudController:Init(controllers)
 		C.ShopController:Toggle()
 	end)
 	-- No Pets tile: eggs and pets live in the bag hotbar at the bottom (Dev 2026-11-20).
-	HudController:AddTile("Upgrades", "Upgrade", "Upgrade", Color3.fromRGB(70, 200, 80), 3, function()
+	HudController:AddTile("Upgrades", "Upgrade", "Upgrade", Color3.fromRGB(70, 200, 80), 2, function()
 		C.UpgradesController:Toggle()
+	end)
+	-- TRAIN takes you to your roller (Dev 2026-11-20: Train where Home was, Home under
+	-- Upgrade). Grid of 2: Shop | Upgrade, Train | Home.
+	HudController:AddTile("Train", "Power", "Train", Color3.fromRGB(255, 150, 40), 3, function()
+		local ok, why = Net.func("Teleport"):InvokeServer("Roller")
+		if not ok and why then
+			Ui.toast(why, "Bad")
+		end
 	end)
 	HudController:AddTile("Base", "Base", "Home", Color3.fromRGB(70, 130, 255), 4, function()
 		Net.func("Teleport"):InvokeServer("Base")

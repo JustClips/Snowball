@@ -82,6 +82,15 @@ local function asset(name: string, wait: number?): BasePart?
 	return if found and found:IsA("BasePart") then found else nil
 end
 
+local badges: { [number]: { gui: BillboardGui, label: TextLabel, s: number, need: number } } = {}
+local badgeAcc = 0
+
+local function hideBadges()
+	for _, b in badges do
+		b.gui.Enabled = false
+	end
+end
+
 local function buildObstacles()
 	obstacleList = Obstacles.layout(spline.Length, RollMath.widthAt, Zones.VillageWall - 40)
 	for _, o in obstacleList do
@@ -105,14 +114,18 @@ local function buildObstacles()
 		p.CanTouch = false
 		p.Color = kind.Color -- debris colour when smashed
 		p.Parent = folder
-		-- Size badge so players learn the SMASH rule.
+		-- Size badge so players learn the SMASH rule: only while your own ball rolls and
+		-- only on obstacles just ahead of it (Dev 2026-11-20: random numbers floated over
+		-- the track). Green SMASH! = big enough, red number = the size you need.
 		local gui = Instance.new("BillboardGui")
-		gui.Size = UDim2.fromOffset(60, 26)
+		gui.Size = UDim2.fromOffset(84, 30)
 		gui.StudsOffsetWorldSpace = Vector3.new(0, p.Size.Y / 2 + 2, 0)
-		gui.MaxDistance = 140
-		local l = Ui.label({ Size = UDim2.fromScale(1, 1), Text = tostring(kind.SizeNeeded) })
+		gui.MaxDistance = 160
+		gui.Enabled = false
+		local l = Ui.label({ Name = "Text", Size = UDim2.fromScale(1, 1), Text = tostring(kind.SizeNeeded) })
 		l.Parent = gui
 		gui.Parent = p
+		badges[o.Id] = { gui = gui, label = l, s = o.s, need = kind.SizeNeeded }
 		obstacleParts[o.Id] = p
 	end
 end
@@ -184,10 +197,24 @@ end
 
 function TrackFxController:EndRun()
 	clearPickups()
+	hideBadges()
 end
 
 -- Shows pickups near the ball, hides the ones behind (every frame, cheap: pooled).
 function TrackFxController:Update(ball: Roll.Ball)
+	badgeAcc += 1
+	if badgeAcc >= 6 then
+		badgeAcc = 0
+		for _, b in badges do
+			local on = b.s > ball.s and b.s < ball.s + 110
+			b.gui.Enabled = on
+			if on then
+				local can = ball.r >= b.need
+				b.label.Text = if can then "SMASH!" else tostring(b.need)
+				b.label.TextColor3 = if can then Color3.fromRGB(110, 235, 90) else Color3.fromRGB(255, 90, 90)
+			end
+		end
+	end
 	for id, p in pickups do
 		local near = p.s > ball.s - BEHIND and p.s < ball.s + AHEAD and not taken[id]
 		local part = pickupParts[id]
