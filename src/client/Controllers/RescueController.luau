@@ -308,8 +308,10 @@ local function drawYeti(y: Yeti, folder: Folder, dt: number)
 	local asleep = state == "Asleep"
 	if y.shown ~= not asleep then
 		y.shown = not asleep
-		for _, entry in y.parts do
-			entry.part.Transparency = if asleep then 1 else 0
+		for name, entry in y.parts do
+			if JOINTS[name] or name == "Hips" then
+				entry.part.Transparency = if asleep then 1 else 0
+			end
 		end
 	end
 	if asleep then
