@@ -1,10 +1,13 @@
 --!strict
--- The Pets window (GAME_PLAN §7 items 12-13): your eggs (place them, open ready ones), your
--- pets with Equip (follow you, boost training) and Base (earn cash on your base), Equip Best.
+-- The Pets window, icon first: egg bag + PLACE / OPEN / BEST tiles on top, then a grid of
+-- pet cards with a 3D preview in the rarity colour (check = following, house = on base).
+-- Tap a card: FOLLOW (boosts training) / TO BASE (earns cash) tiles for that pet.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Eggs = require(Shared.Config.Eggs)
+local Format = require(Shared.Format)
+local PetLook = require(Shared.PetLook)
 local Net = require(Shared.Net)
 local Pets = require(Shared.Config.Pets)
 local State = require(script.Parent.Parent.State)
@@ -14,8 +17,16 @@ local PetsController = {}
 
 local window: Frame
 local list: ScrollingFrame
-local eggLine: TextLabel
-local rows: { Frame } = {}
+local eggCountLabel: TextLabel
+local placeTile: TextButton
+local openTile: TextButton
+local actions: Frame
+local actName: TextLabel
+local actTrain: TextLabel
+local actIncome: TextLabel
+local followTile: TextButton
+local baseTile: TextButton
+local rows: { GuiObject } = {}
 local shownVersion = -1
 
 local function act(action: string, arg: any?)
@@ -23,6 +34,49 @@ local function act(action: string, arg: any?)
 	if not ok and why then
 		Ui.toast(why, "Bad")
 	end
+end
+
+-- A pet's 3D preview in a ViewportFrame.
+local function preview(parent: GuiObject, pet)
+	local vp = Instance.new("ViewportFrame")
+	vp.Name = "Preview"
+	vp.BackgroundTransparency = 1
+	vp.Size = UDim2.new(1, -8, 1, -30)
+	vp.Position = UDim2.fromOffset(4, 4)
+	vp.Ambient = Color3.fromRGB(200, 200, 210)
+	vp.LightColor = Color3.fromRGB(255, 255, 255)
+	local model = PetLook.make(pet.Id, pet.Mutation, pet.Huge)
+	if model then
+		model:PivotTo(CFrame.new())
+		model.Parent = vp
+		local cam = Instance.new("Camera")
+		local _, size = model:GetBoundingBox()
+		local d = math.max(size.X, size.Y, size.Z) * 1.5 + 1.5
+		cam.CFrame = CFrame.lookAt(Vector3.new(d * 0.45, size.Y * 0.75, -d), Vector3.new(0, size.Y / 2, 0))
+		cam.FieldOfView = 40
+		cam.Parent = vp
+		vp.CurrentCamera = cam
+	end
+	vp.Parent = parent
+end
+
+-- Tapping a card shows two big icon tiles for that pet: follow me / put on base.
+local selected: string? = nil
+local function select(uid: string?)
+	selected = uid
+	local data = State.data
+	local pet = uid and data and data.Pets[uid]
+	actions.Visible = pet ~= nil
+	if not pet then
+		return
+	end
+	local def = Pets.ById[pet.Id]
+	actName.Text = (if pet.Huge then "Huge " else "") .. (if pet.Mutation then pet.Mutation .. " " else "") .. (def and def.Name or pet.Id)
+	actName.TextColor3 = if def then Eggs.ByName[def.Rarity].Color else Ui.Colors.Snow
+	actTrain.Text = if def then `+{math.floor(def.Train * 100)}%` else ""
+	actIncome.Text = if def then Format.cash(def.Income) .. "/s" else ""
+	Ui.setText(followTile, if pet.Equipped then "UNFOLLOW" else "FOLLOW")
+	Ui.setText(baseTile, if pet.Placed then "TO BAG" else "TO BASE")
 end
 
 local function render(data)
@@ -39,7 +93,9 @@ local function render(data)
 			ready += 1
 		end
 	end
-	eggLine.Text = `Eggs in bag: {eggCount} · hatching: {#data.Hatching} · ready: {ready}`
+	eggCountLabel.Text = `x{eggCount}`
+	Ui.badge(openTile, ready)
+	Ui.badge(placeTile, eggCount)
 	if shownVersion == data.InvVersion then
 		return
 	end
@@ -65,22 +121,41 @@ local function render(data)
 		local def = item.def
 		if def then
 			local rarity = Eggs.ByName[def.Rarity]
-			local row = Ui.frame({ Name = item.uid, Size = UDim2.new(1, -8, 0, 56), BackgroundColor3 = Ui.Colors.PanelDark, LayoutOrder = i })
-			Ui.stroke(row, 2, rarity.Color)
-			local name = (if item.pet.Huge then "Huge " else "") .. (if item.pet.Mutation then item.pet.Mutation .. " " else "") .. def.Name
-			Ui.label({ Size = UDim2.new(1, -250, 0, 28), Position = UDim2.fromOffset(8, 4), Text = name, TextColor3 = rarity.Color, TextXAlignment = Enum.TextXAlignment.Left }).Parent = row
-			Ui.label({ Size = UDim2.new(1, -250, 0, 18), Position = UDim2.fromOffset(8, 33), Text = `{def.Rarity} · {item.pet.Zone or "Meadow"}`, TextXAlignment = Enum.TextXAlignment.Left }).Parent = row
-			local equipped = item.pet.Equipped == true
-			Ui.button({ Size = UDim2.fromOffset(116, 44), Position = UDim2.new(1, -240, 0, 6), BackgroundColor3 = if equipped then Ui.Colors.Yellow else Ui.Colors.Ice }, if equipped then "UNEQUIP" else "EQUIP", function()
-				act(if equipped then "Unequip" else "Equip", item.uid)
-			end).Parent = row
-			local placed = item.pet.Placed ~= nil
-			Ui.button({ Size = UDim2.fromOffset(116, 44), Position = UDim2.new(1, -120, 0, 6), BackgroundColor3 = if placed then Ui.Colors.Yellow else Ui.Colors.Green }, if placed then "TO BAG" else "TO BASE", function()
-				act(if placed then "Unplace" else "Place", item.uid)
-			end).Parent = row
-			row.Parent = list
-			table.insert(rows, row)
+			local card = Instance.new("TextButton")
+			card.Name = item.uid
+			card.Text = ""
+			card.AutoButtonColor = false
+			card.BorderSizePixel = 0
+			card.LayoutOrder = i
+			card.BackgroundColor3 = rarity.Color:Lerp(Ui.Colors.PanelDark, 0.55)
+			Ui.gradient(card, card.BackgroundColor3)
+			Ui.stroke(card, 3, rarity.Color)
+			preview(card, item.pet)
+			Ui.label({
+				Size = UDim2.new(1, -6, 0, 22),
+				Position = UDim2.new(0, 3, 1, -24),
+				Text = def.Name,
+				TextColor3 = rarity.Color,
+			}).Parent = card
+			if item.pet.Equipped then
+				Ui.icon("Checkmark", { Size = UDim2.fromOffset(30, 30), Position = UDim2.fromOffset(2, 2), ZIndex = 3 }).Parent = card
+			end
+			if item.pet.Placed then
+				Ui.icon("Base", { Size = UDim2.fromOffset(30, 30), AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -2, 0, 2), ZIndex = 3 }).Parent =
+					card
+			end
+			card.Activated:Connect(function()
+				Ui.sound("Click")
+				select(item.uid)
+			end)
+			card.Parent = list
+			table.insert(rows, card)
 		end
+	end
+	if selected and not data.Pets[selected] then
+		select(nil)
+	elseif selected then
+		select(selected)
 	end
 end
 
@@ -90,6 +165,7 @@ function PetsController:Toggle()
 	else
 		Ui.openWindow(window)
 		Net.event("Analytics"):FireServer("Open", "Pets")
+		select(nil)
 		if State.data then
 			render(State.data)
 		end
@@ -99,32 +175,80 @@ end
 function PetsController:Init()
 	local gui = Ui.screen("Pets", 20)
 	local body
-	window, body = Ui.window(gui, "Window", "PETS & EGGS", Vector2.new(600, 560))
-	eggLine = Ui.label({ Size = UDim2.new(1, 0, 0, 26), Text = "", TextXAlignment = Enum.TextXAlignment.Left })
-	eggLine.Parent = body
-	local buttons = {
-		{ "PLACE EGGS", Ui.Colors.Green, "PlaceEggs" },
-		{ "OPEN READY", Ui.Colors.Yellow, "OpenReady" },
-		{ "EQUIP BEST", Ui.Colors.Ice, "Best" },
-	}
-	for i, b in buttons do
-		Ui.button({ Size = UDim2.new(1 / 3, -6, 0, 50), Position = UDim2.new((i - 1) / 3, 3, 0, 32), BackgroundColor3 = b[2] }, b[1], function()
-			act(b[3])
-		end).Parent = body
-	end
+	window, body = Ui.window(gui, "Window", "PETS", Vector2.new(640, 560))
+	-- Top row: egg bag + three icon tiles.
+	local eggs = Ui.frame({ Name = "EggBag", Size = UDim2.fromOffset(130, 84), BackgroundTransparency = 1 })
+	Ui.icon("GoldenEgg", { Size = UDim2.fromOffset(72, 72) }).Parent = eggs
+	eggCountLabel = Ui.label({ Size = UDim2.fromOffset(60, 40), Position = UDim2.fromOffset(68, 22), Text = "x0", TextXAlignment = Enum.TextXAlignment.Left })
+	eggCountLabel.Parent = eggs
+	eggs.Parent = body
+	placeTile = Ui.tile("PlaceEggs", "Base", "PLACE", Ui.Colors.Green, function()
+		act("PlaceEggs")
+	end, 84)
+	placeTile.Position = UDim2.fromOffset(150, 0)
+	placeTile.Parent = body
+	openTile = Ui.tile("OpenReady", "Egg", "OPEN", Ui.Colors.Yellow, function()
+		act("OpenReady")
+	end, 84)
+	openTile.Position = UDim2.fromOffset(246, 0)
+	openTile.Parent = body
+	local best = Ui.tile("Best", "Star", "BEST", Ui.Colors.Ice, function()
+		act("Best")
+	end, 84)
+	best.Position = UDim2.fromOffset(342, 0)
+	best.Parent = body
+
 	list = Instance.new("ScrollingFrame")
-	list.Size = UDim2.new(1, 0, 1, -92)
-	list.Position = UDim2.fromOffset(0, 92)
+	list.Size = UDim2.new(1, 0, 1, -96)
+	list.Position = UDim2.fromOffset(0, 96)
 	list.BackgroundTransparency = 1
 	list.BorderSizePixel = 0
 	list.ScrollBarThickness = 6
 	list.AutomaticCanvasSize = Enum.AutomaticSize.Y
 	list.CanvasSize = UDim2.new()
-	local layout = Instance.new("UIListLayout")
-	layout.Padding = UDim.new(0, 6)
-	layout.SortOrder = Enum.SortOrder.LayoutOrder
-	layout.Parent = list
+	local grid = Instance.new("UIGridLayout")
+	grid.CellSize = UDim2.fromOffset(112, 128)
+	grid.CellPadding = UDim2.fromOffset(8, 8)
+	grid.SortOrder = Enum.SortOrder.LayoutOrder
+	grid.Parent = list
 	list.Parent = body
+
+	-- The selected pet's actions (slides over the top row).
+	actions = Ui.frame({ Name = "Actions", Size = UDim2.new(1, 0, 0, 90), BackgroundColor3 = Ui.Colors.PanelDark, Visible = false, ZIndex = 30 })
+	Ui.stroke(actions, 3)
+	actName = Ui.label({ Size = UDim2.new(0, 200, 0, 34), Position = UDim2.fromOffset(8, 6), Text = "", TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 31 })
+	actName.Parent = actions
+	Ui.icon("Power", { Size = UDim2.fromOffset(36, 36), Position = UDim2.fromOffset(6, 46), ZIndex = 31 }).Parent = actions
+	actTrain = Ui.label({ Size = UDim2.fromOffset(70, 30), Position = UDim2.fromOffset(44, 50), Text = "", TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 31 })
+	actTrain.Parent = actions
+	Ui.icon("Cash", { Size = UDim2.fromOffset(36, 36), Position = UDim2.fromOffset(112, 46), ZIndex = 31 }).Parent = actions
+	actIncome = Ui.label({ Size = UDim2.fromOffset(90, 30), Position = UDim2.fromOffset(150, 50), Text = "", TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 31 })
+	actIncome.Parent = actions
+	followTile = Ui.tile("Follow", "Pets", "FOLLOW", Ui.Colors.Ice, function()
+		local pet = selected and State.data and State.data.Pets[selected]
+		if pet then
+			act(if pet.Equipped then "Unequip" else "Equip", selected)
+		end
+	end, 80)
+	followTile.Position = UDim2.new(1, -262, 0, 5)
+	followTile.ZIndex = 31
+	followTile.Parent = actions
+	baseTile = Ui.tile("ToBase", "Base", "TO BASE", Ui.Colors.Green, function()
+		local pet = selected and State.data and State.data.Pets[selected]
+		if pet then
+			act(if pet.Placed then "Unplace" else "Place", selected)
+		end
+	end, 80)
+	baseTile.Position = UDim2.new(1, -176, 0, 5)
+	baseTile.ZIndex = 31
+	baseTile.Parent = actions
+	local close = Ui.tile("CloseActions", "Close", "", Ui.Colors.Red, function()
+		select(nil)
+	end, 80)
+	close.Position = UDim2.new(1, -90, 0, 5)
+	close.ZIndex = 31
+	close.Parent = actions
+	actions.Parent = body
 end
 
 function PetsController:Start()
