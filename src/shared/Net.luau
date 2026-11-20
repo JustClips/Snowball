@@ -34,6 +34,8 @@ local EVENTS: { [string]: number } = {
 	HatchCompleted = 0, -- server -> owner: { Uid, PetId, Rarity, EggRarity, X, Z, Weight, Income, IsNew, Placed, ... } the hatch show
 	HatchShown = 0, -- server -> everyone: { UserId, Uid, PetId, Rarity, X, Z, ... } a short show at their base
 	WelcomeBack = 0, -- server -> owner: offline income payload
+	-- Egg rescue (EggRescueService)
+	RescueEvent = 0, -- server -> owner: (kind, data) Start / Grab / Saved / Knocked / Wake / Ended
 	Analytics = 6, -- client: ("Loaded") loading screen gone, ("Open", screenName) a window opened
 }
 
@@ -51,6 +53,7 @@ local FUNCTIONS: { [string]: number } = {
 	PromptPurchase = 4, -- (productKey, giftToUserId?) -> ok, message
 	Pets = 10, -- (action, arg?) -> ok, message: see PetService / HatchService ACTIONS
 	Admin = 8, -- (action, payload) -> ok, message: admins only, see AdminService
+	Rescue = 3, -- ("Leave" | "Sled") -> ok, message: see EggRescueService
 }
 
 local FOLDER_NAME = "Remotes"

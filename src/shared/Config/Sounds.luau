@@ -21,6 +21,9 @@ return {
 	EggCrack = { Id = "rbxassetid://9113959343", Volume = 0.6 }, -- Crack Egg Crunchy 11
 	Reveal = { Id = "rbxassetid://1845399641", Volume = 0.5 }, -- APM Ta Dah
 	Upgrade = { Id = "rbxassetid://1844692556", Volume = 0.5 }, -- APM Game Show
+	Roar = { Id = "rbxassetid://9113980319", Volume = 0.7 }, -- Creature Mix Giant Monster Roar Growl 1
+	Stomp = { Id = "rbxassetid://9125965296", Volume = 0.45 }, -- Snow Impact Big Hits Stomping
+	Fall = { Id = "rbxassetid://9113479898", Volume = 0.6 }, -- Body Falls In Snow 2
 	Winner = { Id = "rbxassetid://1844584698", Volume = 0.45 }, -- APM Winner
 	-- Egg hatch show (HatchController, same library sounds as Sweep the World's show, the
 	-- shell ones swapped for ice)

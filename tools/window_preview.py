@@ -155,3 +155,46 @@ if __name__ == "__main__":
     daily(out)
     wheel(out)
     print("written", out)
+
+
+def rescue(out):
+    """Rescue HUD (RescueController) over the bottom hotbar and the stats (PC 1280x720)."""
+    c = Canvas(W, H, bg())
+    # goal pill
+    x, y = (W - 460) / 2, 10
+    c.rect(x, y, 460, 58, (40, 40, 40), radius=29, alpha=150, grad=False)
+    c.icon("Pin", x + 22 - 36, y + 29 - 36, 72, 72)
+    c.text(x + 62, y + 9, 460 - 86, 40, "Run to the flag!", (110, 235, 90))
+    ix = x + 80
+    c.icon("Egg", ix + 40, y + 64, 40, 40)
+    c.text(ix + 84, y + 68, 80, 32, "x2", align="l")
+    c.icon("Clock", ix + 160, y + 66, 36, 36)
+    c.text(ix + 200, y + 68, 90, 32, "2:31", align="l")
+    # LEAVE
+    c.rect(24, 18, 150, 56, (235, 70, 70), radius=12, stroke=3)
+    c.text(29, 22, 140, 48, "LEAVE")
+    # bottom buttons at (0.5, 1, -98)
+    bx, by = (W - 520) / 2, H - 98 - 84
+    for k, (ico, word, w, ox) in enumerate((("Base", "SLED HOME", 270, 0), ("Exclamation", "NO YETI", 230, 290))):
+        px = bx + ox
+        c.rect(px, by, w, 78, (150, 70, 240), radius=39, stroke=4)
+        c.icon(ico, px + 78 * 0.42 - 46, by + 39 - 4 - 46, 92, 92)
+        c.text(px + 74, by + 15, w - 88, 48, word)
+        c.rect(px + w / 2 + 30 - 55, by - 4 - 15, 110, 30, GREEN, radius=15, stroke=3)
+        c.text(px + w / 2 + 30 - 50, by - 17, 100, 26, "R$" + ("25" if k == 0 else "29"))
+    # hotbar (0.5, 1, -10), 616x70
+    hx, hy = (W - 616) / 2, H - 10 - 70
+    for k in range(7):
+        c.rect(hx + k * 78, hy, 70, 70, DARK, radius=14, stroke=3, grad=False)
+        c.icon("Egg", hx + k * 78 + 8, hy + 8, 54, 54)
+    # stats bottom-left
+    c.icon("Cash", 24, H - 14 - 120, 50, 50)
+    c.text(80, H - 14 - 116, 190, 42, "$1.2K", (110, 235, 90), align="l")
+    c.text(82, H - 14 - 76, 190, 22, "+$42K/s", (150, 255, 120), align="l")
+    c.icon("Power", 24, H - 14 - 50, 50, 50)
+    c.text(80, H - 14 - 46, 190, 42, "245", (120, 210, 255), align="l")
+    c.save(os.path.join(out, "Rescue.png"))
+
+
+if __name__ == "__main__":
+    rescue(sys.argv[1] if len(sys.argv) > 1 else os.path.join(ROOT, "art", "out", "windows"))

@@ -46,6 +46,13 @@ local Gamepasses: { ProductDef } = {
 	{ Key = "ExtraSlots", Id = 0, Price = 199, Name = "+4 Pet Slots", Description = "4 more pets on your base." },
 	{ Key = "FastHatch", Id = 0, Price = 229, Name = "Fast Hatch", Description = "All hatch timers halved." },
 	{
+		Key = "CarryTwo",
+		Id = 0,
+		Price = 149,
+		Name = "Carry 2 Eggs",
+		Description = "Carry two eggs at once when you rescue them from the yeti.",
+	},
+	{
 		Key = "FrostfireRoller",
 		Id = 0,
 		Price = 399,
@@ -137,6 +144,10 @@ local Products: { ProductDef } = {
 	p("Cash4", 399, "Vault of Cash", "CashPack", true, { Seconds = 18_000, FloorFactor = 5 }),
 	-- Server events and the rest
 	p("TriggerAvalanche", 149, "Avalanche Now", "Avalanche", false),
+	-- Egg rescue (only in the rescue HUD, EggRescueService): sled every egg left home, or
+	-- keep the yeti away for Rescue.RepelMinutes.
+	p("SledHome", 25, "Sled Home", "SledHome", false),
+	p("YetiRepellent", 29, "Yeti Repellent", "YetiRepellent", false),
 	-- Lucky Wheel spins (sold in the wheel window, not the Shop)
 	p("WheelSpin1", 19, "1 Wheel Spin", "WheelSpins", true, { Count = 1 }),
 	p("WheelSpin5", 79, "5 Wheel Spins", "WheelSpins", true, { Count = 5 }),

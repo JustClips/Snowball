@@ -392,12 +392,15 @@ local function finish(player: Player, run: Run)
 	if village then
 		data.ReachedVillage = true
 	end
+	-- The eggs are NOT banked here any more (Dev 2026-11-20, egg rescue): they stay frozen in
+	-- a snow pile where the ball cracked and you carry them uphill past the yeti
+	-- (EggRescueService). Every roll leaves at least one egg to rescue.
+	if #run.eggs == 0 then
+		table.insert(run.eggs, { Rarity = S.InventoryService:RollRarity(zone.Id, run.luck), Zone = zone.Id })
+	end
 	local eggsAdded = {}
 	for _, egg in run.eggs do
-		local uid = S.InventoryService:AddEgg(player, egg.Rarity, egg.Zone, "Run")
-		if uid then
-			table.insert(eggsAdded, egg.Rarity)
-		end
+		table.insert(eggsAdded, egg.Rarity)
 	end
 	if S.AvalancheService then
 		S.AvalancheService:AddRadius(player, ball.r)
@@ -433,11 +436,20 @@ local function finish(player: Player, run: Run)
 			setPhase(player, run, "Idle")
 			runs[player] = nil
 			setFocus(player, nil)
+			if S.EggRescueService and S.EggRescueService:Begin(player, ball.s, ball.x, run.eggs, run.lane) then
+				return
+			end
 			-- A few steps behind your pad: step forward onto it (or press ROLL) to go again.
 			standAtDeck(player, run.lane, 9)
 			setAnchored(player, false)
 		end
 	end)
+end
+
+-- Back to your lane, a few steps behind the pad (after the egg rescue).
+function RollService:SendToDeck(player: Player, lane: number)
+	standAtDeck(player, lane, 9)
+	setAnchored(player, false)
 end
 
 ---------------------------------------------------------------- Keep Rolling (near miss)

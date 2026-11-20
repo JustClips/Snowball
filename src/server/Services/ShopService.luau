@@ -173,6 +173,20 @@ local GRANTS: { [string]: (product: any, buyer: Player, recipient: Player) -> ()
 			`Starter Pack: Iron Roller, an {pack.EggRarity} egg, {pack.LuckyRolls} Lucky Rolls and {pack.Train2xMinutes} min of 2x training!`
 		)
 	end,
+	SledHome = function(_product, _buyer, recipient)
+		-- Every egg left in the pile (and in your arms) goes home. If the rescue is already
+		-- over (left, timed out), the sled is not lost: you get a Lucky Roll instead.
+		if not (S.EggRescueService and S.EggRescueService:SledHome(recipient)) then
+			local data = S.DataService:GetData(recipient)
+			data.Charges.LuckyRoll += 1
+			notify(recipient, "Your sled is saved as a Lucky Roll!")
+		end
+	end,
+	YetiRepellent = function(_product, _buyer, recipient)
+		if S.EggRescueService then
+			S.EggRescueService:Repel(recipient)
+		end
+	end,
 	KeepRolling = function(_product, _buyer, recipient)
 		-- The ball normally still waits (phase Stopped). If the receipt came too late (left,
 		-- server restart), the push isn't lost: the next roll becomes a Lucky Roll.
@@ -443,6 +457,10 @@ local function promptPurchase(player: Player, key: any, giftToUserId: any): (boo
 	elseif product.Kind == "KeepRolling" then
 		if recipient ~= player or not S.RollService:ContinueBuying(player) then
 			return false, "Your ball already cracked"
+		end
+	elseif product.Kind == "SledHome" then
+		if recipient ~= player or not (S.EggRescueService and S.EggRescueService:CanSled(player)) then
+			return false, "No eggs to sled home"
 		end
 	end
 	if studioTest(product) then

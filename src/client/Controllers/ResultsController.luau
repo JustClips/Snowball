@@ -45,6 +45,11 @@ local function close()
 	banner.Visible = false
 end
 
+function ResultsController:Close()
+	serial += 1
+	close()
+end
+
 function ResultsController:Show(result)
 	if not result then
 		return

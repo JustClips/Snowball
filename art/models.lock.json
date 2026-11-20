@@ -164,6 +164,11 @@
   "id": 115997361064198,
   "sha": "a9de805a4ff5187a92058a67c8c377986571df3f936a366cd792b657442905ca"
  },
+ "RescueFlag": {
+  "granted": true,
+  "id": 118887470596913,
+  "sha": "7e520dd27e0c3c1e801337682795973c5f2b585b3ccf36f4619414ed267c1628"
+ },
  "Roller_Admin": {
   "granted": true,
   "id": 105120766459716,
@@ -283,5 +288,10 @@
   "granted": true,
   "id": 117557914812906,
   "sha": "d4936fa36b9b0d53c63f5c7aaf30ab7b948aa1abe27a196434ea2ff2d93a8ad9"
+ },
+ "Yeti": {
+  "granted": true,
+  "id": 109041727198269,
+  "sha": "d7a188cb316abe3b936928420439a5367910d4c13359ff142f71c344be9a1454"
  }
 }

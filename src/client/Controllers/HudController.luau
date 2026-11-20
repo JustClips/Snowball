@@ -206,6 +206,8 @@ local function currentMode(): string
 		return "Packing"
 	elseif player:GetAttribute("Training") then
 		return "Training"
+	elseif player:GetAttribute("Rescue") then
+		return "Rescue" -- carrying eggs home past the yeti (RescueController draws its own HUD)
 	end
 	return "Normal"
 end
