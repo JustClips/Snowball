@@ -303,6 +303,25 @@ function EggRescueService:Begin(
 	if #eggs == 0 or states[player] or not player.Character then
 		return false
 	end
+	-- Commons go straight to the bag; only the better eggs are carried (Rescue.CarryFrom).
+	local carryFrom = order(Rescue.CarryFrom)
+	local light, carry = {}, {}
+	for _, egg in eggs do
+		table.insert(if order(egg.Rarity) < carryFrom then light else carry, egg)
+	end
+	local autoSaved = {}
+	for _, egg in light do
+		if S.InventoryService:AddEgg(player, egg.Rarity, egg.Zone, "Roll") then
+			table.insert(autoSaved, egg.Rarity)
+		end
+	end
+	if #autoSaved > 0 then
+		event(player, "AutoSaved", { Eggs = autoSaved, All = #carry == 0 })
+	end
+	if #carry == 0 then
+		return false
+	end
+	eggs = carry
 	S.CarryService:StopHolding(player)
 	local spline = Spline.main()
 	s = math.clamp(s, 20, spline.Length - 8)
@@ -364,7 +383,7 @@ function EggRescueService:Begin(
 		flagPos = flagPos,
 		eggs = list,
 		held = {},
-		saved = {},
+		saved = autoSaved,
 		yetiPos = ground(denPos),
 		denPos = ground(denPos),
 		yeti = if firstRuns or repelled(player) then "Asleep" else "Den",
@@ -422,7 +441,7 @@ local function deliver(player: Player, st: State)
 	event(player, "Saved", { Eggs = got, Left = #st.eggs })
 	S.StateService:Mark(player)
 	if #st.eggs == 0 then
-		task.delay(1.6, function()
+		task.delay(0.8, function()
 			if states[player] == st then
 				finish(player, "Done")
 			end
@@ -434,7 +453,7 @@ local function deliver(player: Player, st: State)
 	if st.yeti ~= "Asleep" then
 		st.yeti = "Return"
 	end
-	task.delay(1.4, function()
+	task.delay(Rescue.BackSeconds, function()
 		if states[player] == st then
 			st.busy = false
 			toPile(player, st)
@@ -468,12 +487,24 @@ local function knock(player: Player, st: State, from: Vector3)
 	end
 	event(player, "Knocked", { From = from })
 	S.AnalyticsService:Custom(player, "RescueKnocked", 1)
+	-- Then straight back to the pile (with the client's fade), not a walk back down.
+	st.busy = true
 	task.delay(Rescue.KnockSeconds, function()
 		local h = humanoidOf(player)
 		if h then
 			h.PlatformStand = false
 			h:ChangeState(Enum.HumanoidStateType.GettingUp)
 		end
+		if states[player] ~= st then
+			return
+		end
+		event(player, "Back")
+		task.delay(Rescue.BackSeconds, function()
+			if states[player] == st then
+				st.busy = false
+				toPile(player, st)
+			end
+		end)
 	end)
 end
 

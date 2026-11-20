@@ -531,9 +531,10 @@ local function buildHud()
 end
 
 local function fadeOutIn()
-	TweenService:Create(fade, TweenInfo.new(0.5), { BackgroundTransparency = 0 }):Play()
-	task.delay(1.1, function()
-		TweenService:Create(fade, TweenInfo.new(0.5), { BackgroundTransparency = 1 }):Play()
+	-- Matches Rescue.BackSeconds: the server moves you while the screen is white.
+	TweenService:Create(fade, TweenInfo.new(0.25), { BackgroundTransparency = 0 }):Play()
+	task.delay(Rescue.BackSeconds, function()
+		TweenService:Create(fade, TweenInfo.new(0.25), { BackgroundTransparency = 1 }):Play()
 	end)
 end
 
@@ -636,6 +637,15 @@ local function onEvent(kind: string, data: any)
 		ending = true
 		Ui.sound("Reveal")
 		Ui.word(`{#data.Eggs} EGGS SLEDDED HOME!`, Ui.Colors.Green, 1.4)
+	elseif kind == "AutoSaved" then
+		-- Commons skip the carry and go straight to the bag.
+		Ui.sound("Reveal")
+		Ui.word(`+{#data.Eggs} EGG{if #data.Eggs > 1 then "S" else ""}!`, Ui.Colors.Green, 1.1)
+		if data.All then
+			C.ResultsController:ShowHeld(data.Eggs)
+		end
+	elseif kind == "Back" then
+		fadeOutIn()
 	elseif kind == "Dropped" then
 		Ui.sound("Pop", 0.8)
 	elseif kind == "Repelled" then
