@@ -37,7 +37,8 @@ function BaseService:GetOwner(index: number): Player?
 end
 
 function BaseService:SpawnCFrame(index: number): CFrame
-	return World.baseCFrame(index) * CFrame.new(0, 4, 22)
+	-- On the path in the open yard between the cabin porch and the gate, facing the gate.
+	return World.baseCFrame(index) * CFrame.new(0, 4, -2)
 end
 
 -- Owner name over the base (placeholder sign until the Blender cabin has its sign board).

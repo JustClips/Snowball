@@ -126,7 +126,7 @@ local function buildSummit(root: Folder)
 		spawn.Size = Vector3.new(6, 1, 6)
 		spawn.Transparency = 1
 		spawn.CanCollide = false
-		spawn.CFrame = cf * CFrame.new(0, 1.5, 10)
+		spawn.CFrame = cf * CFrame.new(0, 1.5, -2)
 		spawn.Parent = base
 		local roller = part({
 			Name = "RollerPad",
