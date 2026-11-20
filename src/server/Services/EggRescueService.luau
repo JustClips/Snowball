@@ -13,7 +13,9 @@
 -- Everything is server side. Clients draw from Workspace.Rescue.<UserId> (a Folder):
 --   attributes Owner, Phase ("Grab"|"Carry"), Left (eggs in the pile), Held (count),
 --   YetiPos (Vector3), YetiState ("Den"|"Wake"|"Chase"|"Return"|"Stun"|"Asleep"),
---   YetiYaw (radians), FlagPos, PilePos, EndsAt (os.time())
+--   YetiYaw (radians), FlagPos, PilePos, EndsAt (os.time()),
+--   HeldList / PileList / SavedList (comma-separated rarities, for RescueEggsController's
+--   egg strip: tap a held egg to drop it back, tap a pile egg to grab that one next)
 --   children Pile (snow + egg models named Egg<i>), Flag.
 -- and the owner gets RescueEvent (kind, data) for sounds and words (RescueController).
 local Players = game:GetService("Players")
@@ -52,6 +54,7 @@ type State = {
 	knockedUntil: number,
 	endsAt: number,
 	busy: boolean, -- teleporting back to the pile
+	grabAfter: number, -- os.clock(): no auto grab before this (just dropped an egg)
 	result: any?, -- the run's result: offers wait for the rescue (OfferService:AfterRun)
 }
 
@@ -136,6 +139,20 @@ end
 
 -- The egg models on the pile match st.eggs (Egg1..EggN): the best one sits on the top,
 -- the rest in a ring on the shoulders of the pile.
+-- What the egg strip (RescueEggsController) shows: held, still in the pile, saved.
+local function publish(st: State)
+	local function list(eggs: { any }): string
+		local names = {}
+		for _, e in eggs do
+			table.insert(names, if type(e) == "string" then e else e.Rarity)
+		end
+		return table.concat(names, ",")
+	end
+	st.folder:SetAttribute("HeldList", list(st.held))
+	st.folder:SetAttribute("PileList", list(st.eggs))
+	st.folder:SetAttribute("SavedList", list(st.saved))
+end
+
 local function drawPile(st: State)
 	for _, c in st.pile:GetChildren() do
 		if string.sub(c.Name, 1, 3) == "Egg" then
@@ -162,6 +179,7 @@ local function drawPile(st: State)
 		model.Parent = st.pile
 	end
 	st.folder:SetAttribute("Left", n)
+	publish(st)
 end
 
 local function clearHeld(player: Player)
@@ -207,6 +225,7 @@ local function setPhase(player: Player, st: State)
 	st.folder:SetAttribute("Held", #st.held)
 	player:SetAttribute("Rescue", phase)
 	setSpeed(player, st)
+	publish(st)
 end
 
 -- Stands you just uphill of the pile, facing the flag.
@@ -353,6 +372,7 @@ function EggRescueService:Begin(
 		knockedUntil = 0,
 		endsAt = os.time() + Rescue.TimeLimit,
 		busy = false,
+		grabAfter = 0,
 		result = result,
 	}
 	folder:SetAttribute("YetiPos", st.yetiPos)
@@ -535,7 +555,12 @@ local function step(dt: number)
 		end
 		local p = r.Position
 		if not st.busy and os.clock() > st.knockedUntil then
-			if #st.held == 0 and #st.eggs > 0 and (p - st.pileCf.Position).Magnitude < Rescue.GrabRadius then
+			if
+				#st.held == 0
+				and #st.eggs > 0
+				and os.clock() > st.grabAfter
+				and (p - st.pileCf.Position).Magnitude < Rescue.GrabRadius
+			then
 				grab(player, st)
 			elseif #st.held > 0 and flat(p - st.flagPos).Magnitude < Rescue.FlagRadius then
 				deliver(player, st)
@@ -609,10 +634,34 @@ function EggRescueService:Init(services)
 		local mountain = Workspace:WaitForChild("Mountain")
 		groundParams.FilterDescendantsInstances = { mountain:WaitForChild("Track") }
 	end)
-	Net.onInvoke("Rescue", function(player, action)
+	Net.onInvoke("Rescue", function(player, action, arg)
 		if action == "Leave" then
 			if states[player] then
 				finish(player, "Left")
+				return true, nil
+			end
+		elseif action == "Drop" then
+			-- Put a held egg back on the pile (last in line), e.g. to go for a better one.
+			local st = states[player]
+			local i = tonumber(arg)
+			if st and not st.busy and i and st.held[i] then
+				local egg = table.remove(st.held, i)
+				table.insert(st.eggs, egg)
+				st.grabAfter = os.clock() + 2
+				drawPile(st)
+				holdModels(player, st)
+				setPhase(player, st)
+				event(player, "Dropped", { Rarity = egg.Rarity })
+				return true, nil
+			end
+		elseif action == "Pick" then
+			-- Choose which pile egg you grab next (it goes to the top of the pile).
+			local st = states[player]
+			local i = tonumber(arg)
+			if st and i and st.eggs[i] then
+				local egg = table.remove(st.eggs, i)
+				table.insert(st.eggs, 1, egg)
+				drawPile(st)
 				return true, nil
 			end
 		elseif action == "Sled" then
