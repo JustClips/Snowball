@@ -110,7 +110,7 @@ def daily(out):
 
 def wheel(out):
     c = Canvas(W, H, bg())
-    c.rect(0, 0, W, H, (0, 0, 0), alpha=115, grad=False)
+    c.rect(0, 0, W, H, (0, 0, 0), alpha=180, grad=False)
     x0, y0 = (W - 800) / 2, (H - 480) / 2
     size = 450
     cx, cy = x0 + 235, y0 + 240 + 12
@@ -122,9 +122,9 @@ def wheel(out):
         r = 0.6 * size / 2
         sx, sy = cx + math.sin(a) * r, cy - math.cos(a) * r
         # draw upright (the game rotates them with the wedge; upright is enough for sizing)
-        c.icon(ico, sx - 32, sy - 56 + 34 - 32, 64, 64)
-        c.text(sx - 53, sy - 56 + 66, 106, 22, amt)
-        c.text(sx - 48, sy - 56 + 88, 96, 18, ch, (255, 240, 170))
+        c.icon(ico, sx - 40, sy - 56 + 42 - 40, 80, 80)
+        c.rect(sx - 31, sy - 56 + 84, 62, 24, (22, 20, 38), radius=12, alpha=190, grad=False)
+        c.text(sx - 29, sy - 56 + 86, 58, 20, ch, (255, 240, 170))
     c.icon("SpinPointer", cx - 44, y0 - 6 - 13, 88, 88)
     sx, sy = x0 + 800 - 310, y0 + 240 + 12 - 205
     c.rect(sx, sy, 310, 410, DARK, radius=18, stroke=4, grad=False)
@@ -132,7 +132,7 @@ def wheel(out):
     c.text(sx + 12, sy + 52, 286, 22, "Free spin ready!", (150, 255, 120))
     c.rect(sx + 12, sy + 82, 286, 84, GREEN, radius=12, stroke=3)
     c.text(sx + 17, sy + 86, 276, 76, "FREE SPIN!")
-    for k, (n, p) in enumerate((("+1", "19"), ("+5", "79"), ("+10", "149"))):
+    for k, (n, p) in enumerate((("+1", "19"), ("+5", "79"), ("+10", "149"))):  # LayoutOrder
         bx = sx + 12 + (286 - (3 * 88 + 16)) / 2 + k * 96
         c.rect(bx, sy + 178, 88, 76, (150, 70, 240), radius=12, stroke=3)
         c.text(bx + 4, sy + 184, 80, 30, n)
