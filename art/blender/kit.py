@@ -274,6 +274,9 @@ def export_glb(objs, name):
     json.dump(meta, open(meta_path, "w"), indent=1, sort_keys=True)
     bpy.ops.object.select_all(action="DESELECT")
     for o in objs:
+        # Roblox names each MeshPart after the glTF MESH, not the object: a joined object
+        # keeps its first primitive's mesh name ("Icosphere.031"), so name the mesh too.
+        o.data.name = o.name
         o.select_set(True)
     path = os.path.join(OUT, f"{name}.glb")
     bpy.ops.export_scene.gltf(filepath=path, export_format="GLB", use_selection=True, export_apply=True,
