@@ -45,6 +45,34 @@ local KIND_SECTION: { [string]: string } = {
 	CashPack = "Cash",
 }
 
+local KIND_ICON: { [string]: string } = {
+	StarterPack = "Chest",
+	RobuxRoller = "Power",
+	EggPack = "GoldenEgg",
+	HugePet = "Pets",
+	Boost = "Bolt",
+	TrainTime = "Clock",
+	PowerPack = "Power",
+	LuckyRoll = "Luck",
+	SuperLucky = "Luck",
+	ServerLuck = "Luck",
+	GoldenRuns = "Star",
+	Avalanche = "Storm",
+	CashPack = "Cash",
+}
+local PASS_ICON: { [string]: string } = {
+	Train2x = "Power",
+	Cash2x = "Cash",
+	AutoTrain = "Shoe",
+	PopMagnet = "Magnet",
+	Lucky = "Luck",
+	GoldenSnowball = "Star",
+	VIP = "Crown",
+	ExtraEquips = "Pets",
+	ExtraSlots = "Base",
+	FastHatch = "Clock",
+}
+
 local function describe(def: any): string
 	if def.Description then
 		return def.Description
@@ -106,17 +134,21 @@ local function card(def: any, pass: boolean, order: number): Frame
 		BackgroundColor3 = Ui.Colors.Panel,
 	})
 	Ui.stroke(f, 2)
+	Ui.icon((if pass then PASS_ICON[def.Key] else KIND_ICON[def.Kind]) or "Gift", {
+		Size = UDim2.fromOffset(66, 66),
+		Position = UDim2.fromOffset(5, 5),
+	}).Parent = f
 	Ui.label({
 		Name = "Name",
-		Size = UDim2.new(1, -170, 0, 32),
-		Position = UDim2.fromOffset(10, 6),
+		Size = UDim2.new(1, -250, 0, 32),
+		Position = UDim2.fromOffset(78, 6),
 		Text = def.Name,
 		TextXAlignment = Enum.TextXAlignment.Left,
 	}).Parent = f
 	Ui.label({
 		Name = "Info",
-		Size = UDim2.new(1, -170, 0, 26),
-		Position = UDim2.fromOffset(10, 42),
+		Size = UDim2.new(1, -250, 0, 26),
+		Position = UDim2.fromOffset(78, 42),
 		Text = describe(def),
 		TextColor3 = Ui.Colors.Ice,
 		TextXAlignment = Enum.TextXAlignment.Left,

@@ -17,41 +17,54 @@ local UpgradesController = {}
 local window: Frame
 local cards: { [string]: { title: TextLabel, info: TextLabel, buy: TextButton } } = {}
 
+local ICONS = {
+	Roller = "Power",
+	RobuxRoller = "Robux",
+	Core = "Gem",
+	EggSlots = "Egg",
+	PetSlots = "Pets",
+	PackZone = "Target",
+}
+
+-- One upgrade: big icon, short name, what it gives as icon + number, a big price button.
 local function card(parent: Frame, id: string, order: number, onBuy: () -> ())
 	local f = Ui.frame({
 		Name = id,
-		Size = UDim2.new(1, -8, 0, 74),
-		BackgroundColor3 = Ui.Colors.PanelDark,
+		Size = UDim2.new(1, -8, 0, 84),
+		BackgroundColor3 = Ui.Colors.Panel,
 		LayoutOrder = order,
 	})
-	Ui.stroke(f, 2)
+	Ui.gradient(f, Ui.Colors.Panel)
+	Ui.stroke(f, 3)
+	Ui.icon(ICONS[id] or "Upgrade", { Size = UDim2.fromOffset(72, 72), Position = UDim2.fromOffset(6, 6) }).Parent = f
 	local title = Ui.label({
 		Name = "Title",
-		Size = UDim2.new(1, -170, 0, 32),
-		Position = UDim2.fromOffset(10, 6),
+		Size = UDim2.new(1, -260, 0, 34),
+		Position = UDim2.fromOffset(86, 8),
 		TextXAlignment = Enum.TextXAlignment.Left,
 		Text = id,
 	})
 	title.Parent = f
 	local info = Ui.label({
 		Name = "Info",
-		Size = UDim2.new(1, -170, 0, 24),
-		Position = UDim2.fromOffset(10, 42),
+		Size = UDim2.new(1, -260, 0, 28),
+		Position = UDim2.fromOffset(86, 46),
 		TextXAlignment = Enum.TextXAlignment.Left,
 		Text = "",
-		TextColor3 = Ui.Colors.Ice,
+		TextColor3 = Ui.Colors.Green,
 	})
 	info.Parent = f
 	local buy = Ui.button(
 		{
 			Name = "Buy",
-			Size = UDim2.fromOffset(150, 58),
-			Position = UDim2.new(1, -158, 0, 8),
+			Size = UDim2.fromOffset(160, 66),
+			Position = UDim2.new(1, -168, 0, 9),
 			BackgroundColor3 = Ui.Colors.Green,
 		},
 		"BUY",
 		onBuy
 	)
+	Ui.gradient(buy, Ui.Colors.Green)
 	buy.Parent = f
 	f.Parent = parent
 	cards[id] = { title = title, info = info, buy = buy }
@@ -70,7 +83,7 @@ local function render(data)
 	if nextRoller then
 		local free = nextRoller.Index == Rollers.FreeInTutorial and not data.Flags.TutorialDone
 		c.title.Text = nextRoller.Name
-		c.info.Text = `{Format.big(nextRoller.Power)} Power per tap`
+		c.info.Text = `+{Format.big(nextRoller.Power)}`
 		Ui.setText(c.buy, if free then "FREE" else Format.cash(nextRoller.Price))
 		c.buy.Visible = true
 	else
@@ -83,7 +96,7 @@ local function render(data)
 	c = cards.RobuxRoller
 	if robux and product then
 		c.title.Text = robux.Name
-		c.info.Text = `x{robux.Mult} training forever`
+		c.info.Text = `x{robux.Mult}`
 		Ui.setText(c.buy, `{Ui.ROBUX}{product.Price}`)
 		c.buy.Visible = product.Id ~= 0
 	else
@@ -94,19 +107,19 @@ local function render(data)
 	local core = Upgrades.Cores[data.Core + 1]
 	c = cards.Core
 	c.title.Text = if core then core.Name else "Best core owned"
-	c.info.Text = if core then `x{core.Luck} luck, +{math.floor((core.Growth - 1) * 100 + 0.5)}% growth` else ""
+	c.info.Text = if core then `x{core.Luck}` else ""
 	local rows = {
 		{ "Core", Upgrades.nextPrice("Core", data) },
 		{ "EggSlots", Upgrades.nextPrice("EggSlots", data) },
 		{ "PetSlots", Upgrades.nextPrice("PetSlots", data) },
 		{ "PackZone", Upgrades.nextPrice("PackZone", data) },
 	}
-	cards.EggSlots.title.Text = `Egg Slots ({data.EggSlots})`
-	cards.EggSlots.info.Text = "+1 egg per ball"
-	cards.PetSlots.title.Text = `Pet Slots ({data.PetSlots})`
-	cards.PetSlots.info.Text = "+1 pet on your base"
-	cards.PackZone.title.Text = `Pack Zone (Lv {data.PackZone})`
-	cards.PackZone.info.Text = "Wider green zone"
+	cards.EggSlots.title.Text = `Eggs {data.EggSlots}`
+	cards.EggSlots.info.Text = "+1"
+	cards.PetSlots.title.Text = `Pets {data.PetSlots}`
+	cards.PetSlots.info.Text = "+1"
+	cards.PackZone.title.Text = `Aim Lv {data.PackZone}`
+	cards.PackZone.info.Text = "+1"
 	for _, row in rows do
 		local price = row[2]
 		local cc = cards[row[1]]
@@ -127,7 +140,7 @@ end
 function UpgradesController:Init()
 	local gui = Ui.screen("Upgrades", 20)
 	local body
-	window, body = Ui.window(gui, "Window", "UPGRADES", Vector2.new(560, 520))
+	window, body = Ui.window(gui, "Window", "UPGRADE", Vector2.new(560, 560))
 	local list = Instance.new("ScrollingFrame")
 	list.Name = "List"
 	list.Size = UDim2.fromScale(1, 1)

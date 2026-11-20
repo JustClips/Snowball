@@ -69,17 +69,13 @@ local function renderDaily(r)
 			then Ui.Colors.Green
 			elseif done then Ui.Colors.PanelDark
 			else Ui.Colors.Panel
-		local text = Rewards.describe(Rewards.Daily[i])
-		if i == 7 and r.DailyHuge then
-			text = "Huge " .. text
-		end
-		(card:FindFirstChild("Reward") :: TextLabel).Text = text
+
 	end
 	dailyClaim.Visible = r.DailyReady
 	if r.DailyReady then
-		dailyInfo.Text = `Streak: {r.DailyStreak} days. Claim day {r.DailyIndex}!`
+		dailyInfo.Text = ""
 	else
-		dailyInfo.Text = `Next reward in {Format.time(math.max(0, r.DailyNextAt - State.now()))}`
+		dailyInfo.Text = Format.time(math.max(0, r.DailyNextAt - State.now()))
 	end
 end
 
@@ -110,12 +106,12 @@ local function renderWheel(r)
 	if free then
 		Ui.setText(wheelSpin, "FREE SPIN")
 	else
-		Ui.setText(wheelSpin, `SPIN ({r.Spins})`)
+		Ui.setText(wheelSpin, `SPIN x{r.Spins}`)
 	end
 	if free then
-		wheelInfo.Text = "Your free spin is ready!"
+		wheelInfo.Text = "FREE!"
 	elseif r.FreeSpinAt then
-		wheelInfo.Text = `Free spin in {Format.time(math.max(0, r.FreeSpinAt - State.now()))}`
+		wheelInfo.Text = Format.time(math.max(0, r.FreeSpinAt - State.now()))
 	else
 		wheelInfo.Text = ""
 	end
@@ -139,8 +135,52 @@ end
 
 -------------------------------------------------------------------------- build
 
+-- A reward as icons: one icon per part (and its bonus) with a short number under it.
+local function rewardIcon(r: Rewards.Reward): (string, string)
+	local k = r.Kind
+	if k == "Cash" then
+		return "Cash", ""
+	elseif k == "Egg" then
+		return if r.Rarity == "Legendary" or r.Rarity == "Mythic" then "GoldenEgg" else "Egg", string.upper(string.sub(r.Rarity or "", 1, 4))
+	elseif k == "Spin" then
+		return "Wheel", `x{r.Amount or 1}`
+	elseif k == "Pet" then
+		return "Pets", ""
+	elseif k == "Boost" then
+		return if r.Boost == "Train2x" then "Power" else "Cash", `x2 {r.Minutes}m`
+	elseif k == "Charge" then
+		return if r.Charge == "LuckyRoll" then "Luck" else "Star", `x{r.Amount or 1}`
+	elseif k == "Power" then
+		return "Power", ""
+	end
+	return "Gift", ""
+end
+
+local function rewardIcons(parent: GuiObject, r: Rewards.Reward, size: number)
+	local holder = Ui.frame({ Name = "Reward", BackgroundTransparency = 1, Size = UDim2.new(1, 0, 0, size + 20) })
+	local list = Instance.new("UIListLayout")
+	list.FillDirection = Enum.FillDirection.Horizontal
+	list.HorizontalAlignment = Enum.HorizontalAlignment.Center
+	list.Padding = UDim.new(0, 2)
+	list.Parent = holder
+	local part: Rewards.Reward? = r
+	while part do
+		local icon, caption = rewardIcon(part)
+		local cell = Ui.frame({ BackgroundTransparency = 1, Size = UDim2.fromOffset(size, size + 20) })
+		Ui.icon(icon, { Size = UDim2.fromOffset(size, size) }).Parent = cell
+		if caption ~= "" then
+			Ui.label({ Size = UDim2.new(1, 0, 0, 20), Position = UDim2.fromOffset(0, size), Text = caption }).Parent = cell
+		end
+		cell.Parent = holder
+		part = part.Bonus
+	end
+	holder.Parent = parent
+	return holder
+end
+
+
 local function buildDaily(gui: ScreenGui)
-	local window, body = Ui.window(gui, "Daily", "DAILY REWARDS", Vector2.new(600, 400))
+	local window, body = Ui.window(gui, "Daily", "DAILY", Vector2.new(600, 400))
 	windows.Daily = window
 	local grid = Ui.frame({ Name = "Grid", Size = UDim2.new(1, -16, 0, 230), Position = UDim2.fromOffset(8, 4), BackgroundTransparency = 1 })
 	local layout = Instance.new("UIGridLayout")
@@ -152,15 +192,9 @@ local function buildDaily(gui: ScreenGui)
 	for i = 1, #Rewards.Daily do
 		local card = Ui.frame({ Name = "Day" .. i, LayoutOrder = i, BackgroundColor3 = Ui.Colors.Panel })
 		Ui.stroke(card, 2)
-		Ui.label({ Name = "Day", Size = UDim2.new(1, -8, 0, 26), Position = UDim2.fromOffset(4, 4), Text = `DAY {i}` }).Parent = card
-		Ui.label({
-			Name = "Reward",
-			Size = UDim2.new(1, -8, 1, -38),
-			Position = UDim2.fromOffset(4, 34),
-			Text = "",
-			TextWrapped = true,
-			TextColor3 = if i == 7 then Ui.Colors.Gold else Ui.Colors.Ice,
-		}).Parent = card
+		Ui.label({ Name = "Day", Size = UDim2.new(1, -8, 0, 26), Position = UDim2.fromOffset(4, 4), Text = tostring(i), TextColor3 = if i == 7 then Ui.Colors.Gold else Ui.Colors.Snow }).Parent = card
+		local icons = rewardIcons(card, Rewards.Daily[i], 44)
+		icons.Position = UDim2.fromOffset(0, 32)
 		card.Parent = grid
 		dailyCards[i] = card
 	end
@@ -179,7 +213,7 @@ local function buildDaily(gui: ScreenGui)
 end
 
 local function buildGifts(gui: ScreenGui)
-	local window, body = Ui.window(gui, "Gifts", "PLAYTIME GIFTS", Vector2.new(480, 430))
+	local window, body = Ui.window(gui, "Gifts", "GIFTS", Vector2.new(480, 430))
 	windows.Gifts = window
 	local list = Instance.new("UIListLayout")
 	list.Padding = UDim.new(0, 6)
@@ -188,12 +222,9 @@ local function buildGifts(gui: ScreenGui)
 	for i, entry in Rewards.Playtime do
 		local row = Ui.frame({ Name = "Gift" .. i, LayoutOrder = i, Size = UDim2.new(1, -8, 0, 54), BackgroundColor3 = Ui.Colors.PanelDark })
 		Ui.stroke(row, 2)
-		Ui.label({
-			Size = UDim2.new(1, -170, 1, -10),
-			Position = UDim2.fromOffset(8, 5),
-			Text = `{entry.Minutes} min: {Rewards.describe(entry.Reward)}`,
-			TextXAlignment = Enum.TextXAlignment.Left,
-		}).Parent = row
+		local icons = rewardIcons(row, entry.Reward, 36)
+		icons.Size = UDim2.new(0, 120, 1, 0)
+		icons.Position = UDim2.fromOffset(4, -2)
 		local button = Ui.button({
 			Name = "Claim",
 			Size = UDim2.fromOffset(150, 44),
@@ -208,7 +239,7 @@ local function buildGifts(gui: ScreenGui)
 end
 
 local function buildWheel(gui: ScreenGui)
-	local window, body = Ui.window(gui, "Wheel", "LUCKY WHEEL", Vector2.new(520, 560))
+	local window, body = Ui.window(gui, "Wheel", "SPIN", Vector2.new(520, 560))
 	windows.Wheel = window
 	local total = Rewards.wheelTotal()
 	for i, seg in Rewards.Wheel.Segments do
@@ -219,10 +250,12 @@ local function buildWheel(gui: ScreenGui)
 			BackgroundColor3 = seg.Color,
 		})
 		Ui.stroke(row, 2)
+		local icon, caption = rewardIcon(seg.Reward)
+		Ui.icon(icon, { Size = UDim2.fromOffset(36, 36), Position = UDim2.fromOffset(6, 2) }).Parent = row
 		Ui.label({
-			Size = UDim2.new(1, -90, 1, -8),
-			Position = UDim2.fromOffset(8, 4),
-			Text = Rewards.describe(seg.Reward),
+			Size = UDim2.new(1, -140, 1, -8),
+			Position = UDim2.fromOffset(48, 4),
+			Text = caption,
 			TextXAlignment = Enum.TextXAlignment.Left,
 		}).Parent = row
 		Ui.label({
