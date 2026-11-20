@@ -50,7 +50,7 @@ local KEY_PIC: { [string]: string } = {
 	GoldenSnowball = "PassGoldBall",
 	VIP = "PassVIP",
 	Train2xBoost = "Pass2xPower",
-	SuperLucky = "SuperLucky",
+	SuperLuckyRoll = "SuperLucky",
 	StarterPack = "StarterRoller",
 }
 for i = 1, 4 do

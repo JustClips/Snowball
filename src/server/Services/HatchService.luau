@@ -22,6 +22,8 @@ local HatchService = {}
 
 local S: any
 local rng = Random.new()
+-- The egg a player last asked to Hatch Now, so the Skip Hatch purchase opens that egg.
+local skipTarget: { [Player]: string } = {}
 
 local function hatchSeconds(data: any, rarity: string): number
 	if data.Stats.Hatches == 0 and #data.Hatching == 0 then
@@ -148,9 +150,6 @@ function HatchService:HasRoom(player: Player): boolean
 	local data = S.DataService:GetData(player)
 	return data ~= nil and freeSpot(data) ~= nil
 end
-
--- The egg a player last asked to Hatch Now, so the Skip Hatch purchase opens that egg.
-local skipTarget: { [Player]: string } = {}
 
 local PLACE_REACH = 70 -- studs from the park centre the player may stand
 

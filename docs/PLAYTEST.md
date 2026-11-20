@@ -37,7 +37,7 @@
 11. Starter Pack: about 6 s after the tutorial ends a big window pops; the chest tile on the right rail shows the countdown and reopens it.
 12. Keep Rolling: stop just short of the next zone (or use `/keeprolling`): KEEP ROLLING? card, 8 s timer, buy = the ball rolls on with new snow/coins/eggs; X or the timer cracks it.
 
-**Shop / buying:** open the Shop: rows Passes, Power, Lucky Rolls, Server Luck, Cash, each card with its own picture; cash cards say how much they give. Press a Buy: the Shop hides, Processing... shows, then BOUGHT! with the product's picture and the Shop comes back. Try to buy something you can't afford 3 times: a card says NEED $X and offers the smallest cash pack that covers it.
+**Shop / buying:** open the Shop: one list scrolling down (Featured, Passes, Boosts, Power, Rolls, Money, Codes), 3 cards per row, each with its own picture and what it gives (+$ / +Power). The buttons on the right jump to a section. Press a Buy: the Shop hides, Processing... shows, then BOUGHT! and the Shop comes back. Try to buy an upgrade you can't afford 3 times: Roblox's buy box opens for the cash pack that covers it.
 
 **Studio test buys:** in Studio, any product or pass without an ID is granted for free when you press its Buy (the Output says STUDIO TEST BUY). Live servers show SOON instead. Note: with API access on, test buys save to your real data (`/reset` wipes it).
 13. Phone emulator (Studio Device view): check every window fits and the buttons are reachable.

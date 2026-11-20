@@ -23,7 +23,6 @@ local ORDER = {
 	"StarterPackController",
 	"ContinueController",
 	"PurchaseController",
-	"CashShortController",
 	"InventoryController",
 	"PlacementController",
 	"PetWorldController",

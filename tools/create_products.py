@@ -24,7 +24,7 @@ API = "https://apis.roblox.com"
 KEY = os.environ.get("ROBLOXAPIKEY_SNOWBALL") or os.environ.get("ROBLOXAPIKEY")
 
 PIC = {"Cash2x": "Pass2xCash", "Train2x": "Pass2xPower", "AutoTrain": "PassFastTrain", "Lucky": "PassLucky",
-       "GoldenSnowball": "PassGoldBall", "VIP": "PassVIP", "Train2xBoost": "Pass2xPower", "SuperLucky": "SuperLucky",
+       "GoldenSnowball": "PassGoldBall", "VIP": "PassVIP", "Train2xBoost": "Pass2xPower", "SuperLuckyRoll": "SuperLucky",
        "StarterPack": "StarterRoller", "KeepRolling1": "PassGoldBall", "KeepRolling2": "PassGoldBall"}
 for i in range(1, 5):
     PIC[f"PowerPack{i}"] = f"Power{i}"
@@ -42,7 +42,7 @@ KIND_TEXT = {
     "PowerPack": "Instant Power for your next roll.",
     "Boost": "A timed boost.",
     "LuckyRoll": "Rolls with x10 luck and +50% distance.",
-    "SuperLucky": "One roll with x100 luck.",
+    "SuperLuckyRoll": "One roll with x100 luck.",
     "ServerLuck": "15 minutes of luck for everyone in the server.",
     "GoldenRuns": "Golden Snowball runs: x2 coins, smashes bigger obstacles.",
     "EggPack": "Frozen eggs straight to your bag.",

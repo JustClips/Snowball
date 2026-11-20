@@ -99,6 +99,18 @@ function ShopService:CashPackAmounts(player: Player): { [string]: number }
 	return out
 end
 
+-- What each Power Pack gives this player right now (taps x their power per tap).
+function ShopService:PowerPackAmounts(player: Player): { [string]: number }
+	local out = {}
+	local per = if S.TrainService then S.TrainService:PowerPerTap(player) else 0
+	for _, def in Products.Products do
+		if def.Kind == "PowerPack" and def.Taps then
+			out[def.Key] = per * def.Taps
+		end
+	end
+	return out
+end
+
 function ShopService:CashFor(player: Player, seconds: number, floorFactor: number?): number
 	return cashPackAmount(player, { Seconds = seconds, FloorFactor = floorFactor or 0 })
 end
@@ -119,7 +131,7 @@ function ShopService:OfferCashFor(player: Player, shortfall: any)
 	runtime.ShopOpens = (runtime.ShopOpens or 0) + 1
 	runtime.ShopOpenedAt = os.clock()
 	-- "Buy the missing amount" (Dev 2026-11-20): the smallest cash pack that covers what
-	-- you're short, offered right there. If none covers it, the biggest one.
+	-- you're short is prompted right away. If none covers it, the biggest one.
 	local need = BigNum.toNumber(shortfall or 0)
 	local best, biggest
 	local packs = {}
@@ -143,7 +155,9 @@ function ShopService:OfferCashFor(player: Player, shortfall: any)
 		Net.fire("OpenShop", player, "Cash")
 		return
 	end
-	Net.fire("CashShort", player, { Need = need, Product = pick.def.Key, Price = pick.def.Price, Amount = pick.amount })
+	-- Roblox's own buy box for that pack, straight away (Dev: "prompt actual dev product not
+	-- show popup").
+	ShopService:Prompt(player, pick.def.Key)
 end
 
 local function applyPassEffects(player: Player)

@@ -546,6 +546,13 @@ function InventoryController:Init(controllers)
 end
 
 function InventoryController:Start()
+	-- The Blender eggs and pack pets arrive a little after joining: draw the slots again then.
+	ReplicatedStorage.ChildAdded:Connect(function(child)
+		if child.Name == "EggModels" or child.Name == "PetModels" then
+			shownKeys = ""
+			InventoryController:Refresh()
+		end
+	end)
 	State.observe(function()
 		if not seenReady and State.data and State.data.Pets then
 			markSeen(InventoryController:Items()) -- what you join with isn't "new"
