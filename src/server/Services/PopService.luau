@@ -91,8 +91,11 @@ local function grant(player: Player, tierId: string): string
 	local def = Pops.ById[tierId]
 	local data = S.DataService:GetData(player)
 	if def.Kind == "Train" then
-		S.BoostService:ApplyPop(player, def.Mult, def.Seconds)
-		return `x{def.Mult} TRAINING!`
+		-- Dev 2026-11-20: a pop is an extra gain right now, not a timed xN boost. It pays the
+		-- taps the old boost was worth (Mult x Seconds of auto training), straight to Power.
+		local taps = math.max(1, math.floor(def.Mult * def.Seconds * Economy.AutoTrainTapsPerSecond))
+		local gain = S.TrainService:Grant(player, taps, true)
+		return "+" .. Format.big(gain)
 	elseif def.Kind == "Coin" then
 		local cash = S.CashService:Give(player, incomeFor(player, def.Mult), "CoinPop")
 		return "+" .. Format.cash(cash)

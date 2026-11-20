@@ -343,6 +343,9 @@ local SCENARIOS = {}
 SCENARIOS.hud = function() end
 SCENARIOS.training = function()
 	player:SetAttribute("Training", true)
+	fire("PopShown", 1, "Snowflake", 0.3, 0.35, 4)
+	fire("PopShown", 2, "Golden", 0.7, 0.4, 4)
+	fire("PopShown", 3, "Coin", 0.55, 0.25, 4)
 end
 SCENARIOS.rolling = function()
 	player:SetAttribute("RollPhase", "Rolling")

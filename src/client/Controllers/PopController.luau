@@ -24,10 +24,24 @@ local function shout(text: string, color: Color3)
 	local scale = bigText:FindFirstChildOfClass("UIScale") :: UIScale
 	scale.Scale = 0.4
 	TweenService:Create(scale, TweenInfo.new(0.35, Enum.EasingStyle.Back), { Scale = 1 }):Play()
-	task.delay(1.4, function()
-		if bigText.Text == text then
-			TweenService:Create(bigText, TweenInfo.new(0.4), { TextTransparency = 1 }):Play()
+	local stroke = bigText:FindFirstChildOfClass("UIStroke")
+	if stroke then
+		stroke.Transparency = 0
+	end
+	-- Fade text AND outline, then hide (the outline used to stay on screen forever).
+	task.delay(1.2, function()
+		if bigText.Text ~= text then
+			return
 		end
+		TweenService:Create(bigText, TweenInfo.new(0.4), { TextTransparency = 1 }):Play()
+		if stroke then
+			TweenService:Create(stroke, TweenInfo.new(0.4), { Transparency = 1 }):Play()
+		end
+		task.delay(0.45, function()
+			if bigText.Text == text then
+				bigText.Visible = false
+			end
+		end)
 	end)
 end
 
@@ -59,7 +73,7 @@ local function show(id: number, tierId: string, x: number, y: number, seconds: n
 	if rainbow then
 		text = `x{tier.Mult}\n{Ui.ROBUX}{price or "?"}`
 	elseif tier.Kind == "Train" then
-		text = `x{tier.Mult}`
+		text = "" -- a Power icon instead (it pays Power now, bigger pops pay more)
 	elseif tier.Kind == "Coin" then
 		text = "$$$"
 	elseif tier.Kind == "Luck" then
@@ -67,24 +81,50 @@ local function show(id: number, tierId: string, x: number, y: number, seconds: n
 	else
 		text = "GIFT"
 	end
-	local size = if rainbow then 130 else 104
-	local b = Ui.button(
-		{
-			Name = "Pop" .. id,
-			Size = UDim2.fromOffset(size, size),
+	local size = if rainbow then 130 elseif tier.Kind == "Train" then 92 + tier.Mult * 3 else 104
+	-- A round bubble (Dev 2026-11-20: pops are circles): outline, light top, the word inside.
+	local b = Instance.new("TextButton")
+	b.Name = "Pop" .. id
+	b.Text = ""
+	b.AutoButtonColor = false
+	b.BorderSizePixel = 0
+	b.Size = UDim2.fromOffset(size, size)
+	b.AnchorPoint = Vector2.new(0.5, 0.5)
+	b.Position = UDim2.fromScale(x, y)
+	b.BackgroundColor3 = tier.Color
+	Ui.round(b)
+	Ui.stroke(b, 4)
+	Ui.gradient(b)
+	Ui.maxText(
+		Ui.label({
+			Name = "Label",
+			Size = UDim2.new(0.8, 0, 0.6, 0),
 			AnchorPoint = Vector2.new(0.5, 0.5),
-			Position = UDim2.fromScale(x, y),
-			BackgroundColor3 = tier.Color,
-		},
-		text,
-		function()
-			Net.event("ClaimPop"):FireServer(id)
-			Ui.sound("Pop", 1.2)
-			if not rainbow then
-				remove(id, true)
-			end
-		end
+			Position = UDim2.fromScale(0.5, 0.5),
+			Text = text,
+			ZIndex = 2,
+			Parent = b,
+		}),
+		40
 	)
+	if tier.Kind == "Train" then
+		Ui.icon("Power", {
+			Size = UDim2.fromScale(0.62, 0.62),
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(0.5, 0.5),
+			ZIndex = 2,
+		}).Parent =
+			b
+	end
+	local popScale = Instance.new("UIScale")
+	popScale.Parent = b
+	b.Activated:Connect(function()
+		Net.event("ClaimPop"):FireServer(id)
+		Ui.sound("Pop", 1.2)
+		if not rainbow then
+			remove(id, true)
+		end
+	end)
 	local label = b:FindFirstChild("Label") :: TextLabel
 	label.TextColor3 = if tier.Id == "Snowflake" then Ui.Colors.Ink else Ui.Colors.Snow
 	if rainbow then
