@@ -11,3 +11,8 @@ build/
 # Icon pack files (license: no redistribution); copies live in the project files
 art/icons/
 
+art/icons_shop/raw/
+art/icons_shop/out/
+art/icons_shop/ref.png
+art/icons_shop/sheet.png
+art/icons_shop/gen.log

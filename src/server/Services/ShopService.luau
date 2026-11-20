@@ -88,11 +88,22 @@ local function cashPackAmount(player: Player, product): number
 	return math.floor(math.max(rate * (product.Seconds or 600), goal * (product.FloorFactor or 1), 100))
 end
 
+-- What each cash pack gives this player right now (the Shop cards show it).
+function ShopService:CashPackAmounts(player: Player): { [string]: number }
+	local out = {}
+	for _, def in Products.Products do
+		if def.Kind == "CashPack" then
+			out[def.Key] = cashPackAmount(player, def)
+		end
+	end
+	return out
+end
+
 function ShopService:CashFor(player: Player, seconds: number, floorFactor: number?): number
 	return cashPackAmount(player, { Seconds = seconds, FloorFactor = floorFactor or 0 })
 end
 
-function ShopService:OfferCashFor(player: Player, _shortfall: any)
+function ShopService:OfferCashFor(player: Player, shortfall: any)
 	local session = S.DataService:GetSession(player)
 	if not session or not session.Data.Flags.TutorialDone then
 		return
@@ -107,7 +118,32 @@ function ShopService:OfferCashFor(player: Player, _shortfall: any)
 	end
 	runtime.ShopOpens = (runtime.ShopOpens or 0) + 1
 	runtime.ShopOpenedAt = os.clock()
-	Net.fire("OpenShop", player, "Cash")
+	-- "Buy the missing amount" (Dev 2026-11-20): the smallest cash pack that covers what
+	-- you're short, offered right there. If none covers it, the biggest one.
+	local need = BigNum.toNumber(shortfall or 0)
+	local best, biggest
+	local packs = {}
+	for _, def in Products.Products do
+		if def.Kind == "CashPack" and (def.Id ~= 0 or (Products.StudioTestBuys and RunService:IsStudio())) then
+			table.insert(packs, def)
+		end
+	end
+	table.sort(packs, function(a, b)
+		return a.Price < b.Price
+	end)
+	for _, def in packs do
+		local amount = cashPackAmount(player, def)
+		biggest = { def = def, amount = amount }
+		if not best and amount >= need then
+			best = biggest
+		end
+	end
+	local pick = best or biggest
+	if not pick then
+		Net.fire("OpenShop", player, "Cash")
+		return
+	end
+	Net.fire("CashShort", player, { Need = need, Product = pick.def.Key, Price = pick.def.Price, Amount = pick.amount })
 end
 
 local function applyPassEffects(player: Player)
@@ -348,7 +384,7 @@ local function promptPurchase(player: Player, key: any, giftToUserId: any): (boo
 		end
 		if studioTest(pass) then
 			studioGrant(player, pass, true, player)
-			return true, nil
+			return true, "Studio"
 		end
 		if pass.Id == 0 then
 			return false, "Coming soon!"
@@ -411,7 +447,7 @@ local function promptPurchase(player: Player, key: any, giftToUserId: any): (boo
 	end
 	if studioTest(product) then
 		studioGrant(player, product, false, recipient)
-		return true, nil
+		return true, "Studio"
 	end
 	MarketplaceService:PromptProductPurchase(player, product.Id)
 	S.AnalyticsService:PromptShown(player, product.Key)

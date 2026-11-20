@@ -28,6 +28,7 @@ local EVENTS: { [string]: number } = {
 	RunContinued = 0, -- server -> all: (userId, { S, D, V, Limit, Seed, IdBase }) a Keep Rolling push
 	DeclineContinue = 2, -- client: no thanks, crack the ball now
 	ShowOffer = 0, -- server -> owner: { Key, Product?, Title, Text, Price?, Open? } offer popup
+	CashShort = 0, -- server -> owner: { Need, Product, Price, Amount } buy the missing cash
 	OpenShop = 0, -- server -> owner: open the Shop at a section (3rd "not enough cash")
 	Purchased = 0, -- server -> one: (product or pass key, { From?, To? }) celebration
 	HatchCompleted = 0, -- server -> owner: { PetId, Mutation?, Huge?, Rarity } the hatch show

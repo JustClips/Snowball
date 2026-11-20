@@ -41,6 +41,29 @@ local KIND_ICON: { [string]: string } = {
 	DoubleOffline = "Cash",
 }
 
+-- The product's own Shop picture (art/icons_shop), when it has one.
+local KEY_PIC: { [string]: string } = {
+	Cash2x = "Pass2xCash",
+	Train2x = "Pass2xPower",
+	AutoTrain = "PassFastTrain",
+	Lucky = "PassLucky",
+	GoldenSnowball = "PassGoldBall",
+	VIP = "PassVIP",
+	Train2xBoost = "Pass2xPower",
+	SuperLucky = "SuperLucky",
+	StarterPack = "StarterRoller",
+}
+for i = 1, 4 do
+	KEY_PIC["PowerPack" .. i] = "Power" .. i
+	KEY_PIC["Cash" .. i] = "Cash" .. i
+end
+for _, n in { 3, 10, 35, 100 } do
+	KEY_PIC["LuckyRoll" .. n] = "Lucky" .. n
+end
+for _, n in { 2, 4, 8, 16 } do
+	KEY_PIC["ServerLuck" .. n] = "ServerLuck"
+end
+
 local function show(key: string, info: any)
 	local def = Products.ProductByKey[key] or Products.PassByKey[key]
 	if not def then
@@ -51,7 +74,7 @@ local function show(key: string, info: any)
 	end
 	serial += 1
 	local mine = serial
-	icon.Image = Ui.Images[KIND_ICON[def.Kind or ""] or "Gift"] or ""
+	icon.Image = Ui.Images["Shop_" .. (KEY_PIC[key] or "")] or Ui.Images[KIND_ICON[def.Kind or ""] or "Gift"] or ""
 	title.Text = `{string.upper(def.Name)}!`
 	sub.Text = if info and info.From
 		then `Gift from {info.From}`
@@ -59,9 +82,7 @@ local function show(key: string, info: any)
 		else "BOUGHT!"
 	stamp.Visible = true
 	stampScale.Scale = 0.3
-	stamp.Rotation = -8
 	TweenService:Create(stampScale, TweenInfo.new(0.35, Enum.EasingStyle.Back), { Scale = 1 }):Play()
-	TweenService:Create(stamp, TweenInfo.new(0.35, Enum.EasingStyle.Back), { Rotation = -3 }):Play()
 	Ui.sound("Pop")
 	task.delay(2.2, function()
 		if serial == mine then
