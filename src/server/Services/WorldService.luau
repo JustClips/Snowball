@@ -18,9 +18,6 @@ local WorldService = {}
 
 local SEGMENT = 20 -- studs of track per graybox part
 local WALL_HEIGHT = 6
--- The deck sits a little above the plaza: its plank tops were level with the plaza snow and
--- the two flickered through each other (Dev 2026-11-20: white streaks across the deck).
-local DECK_LIFT = 0.25
 local SNOW = Color3.fromRGB(240, 246, 255)
 
 local function part(props: { [string]: any }): Part
@@ -47,6 +44,8 @@ local function folder(name: string, parent: Instance): Folder
 	return f
 end
 
+local DECK_LIFT = 0.4
+
 local function buildSummit(root: Folder)
 	local summit = folder("Summit", root)
 	part({
@@ -66,7 +65,9 @@ local function buildSummit(root: Folder)
 	part({
 		Name = "Deck",
 		Size = World.Deck.Size,
-		CFrame = CFrame.new(World.Deck.Center - Vector3.yAxis * (World.Deck.Size.Y / 2 - DECK_LIFT)),
+		-- The deck floor sits DECK_LIFT above the plaza snow (it used to share y = 1000 with
+		-- the plaza top and z-fought, Dev 2026-11-20 "launch zone map issues").
+		CFrame = CFrame.new(World.Deck.Center + Vector3.yAxis * (DECK_LIFT - World.Deck.Size.Y / 2)),
 		Material = Enum.Material.WoodPlanks,
 		Color = Color3.fromRGB(165, 120, 80),
 		Parent = summit,
