@@ -156,7 +156,7 @@ end
 -- Thin wrappers over the Ui kit (stud style), kept so the Sweep layout code below stays as is.
 local function studs(parent: GuiObject, tint: Color3, tile: number?, _transparency: number?): ImageLabel
 	-- Window bodies get faint studs (the slate stays calm), cards and buttons full ones.
-	return Ui.studs(parent, nil, tile or 40, if tint == BODY_STUDS then 0.75 else nil)
+	return Ui.studs(parent, nil, tile or 40, 1) -- hidden: no textures (Dev 2026-11-20)
 end
 
 local function border(parent: GuiObject, thickness: number?, color: Color3?): UIStroke

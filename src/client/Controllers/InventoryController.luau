@@ -600,10 +600,9 @@ function InventoryController:Start()
 	task.spawn(function()
 		while true do
 			local mode = C.HudController:Mode()
-			-- The roll's result card sits where the hotbar is: hide the bar while it shows.
-			local results = gui.Parent and gui.Parent:FindFirstChild("Results")
-			local card = results and results:FindFirstChild("Card", true) :: GuiObject?
-			hotbar.Visible = mode == "Normal" and not (card and card.Visible)
+			-- The roll's reward screen covers the bottom: hide the bar while it's open.
+			local results = C.ResultsController and C.ResultsController:IsOpen()
+			hotbar.Visible = mode == "Normal" and not results
 			if mode ~= "Normal" and window.Visible then
 				Ui.closeWindow(window)
 			end

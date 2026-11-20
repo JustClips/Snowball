@@ -199,15 +199,14 @@ local function darker(c: Color3, k: number): Color3
 end
 Ui.darker = darker
 
--- Turns a frame/button into a stud block: lighter top (gradient), studs, black outline, a
--- darker lip along the bottom. Ui.tint recolours it (fill + lip).
+-- Turns a frame/button into a block: lighter top (gradient), black outline, a darker lip
+-- along the bottom. No texture on it (Dev 2026-11-20: buttons must be clean, no boxes). Ui.tint recolours it (fill + lip).
 function Ui.block(object: GuiObject, color: Color3?, stroke: number?, lip: number?)
 	if color then
 		object.BackgroundColor3 = color
 	end
 	Ui.stroke(object, stroke or 3)
 	Ui.gradient(object)
-	Ui.studs(object, nil, 40, 0.15)
 	local h = lip or 5
 	if h > 0 then
 		local l = Instance.new("Frame")

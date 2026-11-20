@@ -156,7 +156,6 @@ function ContinueController:Init(_controllers)
 		BackgroundColor3 = Ui.Colors.Lime,
 		ZIndex = 22,
 	})
-	Ui.studs(ghost, nil, 26, 0.2)
 	ghost.Parent = track
 	fill = Ui.frame({
 		Name = "Fill",
@@ -165,7 +164,6 @@ function ContinueController:Init(_controllers)
 		ZIndex = 23,
 	})
 	Ui.gradient(fill)
-	Ui.studs(fill, nil, 26, 0.2)
 	fill.Parent = track
 	ball = Ui.icon("Icon_Snowball", {
 		Name = "Ball",

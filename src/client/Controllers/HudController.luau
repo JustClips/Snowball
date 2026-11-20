@@ -389,7 +389,6 @@ function HudController:Init(controllers)
 	Ui.stroke(avaBar, 3)
 	avaFill = Ui.frame({ Name = "Fill", Size = UDim2.fromScale(0, 1), BackgroundColor3 = Ui.Colors.Blue })
 	Ui.gradient(avaFill)
-	Ui.studs(avaFill, nil, 28, 0.2)
 	avaFill.Parent = avaBar
 	avaText = Ui.label({
 		Name = "Text",

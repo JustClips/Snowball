@@ -52,8 +52,7 @@ local TIERS: { { At: number, Color: Color3? } } = {
 local gui: ScreenGui
 -- Roll counter
 local pill: Frame? = nil
-local pillText: TextLabel
-local pillGrad: UIGradient
+local cloverScale: UIScale? = nil
 local pips: { Frame } = {}
 local glow: Frame? = nil
 local glowGrad: UIGradient
@@ -139,65 +138,50 @@ local function buildCounter()
 	g.Parent = action
 	glow = g
 
+	-- No box, no words (Dev 2026-11-20): a row of 10 round dots right above ROLL fills one
+	-- per roll, the last one is a clover. When the next roll is lucky every dot turns
+	-- rainbow, the clover grows and pulses, and ROLL gets the rainbow glow.
 	local p = Ui.frame({
 		Name = "LuckyCounter",
 		AnchorPoint = Vector2.new(0.5, 1),
-		Position = UDim2.new(0.5, 0, 0, -8),
-		Size = UDim2.fromOffset(236, 58),
-		BackgroundTransparency = 1,
-	})
-	local body = Ui.frame({
-		Name = "Body",
-		Size = UDim2.fromOffset(236, 40),
-		BackgroundColor3 = Color3.fromRGB(26, 30, 52),
-		BackgroundTransparency = 0.15,
-	})
-	Ui.stroke(body, 3)
-	pillGrad = Instance.new("UIGradient")
-	pillGrad.Color = RAINBOW
-	pillGrad.Enabled = false
-	pillGrad.Parent = body
-	body.Parent = p
-	local icon = Ui.icon("Luck", {
-		Size = UDim2.fromOffset(46, 46),
-		AnchorPoint = Vector2.new(0, 0.5),
-		Position = UDim2.new(0, -12, 0.5, 0),
-		ZIndex = 3,
-	})
-	icon.Parent = body
-	pillText = Ui.label({
-		Name = "Text",
-		Size = UDim2.new(1, -46, 0, 30),
-		Position = UDim2.fromOffset(40, 5),
-		Text = "LUCKY IN 9",
-		ZIndex = 3,
-	})
-	pillText.Parent = body
-	-- 10 pips: one per roll, the last one gold (the lucky one).
-	local row = Ui.frame({
-		Name = "Pips",
-		Size = UDim2.fromOffset(236, 12),
-		Position = UDim2.fromOffset(0, 46),
+		Position = UDim2.new(0.5, 0, 0, -6),
+		Size = UDim2.fromOffset(236, 34),
 		BackgroundTransparency = 1,
 	})
 	local layout = Instance.new("UIListLayout")
 	layout.FillDirection = Enum.FillDirection.Horizontal
 	layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-	layout.Padding = UDim.new(0, 4)
+	layout.VerticalAlignment = Enum.VerticalAlignment.Center
+	layout.Padding = UDim.new(0, 5)
 	layout.SortOrder = Enum.SortOrder.LayoutOrder
-	layout.Parent = row
-	for i = 1, Economy.LuckyEvery do
+	layout.Parent = p
+	for i = 1, Economy.LuckyEvery - 1 do
 		local pip = Ui.frame({
 			Name = "Pip" .. i,
 			LayoutOrder = i,
-			Size = UDim2.fromOffset(19, 12),
+			Size = UDim2.fromOffset(15, 15),
 			BackgroundColor3 = Color3.fromRGB(60, 66, 96),
 		})
-		Ui.stroke(pip, 2)
-		pip.Parent = row
+		Ui.round(pip)
+		Ui.stroke(pip, 2.5)
+		local g = Instance.new("UIGradient")
+		g.Color = RAINBOW
+		g.Enabled = false
+		g.Parent = pip
+		pip.Parent = p
 		pips[i] = pip
 	end
-	row.Parent = p
+	-- The clover at the end (the lucky roll).
+	local clover = Ui.frame({
+		Name = "Clover",
+		LayoutOrder = 99,
+		Size = UDim2.fromOffset(34, 34),
+		BackgroundTransparency = 1,
+	})
+	cloverScale = Instance.new("UIScale")
+	cloverScale.Parent = clover
+	Ui.icon("Luck", { Size = UDim2.fromScale(1, 1), ZIndex = 3 }).Parent = clover
+	clover.Parent = p
 	p.Parent = roll
 	pill = p
 end
@@ -209,17 +193,19 @@ local function refreshCounter()
 	local left, charged = rollsLeft()
 	ready = left == 0 or charged
 	local done = Economy.LuckyEvery - 1 - left
-	pillText.Text = if ready then "LUCKY ROLL!" else `LUCKY IN {left + 1}`
-	pillGrad.Enabled = ready
-	pillText.TextColor3 = if ready then Color3.new(1, 1, 1) else Color3.fromRGB(255, 225, 90)
 	for i, pip in pips do
-		local last = i == #pips
 		local on = i <= done or ready
-		pip.BackgroundColor3 = if last and on
-			then Color3.fromRGB(255, 205, 50)
+		pip.BackgroundColor3 = if ready
+			then Color3.new(1, 1, 1)
 			elseif on then Color3.fromRGB(110, 235, 90)
-			elseif last then Color3.fromRGB(120, 100, 40)
 			else Color3.fromRGB(60, 66, 96)
+		local g = pip:FindFirstChildOfClass("UIGradient")
+		if g then
+			g.Enabled = ready
+		end
+	end
+	if not ready and cloverScale then
+		cloverScale.Scale = 1
 	end
 end
 
@@ -500,8 +486,15 @@ local function step()
 		glowGrad.Offset = Vector2.new(math.sin(t * 2) * 0.2, 0)
 	end
 	if ready then
-		pillGrad.Rotation = r
-		pillGrad.Offset = Vector2.new((t * 0.6) % 2 - 1, 0)
+		for _, pip in pips do
+			local g = pip:FindFirstChildOfClass("UIGradient")
+			if g then
+				g.Rotation = r
+			end
+		end
+		if cloverScale then
+			cloverScale.Scale = 1.25 + math.sin(t * 6) * 0.15
+		end
 	end
 	if valueGrad.Enabled then
 		valueGrad.Offset = Vector2.new((t * 0.8) % 2 - 1, 0)
@@ -533,8 +526,10 @@ function LuckController:Start()
 		refreshCounter()
 	end)
 	Net.event("RunStarted").OnClientEvent:Connect(function(userId: number, info)
-		if userId == player.UserId and type(info) == "table" then
-			task.spawn(playReveal, info)
+		-- Dev 2026-11-20: no luck reveal after rolling. A lucky roll still gets the rainbow
+		-- LUCKY ROLL! banner (and the rainbow ball from DecorateBall).
+		if userId == player.UserId and type(info) == "table" and info.Lucky then
+			showBanner()
 		end
 	end)
 	RunService.RenderStepped:Connect(step)

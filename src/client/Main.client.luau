@@ -1,6 +1,18 @@
 --!strict
 -- Boots client controllers: all Init() first, then all Start().
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local StarterGui = game:GetService("StarterGui")
+
+-- Our own bag hotbar replaces Roblox's backpack: without this, Roblox's 1-0 slot bar sits
+-- on top of ours and ` opens its grey "Search" inventory over ROLL (Dev 2026-11-20).
+task.spawn(function()
+	for _ = 1, 20 do
+		if pcall(StarterGui.SetCoreGuiEnabled, StarterGui, Enum.CoreGuiType.Backpack, false) then
+			return
+		end
+		task.wait(0.5)
+	end
+end)
 
 local Client = script.Parent
 local State = require(Client:WaitForChild("State"))
