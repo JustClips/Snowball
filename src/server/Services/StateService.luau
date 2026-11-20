@@ -118,6 +118,7 @@ function StateService:Build(player: Player, full: boolean?): Types.PlayerSnapsho
 		Spins = data.Spins,
 		CashMult = S.BoostService:GetCashMult(player),
 		CashPacks = if S.ShopService then S.ShopService:CashPackAmounts(player) else nil,
+		PowerPacks = if S.ShopService then S.ShopService:PowerPackAmounts(player) else nil,
 		TutorialStep = step,
 		BaseIndex = session.Runtime.BaseIndex or 0,
 		ServerTime = os.time(),
