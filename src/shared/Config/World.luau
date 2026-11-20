@@ -68,4 +68,57 @@ function World.petSpot(b: number, i: number): CFrame
 	return World.baseCFrame(b) * CFrame.new(p[1], 1, p[2])
 end
 
+-- Summit props (Blender Prop_* models): pines around the plaza edge, lamps and benches
+-- along the middle walk, snowmen by the spawn, flags by the deck, crystals by the wheel.
+-- The middle of the plaza and the paths between bases, rollers and the deck stay clear.
+export type PropSpot = { Name: string, CFrame: CFrame, Scale: number }
+function World.plazaProps(): { PropSpot }
+	local list: { PropSpot } = {}
+	local rng = Random.new(20261120)
+	local y = World.SummitY
+	local function add(name: string, x: number, z: number, scale: number?, yaw: number?)
+		table.insert(list, {
+			Name = name,
+			CFrame = CFrame.new(x, y, z) * CFrame.Angles(0, yaw or rng:NextNumber(0, math.pi * 2), 0),
+			Scale = scale or 1,
+		})
+	end
+	-- Pines along both side edges and the back edge, with rocks between them.
+	for z = -286, 10, 22 do
+		for _, side in { -1, 1 } do
+			add("Pine", side * (192 + rng:NextNumber(-3, 3)), z + rng:NextNumber(-4, 4), rng:NextNumber(0.9, 1.35))
+			if rng:NextNumber() < 0.45 then
+				add("Rock", side * (184 + rng:NextNumber(-2, 2)), z + 11, rng:NextNumber(0.8, 1.4))
+			end
+		end
+	end
+	for x = -176, 176, 24 do
+		if math.abs(x) > 30 then
+			add("Pine", x + rng:NextNumber(-4, 4), -292 + rng:NextNumber(-3, 3), rng:NextNumber(0.9, 1.4))
+		end
+	end
+	-- The middle walk from the deck to the wheel: lamps in pairs, benches facing in.
+	for z = -210, -30, 45 do
+		add("Lamp", -22, z, 1, 0)
+		add("Lamp", 22, z, 1, math.pi)
+	end
+	for _, z in { -75, -165 } do
+		add("Bench", -28, z, 1, math.pi / 2)
+		add("Bench", 28, z, 1, -math.pi / 2)
+	end
+	-- Snowmen and crystals as landmarks.
+	add("Snowman", -40, -36, 1.2, math.pi)
+	add("Snowman", 40, -36, 1.2, math.pi)
+	add("Snowman", 0, -120, 1.6, math.pi)
+	for _, p in { { -20, -232 }, { 20, -232 }, { -62, -268 }, { 62, -268 } } do
+		add("Crystal", p[1], p[2], rng:NextNumber(1.4, 2.0))
+	end
+	-- Flags at the corners of the deck.
+	for _, side in { -1, 1 } do
+		add("Flagpole", side * 80, -18, 1.2, 0)
+		add("Flagpole", side * 80, 24, 1.2, 0)
+	end
+	return list
+end
+
 return World

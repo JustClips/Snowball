@@ -6,6 +6,62 @@
    -0.358
   ]
  },
+ "Deck": {
+  "center": [
+   -0.0,
+   17.2,
+   0.4263
+  ]
+ },
+ "Prop_Bench": {
+  "center": [
+   -0.0,
+   2.2009,
+   0.1075
+  ]
+ },
+ "Prop_Crystal": {
+  "center": [
+   -0.0,
+   2.587,
+   0.0
+  ]
+ },
+ "Prop_Flagpole": {
+  "center": [
+   2.0122,
+   7.575,
+   0.0
+  ]
+ },
+ "Prop_Lamp": {
+  "center": [
+   0.0935,
+   5.3,
+   0.0
+  ]
+ },
+ "Prop_Pine": {
+  "center": [
+   -0.0,
+   9.4852,
+   0.0
+  ]
+ },
+ "Prop_Rock": {
+  "center": [
+   0.2253,
+   1.2508,
+   0.4389
+  ]
+ },
+ "Prop_Snowman": {
+  "center": [
+   -0.0,
+   5.3,
+   0.0
+  ]
+ },
  "Roller_Aurora": {
   "center": [
    -0.0,

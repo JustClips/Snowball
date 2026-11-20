@@ -4,6 +4,46 @@
   "id": 100921593962689,
   "sha": "c85459e0bed5c74d107315dd1e2811a02eb186e5fa1c7bf2efe983447f84e752"
  },
+ "Deck": {
+  "granted": true,
+  "id": 123888722656689,
+  "sha": "08574a820aa56ec389ef242037382c36681c3d324ad94ba9b132579035bcfe06"
+ },
+ "Prop_Bench": {
+  "granted": true,
+  "id": 77511546535111,
+  "sha": "b14ceb870d5b965557649be4e62a95fe95665ad834dc1d79fbae2244b65b31a7"
+ },
+ "Prop_Crystal": {
+  "granted": true,
+  "id": 114190881370558,
+  "sha": "0ff994ad4a396c607498005ee163fb697eaba336e73c536661b8f166542910cf"
+ },
+ "Prop_Flagpole": {
+  "granted": true,
+  "id": 134039050436788,
+  "sha": "0541e7a1c8cdf52950837c696a4c03f81fd1e03c78f36fd915a6f32c8b88eb68"
+ },
+ "Prop_Lamp": {
+  "granted": true,
+  "id": 90706749056383,
+  "sha": "1bfd2dcf5337cd5eb0c09d8e9b151395fd49f343471cab70fc2c453b5c31e93b"
+ },
+ "Prop_Pine": {
+  "granted": true,
+  "id": 111545802978348,
+  "sha": "dcd9ca5649c76759fec8d482d44aa5f3c81ca4ceee1e062ae2739c21f86f0a47"
+ },
+ "Prop_Rock": {
+  "granted": true,
+  "id": 135725576025877,
+  "sha": "bed12cc191c5f064cde2e39f412b6b5e20dca8b1c881b5b740700878428b025b"
+ },
+ "Prop_Snowman": {
+  "granted": true,
+  "id": 115997361064198,
+  "sha": "a9de805a4ff5187a92058a67c8c377986571df3f936a366cd792b657442905ca"
+ },
  "Roller_Aurora": {
   "granted": true,
   "id": 76665160629802,

@@ -53,15 +53,19 @@ function ModelLoader.get(name: string): Model?
 	return if c then c else nil
 end
 
--- A clone of `name` with its model origin at `origin`, or nil.
-function ModelLoader.clone(name: string, origin: CFrame): Model?
+-- A clone of `name` with its model origin at `origin` (optionally scaled), or nil.
+function ModelLoader.clone(name: string, origin: CFrame, scale: number?): Model?
 	local template = ModelLoader.get(name)
 	if not template then
 		return nil
 	end
 	local entry = (Models :: any)[name]
 	local m = template:Clone()
-	m:PivotTo(origin * CFrame.new(entry.Center))
+	local s = scale or 1
+	if s ~= 1 then
+		m:ScaleTo(s)
+	end
+	m:PivotTo(origin * CFrame.new(entry.Center * s))
 	return m
 end
 

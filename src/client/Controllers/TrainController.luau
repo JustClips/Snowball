@@ -9,6 +9,8 @@ local TweenService = game:GetService("TweenService")
 local Workspace = game:GetService("Workspace")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
+local Anims = require(Shared.Config.Anims)
+local Economy = require(Shared.Config.Economy)
 local Format = require(Shared.Format)
 local Net = require(Shared.Net)
 local State = require(script.Parent.Parent.State)
@@ -55,6 +57,72 @@ end
 local function screenCenter(): Vector2
 	local cam = Workspace.CurrentCamera
 	return if cam then cam.ViewportSize / 2 else Vector2.new(400, 300)
+end
+
+-- The push animation (art/anim/push.py): standing still at your roller you walk up behind
+-- the ball and push it; moving stops the clip (training itself is radius based, server side).
+local pushTrack: AnimationTrack? = nil
+local pushing = false
+
+local function myRollerPad(): BasePart?
+	local index = player:GetAttribute("BaseIndex")
+	local mountain = Workspace:FindFirstChild("Mountain")
+	local summit = mountain and mountain:FindFirstChild("Summit")
+	local bases = summit and summit:FindFirstChild("Bases")
+	local base = bases and bases:FindFirstChild("Base" .. tostring(index))
+	return base and base:FindFirstChild("RollerPad") :: BasePart?
+end
+
+local function stopPush()
+	pushing = false
+	if pushTrack then
+		pushTrack:Stop(0.25)
+	end
+end
+
+local function updatePush()
+	local character = player.Character
+	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+	local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
+	if not (training() and humanoid and root and humanoid.Health > 0) then
+		if pushing then
+			stopPush()
+		end
+		return
+	end
+	local still = humanoid.MoveDirection.Magnitude < 0.1
+	if pushing and not still then
+		stopPush()
+	elseif not pushing and still and Anims.Player_Push then
+		local pad = myRollerPad()
+		if not pad then
+			return
+		end
+		-- Behind the ball (roller-local -Z), facing it (+Z), on the 0.6-stud deck.
+		local height = pad.Size.Y / 2 + 0.6 + humanoid.HipHeight + root.Size.Y / 2
+		local spot = pad.CFrame * CFrame.new(0, height, -2.3)
+		local pos = spot.Position
+		character:PivotTo(CFrame.lookAt(pos, pos - spot.LookVector))
+		local animator = humanoid:FindFirstChildOfClass("Animator")
+		if not animator then
+			return
+		end
+		if not pushTrack or pushTrack.Parent == nil then
+			local anim = Instance.new("Animation")
+			anim.AnimationId = Anims.Player_Push
+			pushTrack = animator:LoadAnimation(anim)
+			pushTrack.Priority = Enum.AnimationPriority.Action
+			pushTrack.Looped = true
+		end
+		local rate = Economy.TrainRepsPerSecond
+		if State.data and State.data.Gamepasses and State.data.Gamepasses.AutoTrain then
+			rate *= Economy.FastTrainMult
+		end
+		local track = pushTrack :: AnimationTrack
+		track:Play(0.25)
+		track:AdjustSpeed(rate / 0.8)
+		pushing = true
+	end
 end
 
 -- No reading while training (Dev): the spinning ball and the big "+N" pops say it all.
@@ -134,6 +202,11 @@ function TrainController:Start()
 	player:GetAttributeChangedSignal("Training"):Connect(updateReadout)
 	State.observe(updateReadout)
 	RunService.RenderStepped:Connect(spinRollers)
+	RunService.Heartbeat:Connect(updatePush)
+	player.CharacterAdded:Connect(function()
+		pushTrack = nil
+		pushing = false
+	end)
 end
 
 return TrainController

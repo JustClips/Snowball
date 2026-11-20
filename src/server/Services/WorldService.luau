@@ -295,11 +295,56 @@ local function dressBases(bases: Folder)
 	end
 end
 
+-- The launch deck model (art/blender/deck.py): origin = deck centre at deck-top height.
+local function dressDeck(summit: Folder)
+	local look = ModelLoader.clone("Deck", CFrame.new(World.Deck.Center))
+	if not look then
+		return
+	end
+	look.Name = "DeckLook"
+	for _, d in look:GetDescendants() do
+		if d:IsA("BasePart") then
+			d.CanCollide = false
+			d.CanQuery = false
+		end
+	end
+	look.Parent = summit
+	local deck = summit:FindFirstChild("Deck") :: BasePart?
+	if deck then
+		deck.Transparency = 1
+	end
+	for lane = 1, World.LaneCount do
+		local mark = summit:FindFirstChild("Lane" .. lane) :: BasePart?
+		if mark then
+			mark.Transparency = 1
+		end
+	end
+end
+
+-- Summit props (art/blender/props.py) from World.plazaProps().
+local function dressPlaza(summit: Folder)
+	local props = folder("Props", summit)
+	for _, spot in World.plazaProps() do
+		local m = ModelLoader.clone("Prop_" .. spot.Name, spot.CFrame, spot.Scale)
+		if m then
+			for _, d in m:GetDescendants() do
+				if d:IsA("BasePart") then
+					d.CanCollide = spot.Name ~= "Bench"
+				end
+			end
+			m.Parent = props
+		end
+	end
+end
+
 function WorldService:Init()
 	local root = folder("Mountain", Workspace)
 	buildSummit(root)
 	buildTrack(root)
-	task.spawn(dressBases, root:FindFirstChild("Summit"):FindFirstChild("Bases"))
+	local summit = root:FindFirstChild("Summit") :: Folder
+	task.spawn(dressBases, summit:FindFirstChild("Bases"))
+	task.spawn(dressDeck, summit)
+	task.spawn(dressPlaza, summit)
 	setLighting()
 	-- Spare the default template's baseplate/spawn if the place still has them.
 	for _, name in { "Baseplate", "SpawnLocation" } do

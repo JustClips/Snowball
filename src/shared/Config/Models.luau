@@ -4,6 +4,14 @@
 -- pivot the loaded model on its bounding box and place it at origin * Center.
 return {
 	Base = { Id = 100921593962689, Center = Vector3.new(0.0, 7.8745, -0.358) },
+	Deck = { Id = 123888722656689, Center = Vector3.new(-0.0, 17.2, 0.4263) },
+	Prop_Bench = { Id = 77511546535111, Center = Vector3.new(-0.0, 2.2009, 0.1075) },
+	Prop_Crystal = { Id = 114190881370558, Center = Vector3.new(-0.0, 2.587, 0.0) },
+	Prop_Flagpole = { Id = 134039050436788, Center = Vector3.new(2.0122, 7.575, 0.0) },
+	Prop_Lamp = { Id = 90706749056383, Center = Vector3.new(0.0935, 5.3, 0.0) },
+	Prop_Pine = { Id = 111545802978348, Center = Vector3.new(-0.0, 9.4852, 0.0) },
+	Prop_Rock = { Id = 135725576025877, Center = Vector3.new(0.2253, 1.2508, 0.4389) },
+	Prop_Snowman = { Id = 115997361064198, Center = Vector3.new(-0.0, 5.3, 0.0) },
 	Roller_Aurora = { Id = 76665160629802, Center = Vector3.new(-0.0, 8.5016, 0.468) },
 	Roller_CandyCane = { Id = 136507451286981, Center = Vector3.new(-0.0, 8.15, 0.5) },
 	Roller_Crystal = { Id = 91382095452687, Center = Vector3.new(-0.0, 8.15, 0.468) },
