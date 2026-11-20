@@ -201,9 +201,18 @@ local function prizeView(r: Rewards.Reward, size: number, z: number): GuiObject
 		vp.LightColor = WHITE
 		vp.LightDirection = Vector3.new(-1, -1, -1)
 		vp.ZIndex = z
-		local model = EggLook.make(r.Rarity or "Common")
-		model:PivotTo(CFrame.new(0, -EggLook.Height / 2, 0) * CFrame.Angles(0, math.rad(25), math.rad(-8)))
-		model.Parent = vp
+		-- The Blender egg for its rarity. The server shares them a moment after joining
+		-- (ReplicatedStorage.EggModels), so wait for it instead of drawing a plain ball.
+		task.spawn(function()
+			local rarity = r.Rarity or "Common"
+			local folder = ReplicatedStorage:WaitForChild("EggModels", 60)
+			if folder then
+				folder:WaitForChild(rarity, 30)
+			end
+			local model = EggLook.make(rarity)
+			model:PivotTo(CFrame.new(0, -EggLook.Height / 2, 0) * CFrame.Angles(0, math.rad(25), math.rad(-8)))
+			model.Parent = vp
+		end)
 		local cam = Instance.new("Camera")
 		cam.FieldOfView = 30
 		cam.CFrame = CFrame.lookAt(Vector3.new(0, 0.3, 9.6), Vector3.new(0, 0, 0))
@@ -424,11 +433,12 @@ local function renderWheel(r)
 	Ui.setText(wheelSpinButton, if spinning then "..." elseif r.FreeSpin then "FREE SPIN!" else "SPIN!")
 	wheelSpinButton.BackgroundColor3 = if count > 0 or spinning then Ui.Colors.Green else Ui.Colors.Red
 	local cashOf = r.CashOf and r.CashOf.Wheel or {}
+	local total = Rewards.wheelTotal()
 	for i, seg in Rewards.Wheel.Segments do
-		local slot = spinner:FindFirstChild("Seg" .. i)
-		local label = slot and slot:FindFirstChild("Amount") :: TextLabel?
+		local row = oddsPanel:FindFirstChild("Odds" .. i)
+		local label = row and row:FindFirstChild("Text") :: TextLabel?
 		if label then
-			label.Text = wedgeText(seg.Reward, cashOf[i])
+			label.Text = `{wedgeText(seg.Reward, cashOf[i])} {math.floor(seg.Weight / total * 1000 + 0.5) / 10}%`
 		end
 	end
 end
@@ -791,8 +801,11 @@ local function buildWheel(gui: ScreenGui)
 	dim.AutoButtonColor = false
 	dim.BorderSizePixel = 0
 	dim.BackgroundColor3 = Color3.new(0, 0, 0)
-	dim.BackgroundTransparency = 0.45
-	dim.Size = UDim2.fromScale(1, 1)
+	dim.BackgroundTransparency = 0.3
+	-- Bigger than the screen: the ScreenGui keeps clear of the top bar / notch, the dark
+	-- backdrop should not (Dev 2026-11-20: it only covered part of the screen).
+	dim.Size = UDim2.new(1, 800, 1, 800)
+	dim.Position = UDim2.fromOffset(-400, -400)
 	dim.Visible = false
 	dim.ZIndex = 30
 	dim.Activated:Connect(function()
@@ -851,28 +864,22 @@ local function buildWheel(gui: ScreenGui)
 			ZIndex = 33,
 		})
 		Instance.new("UIScale").Parent = slot
-		local view = prizeView(seg.Reward, 64, 34)
-		view.Position = UDim2.new(0.5, 0, 0, 34)
+		local view = prizeView(seg.Reward, 80, 34)
+		view.Position = UDim2.new(0.5, 0, 0, 42)
 		view.Parent = slot
-		local amount = Ui.label({
-			Name = "Amount",
-			Size = UDim2.new(1, 10, 0, 22),
-			AnchorPoint = Vector2.new(0.5, 0),
-			Position = UDim2.new(0.5, 0, 0, 66),
-			Text = wedgeText(seg.Reward, nil),
-			ZIndex = 35,
-		})
-		amount.Parent = slot
-		Ui.label({
+		local chance = Ui.label({
 			Name = "Chance",
-			Size = UDim2.new(1, 0, 0, 18),
+			Size = UDim2.fromOffset(62, 24),
 			AnchorPoint = Vector2.new(0.5, 0),
-			Position = UDim2.new(0.5, 0, 0, 88),
+			Position = UDim2.new(0.5, 0, 0, 84),
+			BackgroundTransparency = 0.25,
+			BackgroundColor3 = Ui.Colors.Ink,
 			Text = `{math.floor(seg.Weight / total * 1000 + 0.5) / 10}%`,
 			TextColor3 = Color3.fromRGB(255, 240, 170),
 			ZIndex = 35,
-		}).Parent =
-			slot
+		})
+		Ui.corner(chance, 12)
+		chance.Parent = slot
 		slot.Parent = spinner
 	end
 	spinner.Parent = wheelArea
@@ -933,6 +940,7 @@ local function buildWheel(gui: ScreenGui)
 	list.FillDirection = Enum.FillDirection.Horizontal
 	list.HorizontalAlignment = Enum.HorizontalAlignment.Center
 	list.Padding = UDim.new(0, 8)
+	list.SortOrder = Enum.SortOrder.LayoutOrder
 	list.Parent = buy
 	buy.Parent = side
 	for i, key in { "WheelSpin1", "WheelSpin5", "WheelSpin10" } do
@@ -991,13 +999,11 @@ local function buildWheel(gui: ScreenGui)
 	pad.Parent = oddsPanel
 	for i, seg in Rewards.Wheel.Segments do
 		local row = Ui.frame({ Name = "Odds" .. i, LayoutOrder = i, BackgroundTransparency = 1, ZIndex = 33 })
-		Ui.icon(rewardImage(seg.Reward), {
-			Size = UDim2.fromOffset(28, 28),
-			ImageColor3 = if seg.Reward.Kind == "Egg" then WHITE:Lerp(rewardColor(seg.Reward), 0.5) else WHITE,
-			ZIndex = 34,
-		}).Parent =
-			row
+		local icon = prizeView(seg.Reward, 30, 34)
+		icon.Position = UDim2.fromOffset(15, 15)
+		icon.Parent = row
 		local odds = Ui.label({
+			Name = "Text",
 			Size = UDim2.new(1, -32, 1, -6),
 			Position = UDim2.fromOffset(32, 3),
 			Text = `{wedgeText(seg.Reward, nil)} {math.floor(seg.Weight / total * 1000 + 0.5) / 10}%`,
