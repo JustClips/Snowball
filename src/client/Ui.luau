@@ -125,15 +125,33 @@ function Ui.setText(button: Instance, text: string)
 	end
 end
 
--- Sound effects. Ids live here until Config/Sounds is filled from the Creator Store.
-local SFX: { [string]: { Id: string, Volume: number } } = {
-	Click = { Id = "rbxasset://sounds/electronicpingshort.wav", Volume = 0.25 },
-	Pop = { Id = "rbxasset://sounds/electronicpingshort.wav", Volume = 0.5 },
-	Tap = { Id = "rbxasset://sounds/clickfast.wav", Volume = 0.3 },
-	Smash = { Id = "rbxasset://sounds/collide.wav", Volume = 0.6 },
-	Coin = { Id = "rbxasset://sounds/electronicpingshort.wav", Volume = 0.2 },
-}
+-- Sound effects (Config/Sounds). Ui.sound plays a one-shot; Ui.loop starts/stops a loop.
+local SFX = require(ReplicatedStorage:WaitForChild("Shared").Config.Sounds)
 local cache: { [string]: Sound } = {}
+local loops: { [string]: Sound } = {}
+function Ui.loop(name: string, on: boolean, speed: number?)
+	local def = SFX[name]
+	if not def then
+		return
+	end
+	local snd = loops[name]
+	if not snd then
+		snd = Instance.new("Sound")
+		snd.SoundId = def.Id
+		snd.Volume = def.Volume
+		snd.Looped = true
+		snd.Parent = SoundService
+		loops[name] = snd
+	end
+	local sound = snd :: Sound
+	sound.PlaybackSpeed = speed or 1
+	if on and not sound.IsPlaying then
+		sound:Play()
+	elseif not on and sound.IsPlaying then
+		sound:Stop()
+	end
+end
+
 function Ui.sound(name: string, speed: number?)
 	local def = SFX[name]
 	if not def then

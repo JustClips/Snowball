@@ -50,7 +50,8 @@ local function showPet(info)
 	local base = scale.Scale
 	scale.Scale = base * 0.3
 	TweenService:Create(scale, TweenInfo.new(0.4, Enum.EasingStyle.Back), { Scale = base }):Play()
-	Ui.sound("Pop", 0.8)
+	Ui.sound("EggCrack")
+	Ui.sound("Reveal")
 end
 
 function HatchController:Init()

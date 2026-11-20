@@ -51,7 +51,7 @@ local function push()
 	end
 	tapped = true
 	Net.event("PackTap"):FireServer(Workspace:GetServerTimeNow())
-	Ui.sound("Smash")
+	Ui.sound("Tap")
 end
 
 function PackController:IsPacking(): boolean
@@ -161,6 +161,7 @@ function PackController:Start()
 			meter.Visible = false
 			pushTile.Parent.Visible = false
 			quality.Text = `{string.upper(info.Quality)}!`
+			Ui.sound(if info.Quality == "Perfect" then "Perfect" elseif info.Quality == "Good" then "Good" else "Weak")
 			quality.TextColor3 = if info.Quality == "Perfect"
 				then Ui.Colors.Green
 				elseif info.Quality == "Good" then Ui.Colors.Yellow

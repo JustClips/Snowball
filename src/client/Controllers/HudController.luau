@@ -391,7 +391,11 @@ end
 
 function HudController:Start()
 	State.observe(render)
+	Ui.loop("Wind", true)
 	Net.event("Notify").OnClientEvent:Connect(function(text, kind)
+		if kind == "Good" then
+			Ui.sound("Upgrade")
+		end
 		Ui.toast(text, kind)
 	end)
 	Net.event("Announce").OnClientEvent:Connect(function(text)

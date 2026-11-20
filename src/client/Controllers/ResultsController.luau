@@ -65,7 +65,8 @@ function ResultsController:Show(result)
 			end
 			task.wait()
 		end
-		Ui.sound("Pop")
+		Ui.sound("Winner")
+		Ui.sound("Cash")
 		bigScale.Scale = 1.3
 		TweenService:Create(bigScale, TweenInfo.new(0.3, Enum.EasingStyle.Back), { Scale = 1 }):Play()
 	end)

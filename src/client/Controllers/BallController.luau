@@ -77,6 +77,8 @@ local function onStarted(userId: number, info)
 		C.SteerController:SetActive(true)
 		C.TrackFxController:BeginRun(info)
 		C.HudController:ShowZoneBar(true)
+		Ui.sound("Launch")
+		Ui.loop("Roll", true)
 		local cam = Workspace.CurrentCamera
 		if cam then
 			cam.CameraType = Enum.CameraType.Scriptable
@@ -159,7 +161,9 @@ local function onEnded(userId: number, result)
 	debris(pos, d.ball.r, if d.golden then GOLD else SNOW, if d.isLocal then 18 else 8)
 	d.part:Destroy()
 	if d.isLocal then
-		Ui.sound("Smash", 0.7)
+		Ui.loop("Roll", false)
+		Ui.sound("Crack")
+		Ui.sound("Shatter")
 		C.SteerController:SetActive(false)
 		C.TrackFxController:EndRun()
 		C.ResultsController:Show(result)

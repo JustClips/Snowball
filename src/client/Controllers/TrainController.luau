@@ -192,6 +192,7 @@ end
 
 function TrainController:Start()
 	Net.event("PowerGained").OnClientEvent:Connect(function(amount: number, _reps: number)
+		Ui.sound("Rep", 0.9 + math.random() * 0.2)
 		local popMult = State.data and State.data.PopMult or 1
 		floater(
 			"+" .. Format.big(amount),

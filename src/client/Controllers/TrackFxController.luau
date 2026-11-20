@@ -178,6 +178,7 @@ local function onEvent(kind: string, payload: any)
 			Roll.smash(ball)
 		end
 		Ui.sound("Smash")
+		Ui.sound("SnowHit")
 		C.ResultsController:Flash("SMASH!", Ui.Colors.Green)
 	elseif kind == "Bonk" then
 		if ball then
@@ -190,7 +191,7 @@ local function onEvent(kind: string, payload: any)
 			end
 			Roll.bonk(ball, if o then ball.x - o.x else 1)
 		end
-		Ui.sound("Smash", 0.6)
+		Ui.sound("SnowHit", 0.8)
 		C.ResultsController:Flash("BONK!", Ui.Colors.Red)
 		local cam = Workspace.CurrentCamera
 		if cam then
@@ -222,6 +223,7 @@ local function onEvent(kind: string, payload: any)
 			end
 		end
 		if kind == "Egg" then
+			Ui.sound("Egg")
 			local def = Eggs.ByName[payload.Rarity]
 			C.ResultsController:Flash(`{string.upper(payload.Rarity)} EGG!`, if def then def.Color else Ui.Colors.Snow)
 		end
