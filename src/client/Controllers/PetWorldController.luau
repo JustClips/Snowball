@@ -20,6 +20,7 @@ local Net = require(Shared.Net)
 local PetLook = require(Shared.PetLook)
 local PetStats = require(Shared.PetStats)
 local Pets = require(Shared.Config.Pets)
+local Products = require(Shared.Config.Products)
 local World = require(Shared.Config.World)
 local State = require(script.Parent.Parent.State)
 local Ui = require(script.Parent.Parent.Ui)
@@ -67,6 +68,8 @@ local parks: { [number]: Park } = {}
 local root: Folder
 local rng = Random.new()
 local eggLabels: { [BasePart]: { text: TextLabel, rarity: TextLabel } } = {}
+-- Pets kept out of the park while their hatch show plays (HatchController:HidePet).
+local hidden: { [string]: boolean } = {}
 
 local function lerpAngle(a: number, b: number, t: number): number
 	local diff = (b - a + math.pi) % (2 * math.pi) - math.pi
@@ -320,7 +323,7 @@ local function sync(park: Park, base: Instance, initial: boolean)
 	local wanted: { [string]: Folder } = {}
 	if folder then
 		for _, entry in folder:GetChildren() do
-			if entry:IsA("Folder") and entry:GetAttribute("PetId") then
+			if entry:IsA("Folder") and entry:GetAttribute("PetId") and not hidden[entry.Name] then
 				wanted[entryKey(entry)] = entry
 			end
 		end
@@ -495,12 +498,49 @@ local function eggsTick()
 					end)
 				end
 				local left = (egg:GetAttribute("EndsAt") or 0) - now
+				-- Owner-only prompt: "Hatch Now" with the Skip Hatch price, then "Open".
+				local prompt = egg:FindFirstChild("EggPrompt") :: ProximityPrompt?
+				if prompt then
+					prompt.Enabled = prompt:GetAttribute("OwnerUserId") == player.UserId
+					local product = Products.ProductByKey["SkipHatch" .. tostring(egg:GetAttribute("Rarity"))]
+					local action = if left <= 0
+						then "Open"
+						elseif product then `Hatch Now {Ui.ROBUX}{product.Price}`
+						else "Growing..."
+					if prompt.ActionText ~= action then
+						prompt.ActionText = action
+					end
+				end
 				local l = labels :: any
 				l.text.Text = if left > 0 then Format.time(left) else "READY!"
 				l.text.TextColor3 = if left > 0 then Ui.Colors.Snow else Ui.Colors.Green
 			end
 		end
 	end
+end
+
+local function resync()
+	local bases = Workspace:FindFirstChild("Mountain")
+	bases = bases and bases:FindFirstChild("Summit")
+	bases = bases and bases:FindFirstChild("Bases")
+	for index, park in parks do
+		local base = bases and bases:FindFirstChild("Base" .. index)
+		if base then
+			sync(park, base, false)
+		end
+	end
+end
+
+-- Keeps a pet out of its park (true) while its hatch show plays; false lets it pop in.
+function PetWorldController:HidePet(uid: string, hide: boolean)
+	hidden[uid] = if hide then true else nil
+	resync()
+end
+
+-- The pet's bone clip (Idle / Walk / Happy) on any model built by PetLook, or nil.
+function PetWorldController.loadTrack(model: Model, petId: string, state: string): AnimationTrack?
+	local def = Pets.ById[petId]
+	return if def then loadTrack(model, def.Model, state) else nil
 end
 
 -- A puff where something was just put down.

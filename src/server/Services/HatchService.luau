@@ -3,8 +3,10 @@
 -- bag (CarryService) and put it down anywhere in your pet park (Shared/EggSpots, up to
 -- World.HatchSpots growing at once). It waits its rarity's time (Fast Hatch halves it; a new player's first egg takes
 -- 3 s), then open into a pet with a roll for mutation and Huge. Ready eggs open with a
--- ProximityPrompt on the egg or the Pets window. Egg looks are graybox until the Blender
--- frozen eggs (Assets Egg_<Rarity>) are uploaded.
+-- ProximityPrompt on the egg ("Open"); a growing egg's prompt is "Hatch Now" and asks for
+-- the Skip Hatch product for that very egg (Sweep the World's flow, Dev 2026-11-20). The
+-- client plays the hatch show (HatchController) from HatchCompleted; everyone near sees a
+-- short version from HatchShown.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
@@ -13,6 +15,7 @@ local Net = require(Shared.Net)
 local Pets = require(Shared.Config.Pets)
 local EggSpots = require(Shared.EggSpots)
 local World = require(Shared.Config.World)
+local PetStats = require(Shared.PetStats)
 local ModelLoader = require(script.Parent.Parent.Lib.ModelLoader)
 
 local HatchService = {}
@@ -79,24 +82,55 @@ function HatchService:RefreshEggs(player: Player)
 		egg.Anchored = true
 		egg.CanCollide = false
 		egg:SetAttribute("EndsAt", h.EndsAt)
+		egg:SetAttribute("StartsAt", h.StartsAt or (h.EndsAt - Eggs.hatchSeconds(h.Rarity)))
 		egg:SetAttribute("Rarity", h.Rarity)
 		egg:SetAttribute("Owner", player.UserId)
+		egg:SetAttribute("Uid", h.Uid)
+		-- Only the owner sees it (PetWorldController hides it for others and keeps the
+		-- action text up to date: "Hatch Now" with the price, then "Open").
 		local prompt = Instance.new("ProximityPrompt")
-		prompt.ActionText = "Open"
+		prompt.Name = "EggPrompt"
+		prompt.ActionText = if h.EndsAt <= os.time() then "Open" else "Hatch Now"
 		prompt.ObjectText = h.Rarity .. " Egg"
 		prompt.HoldDuration = 0
-		prompt.MaxActivationDistance = 14
+		prompt.MaxActivationDistance = 12
 		prompt.RequiresLineOfSight = false
+		prompt:SetAttribute("OwnerUserId", player.UserId)
 		prompt.Parent = egg
 		local spot = h.Spot
 		prompt.Triggered:Connect(function(who)
-			if who == player then
+			if who ~= player then
+				return
+			end
+			local current = HatchService:Hatching(player, spot)
+			if not current then
+				return
+			end
+			if current.EndsAt <= os.time() then
 				HatchService:Open(player, spot)
+			else
+				-- Not ready: offer Skip Hatch for this egg right away.
+				skipTarget[player] = current.Uid
+				local ok, message = S.ShopService:Prompt(player, "SkipHatch" .. current.Rarity)
+				if not ok and message then
+					Net.fire("Notify", player, message, "Bad")
+				end
 			end
 		end)
 		egg.Parent = folder
 	end
 	folder.Parent = base
+end
+
+-- The hatching entry on a spot, if any.
+function HatchService:Hatching(player: Player, spot: number): any
+	local data = S.DataService:GetData(player)
+	for _, h in (data and data.Hatching or {}) do
+		if h.Spot == spot then
+			return h
+		end
+	end
+	return nil
 end
 
 -- The first egg in the bag of a rarity (what you carry when you hold that egg stack).
@@ -114,6 +148,9 @@ function HatchService:HasRoom(player: Player): boolean
 	local data = S.DataService:GetData(player)
 	return data ~= nil and freeSpot(data) ~= nil
 end
+
+-- The egg a player last asked to Hatch Now, so the Skip Hatch purchase opens that egg.
+local skipTarget: { [Player]: string } = {}
 
 local PLACE_REACH = 70 -- studs from the park centre the player may stand
 
@@ -162,14 +199,13 @@ function HatchService:Place(player: Player, uid: any, pos: Vector3?): (boolean, 
 		Spot = spot,
 		X = x,
 		Z = z,
+		StartsAt = os.time(),
 		EndsAt = os.time() + hatchSeconds(data, egg.Rarity),
 	})
 	S.AnalyticsService:Funnel(player, "FirstPlace")
 	S.InventoryService:Bump(player)
 	HatchService:RefreshEggs(player)
-	if S.OfferService then
-		S.OfferService:OnEggPlaced(player, egg.Rarity)
-	end
+	-- No popup any more (Dev 2026-11-20: it looked bad): the egg's own prompt offers Hatch Now.
 	return true, nil
 end
 
@@ -235,11 +271,29 @@ function HatchService:Open(player: Player, spot: any, force: boolean?): (boolean
 				1,
 				{ Rarity = h.Rarity, Pet = petId, Mutation = mutation or "None" }
 			)
-			Net.fire(
-				"HatchCompleted",
-				player,
-				{ Uid = uid, PetId = petId, Rarity = h.Rarity, Mutation = mutation, Huge = huge, Zone = h.Zone }
-			)
+			local show = {
+				Uid = uid,
+				PetId = petId,
+				Rarity = h.Rarity,
+				EggRarity = h.Rarity,
+				Mutation = mutation,
+				Huge = huge or nil,
+				Zone = h.Zone,
+				X = h.X,
+				Z = h.Z,
+				Weight = pet and pet.Weight,
+				Income = if pet then PetStats.income(pet) * S.BoostService:GetCashMult(player) else 0,
+				IsNew = isNew,
+				Placed = pet ~= nil and pet.Placed == true,
+			}
+			Net.fire("HatchCompleted", player, show)
+			local others = table.clone(show)
+			others.UserId = player.UserId
+			for _, other in game:GetService("Players"):GetPlayers() do
+				if other ~= player then
+					Net.fire("HatchShown", other, others)
+				end
+			end
 			if order >= 6 then
 				Net.fireAll(
 					"Announce",
@@ -289,9 +343,16 @@ end
 function HatchService:SkipOne(player: Player, rarity: string)
 	local data = S.DataService:GetData(player)
 	local best = nil
+	local target = skipTarget[player]
+	skipTarget[player] = nil
 	for _, h in (data and data.Hatching or {}) do
-		if h.Rarity == rarity and h.EndsAt > os.time() and (not best or h.EndsAt > best.EndsAt) then
-			best = h
+		if h.Rarity == rarity and h.EndsAt > os.time() then
+			if h.Uid == target then
+				best = h
+				break
+			elseif not best or h.EndsAt > best.EndsAt then
+				best = h
+			end
 		end
 	end
 	if best then
@@ -315,6 +376,7 @@ function HatchService:Init(services)
 		HatchService:RefreshEggs(player)
 	end)
 	S.DataService.ProfileReleasing:Connect(function(player)
+		skipTarget[player] = nil
 		local index = player:GetAttribute("BaseIndex")
 		local base = type(index) == "number" and S.WorldService:GetBase(index)
 		local eggs = base and base:FindFirstChild("Eggs")

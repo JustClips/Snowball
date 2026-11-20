@@ -348,5 +348,284 @@
    5.2267,
    0.03
   ]
+ },
+ "VfxHatchRing": {
+  "bounds": {
+   "min": [
+    -1.0,
+    0.0,
+    -1.0
+   ],
+   "max": [
+    1.0,
+    0.09,
+    1.0
+   ]
+  },
+  "kind": "vfx",
+  "name": "VfxHatchRing",
+  "center": [
+   0.0,
+   0.045,
+   0.0
+  ],
+  "parts": {
+   "VfxHatchRing": {
+    "collide": false,
+    "glow": null,
+    "joint": null,
+    "material": null,
+    "parent": null
+   }
+  },
+  "tris": 768
+ },
+ "VfxHatchSwirl": {
+  "bounds": {
+   "min": [
+    -1.035,
+    -0.02,
+    -0.866
+   ],
+   "max": [
+    0.923,
+    2.02,
+    0.979
+   ]
+  },
+  "kind": "vfx",
+  "name": "VfxHatchSwirl",
+  "center": [
+   -0.056,
+   1.0,
+   0.0565
+  ],
+  "parts": {
+   "VfxHatchSwirl": {
+    "collide": false,
+    "glow": null,
+    "joint": null,
+    "material": null,
+    "parent": null
+   }
+  },
+  "tris": 772
+ },
+ "VfxHatchPillar": {
+  "bounds": {
+   "min": [
+    -1.0,
+    0.0,
+    -1.0
+   ],
+   "max": [
+    1.0,
+    1.0,
+    1.0
+   ]
+  },
+  "kind": "vfx",
+  "name": "VfxHatchPillar",
+  "center": [
+   0.0,
+   0.5,
+   0.0
+  ],
+  "parts": {
+   "VfxHatchPillar": {
+    "collide": false,
+    "glow": null,
+    "joint": null,
+    "material": null,
+    "parent": null
+   }
+  },
+  "tris": 960
+ },
+ "VfxHatchSpikes": {
+  "bounds": {
+   "min": [
+    -0.828,
+    -0.496,
+    -0.836
+   ],
+   "max": [
+    0.91,
+    0.773,
+    0.816
+   ]
+  },
+  "kind": "vfx",
+  "name": "VfxHatchSpikes",
+  "center": [
+   0.041,
+   0.1385,
+   -0.01
+  ],
+  "parts": {
+   "VfxHatchSpikes": {
+    "collide": false,
+    "glow": null,
+    "joint": null,
+    "material": null,
+    "parent": null
+   }
+  },
+  "tris": 96
+ },
+ "VfxHatchCrown": {
+  "bounds": {
+   "min": [
+    -1.181,
+    -0.024,
+    -1.112
+   ],
+   "max": [
+    1.192,
+    0.977,
+    1.108
+   ]
+  },
+  "kind": "vfx",
+  "name": "VfxHatchCrown",
+  "center": [
+   0.0055,
+   0.4765,
+   -0.002
+  ],
+  "parts": {
+   "VfxHatchCrown": {
+    "collide": false,
+    "glow": null,
+    "joint": null,
+    "material": null,
+    "parent": null
+   }
+  },
+  "tris": 648
+ },
+ "VfxHatchStar": {
+  "bounds": {
+   "min": [
+    -1.0,
+    -1.0,
+    -1.0
+   ],
+   "max": [
+    1.0,
+    1.0,
+    1.0
+   ]
+  },
+  "kind": "vfx",
+  "name": "VfxHatchStar",
+  "center": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "parts": {
+   "VfxHatchStar": {
+    "collide": false,
+    "glow": null,
+    "joint": null,
+    "material": null,
+    "parent": null
+   }
+  },
+  "tris": 32
+ },
+ "VfxIceShard": {
+  "bounds": {
+   "min": [
+    -0.182,
+    -0.45,
+    -0.226
+   ],
+   "max": [
+    0.207,
+    0.55,
+    0.215
+   ]
+  },
+  "kind": "vfx",
+  "name": "VfxIceShard",
+  "center": [
+   0.0125,
+   0.05,
+   -0.0055
+  ],
+  "parts": {
+   "VfxIceShard": {
+    "collide": false,
+    "glow": null,
+    "joint": null,
+    "material": null,
+    "parent": null
+   }
+  },
+  "tris": 24
+ },
+ "VfxIceChip": {
+  "bounds": {
+   "min": [
+    -0.5,
+    -0.07,
+    -0.385
+   ],
+   "max": [
+    0.47,
+    0.11,
+    0.394
+   ]
+  },
+  "kind": "vfx",
+  "name": "VfxIceChip",
+  "center": [
+   -0.015,
+   0.02,
+   0.0045
+  ],
+  "parts": {
+   "VfxIceChip": {
+    "collide": false,
+    "glow": null,
+    "joint": null,
+    "material": null,
+    "parent": null
+   }
+  },
+  "tris": 34
+ },
+ "VfxShellChunk": {
+  "bounds": {
+   "min": [
+    -0.696,
+    -0.157,
+    -0.68
+   ],
+   "max": [
+    0.628,
+    0.11,
+    0.68
+   ]
+  },
+  "kind": "vfx",
+  "name": "VfxShellChunk",
+  "center": [
+   -0.034,
+   -0.0235,
+   0.0
+  ],
+  "parts": {
+   "VfxShellChunk": {
+    "collide": false,
+    "glow": null,
+    "joint": null,
+    "material": null,
+    "parent": null
+   }
+  },
+  "tris": 168
  }
 }

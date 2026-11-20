@@ -29,6 +29,7 @@ local ORDER = {
 	"PetWorldController",
 	"HoldPoseController",
 	"HoverController",
+	"PromptController",
 	"HatchController",
 	"TutorialController",
 	"RescueController",

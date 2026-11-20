@@ -31,7 +31,8 @@ local EVENTS: { [string]: number } = {
 	CashShort = 0, -- server -> owner: { Need, Product, Price, Amount } buy the missing cash
 	OpenShop = 0, -- server -> owner: open the Shop at a section (3rd "not enough cash")
 	Purchased = 0, -- server -> one: (product or pass key, { From?, To? }) celebration
-	HatchCompleted = 0, -- server -> owner: { PetId, Mutation?, Huge?, Rarity } the hatch show
+	HatchCompleted = 0, -- server -> owner: { Uid, PetId, Rarity, EggRarity, X, Z, Weight, Income, IsNew, Placed, ... } the hatch show
+	HatchShown = 0, -- server -> everyone: { UserId, Uid, PetId, Rarity, X, Z, ... } a short show at their base
 	WelcomeBack = 0, -- server -> owner: offline income payload
 	-- Egg rescue (EggRescueService)
 	RescueEvent = 0, -- server -> owner: (kind, data) Start / Grab / Saved / Knocked / Wake / Ended

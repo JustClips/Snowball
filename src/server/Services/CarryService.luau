@@ -146,6 +146,18 @@ function CarryService:PlaceHeld(player: Player, pos: Vector3?): (boolean, string
 	return ok, why
 end
 
+local VFX = {
+	"VfxHatchRing",
+	"VfxHatchSwirl",
+	"VfxHatchPillar",
+	"VfxHatchSpikes",
+	"VfxHatchCrown",
+	"VfxHatchStar",
+	"VfxIceShard",
+	"VfxIceChip",
+	"VfxShellChunk",
+}
+
 local function shareEggs()
 	local folder = Instance.new("Folder")
 	folder.Name = "EggModels"
@@ -160,6 +172,21 @@ local function shareEggs()
 		end
 	end
 	folder.Parent = ReplicatedStorage
+	-- The hatch show's meshes (art/blender/hatch_vfx.py) for the clients' HatchFx.
+	local vfx = Instance.new("Folder")
+	vfx.Name = "HatchVfx"
+	for _, name in VFX do
+		local part = ModelLoader.part(name, CFrame.new())
+		if part then
+			part.Name = name
+			part.CanCollide = false
+			part.CanTouch = false
+			part.CanQuery = false
+			part.CastShadow = false
+			part.Parent = vfx
+		end
+	end
+	vfx.Parent = ReplicatedStorage
 end
 
 function CarryService:Init(services)
