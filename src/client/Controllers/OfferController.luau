@@ -1,26 +1,52 @@
 --!strict
--- The offer popup (GAME_PLAN §7 item 19): one template for every contextual offer the
--- server sends (OfferService). BUY opens the product prompt; a nudge offer (Open) opens
--- a window instead. Closes itself after 12 s.
+-- The offer card (GAME_PLAN §7 item 19): one template for every contextual offer the
+-- server sends (OfferService decides WHEN: after a rare hatch, after rolls without a new
+-- best, when the next roller takes long, a while into the session...). Redone 2026-11-20
+-- (Dev: "start improving monetization like where packs and stuff start to appear on
+-- screen"): a block card slides down at the top centre like the top games' pop-up deals,
+-- with the product's picture on spinning rays, a yellow title, one short line, a big green
+-- Robux button and a shrinking timer bar. A nudge offer (Open) opens a window instead.
+-- Leaves by itself after 12 s; never covers the ROLL button or the hotbar.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Net = require(Shared.Net)
+local Buy = require(script.Parent.Parent.Buy)
 local Ui = require(script.Parent.Parent.Ui)
 
 local OfferController = {}
 
+local SECONDS = 12
+local SHOWN = UDim2.new(0.5, 0, 0, 8) -- just under the top bar, well above ROLL
+local HIDDEN = UDim2.new(0.5, 0, 0, -220)
+local CARD = Color3.fromRGB(150, 70, 230)
+
 local C: any
-local popup: Frame
+local card: Frame
+local picture: ImageLabel
+local rays: ImageLabel
 local title: TextLabel
 local text: TextLabel
 local buy: TextButton
+local bar: Frame
 local current: any = nil
-local shownAt = 0
+local serial = 0
 
 local function hide()
-	popup.Visible = false
+	serial += 1
+	local mine = serial
 	current = nil
+	local t = TweenService:Create(card, TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+		Position = HIDDEN,
+	})
+	t:Play()
+	t.Completed:Connect(function()
+		if serial == mine then
+			card.Visible = false
+		end
+	end)
 end
 
 local function onBuy()
@@ -37,59 +63,124 @@ local function onBuy()
 		end
 		return
 	end
-	local ok, why = Net.func("PromptPurchase"):InvokeServer(offer.Product)
-	if not ok and why then
-		Ui.toast(why, "Bad")
-	end
+	task.spawn(Buy.prompt, offer.Product, nil, nil)
 end
 
 function OfferController:Init(controllers)
 	C = controllers
 	local gui = Ui.screen("Offer", 25)
-	popup = Ui.frame({
-		Name = "Popup",
-		Size = UDim2.fromOffset(420, 220),
-		AnchorPoint = Vector2.new(0.5, 1),
-		Position = UDim2.new(0.5, 0, 1, -24),
-		BackgroundColor3 = Ui.Colors.Panel,
+	card = Ui.frame({
+		Name = "Card",
+		Size = UDim2.fromOffset(500, 172),
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = HIDDEN,
 		Visible = false,
 	})
-	Ui.stroke(popup, 4, Ui.Colors.Gold)
-	Ui.autoScale(popup)
+	Ui.block(card, CARD, 4, 6)
+	Ui.autoScale(card)
+	rays = Ui.icon("Rays", {
+		Size = UDim2.fromOffset(190, 190),
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.new(0, 78, 0.5, -2),
+		ImageTransparency = 0.45,
+		ZIndex = 2,
+	})
+	rays.Parent = card
+	picture = Ui.icon("Gift", {
+		Name = "Picture",
+		Size = UDim2.fromOffset(118, 118),
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.new(0, 78, 0.5, -2),
+		ZIndex = 3,
+	})
+	picture.Parent = card
 	title = Ui.label({
 		Name = "Title",
-		Size = UDim2.new(1, -70, 0, 44),
-		Position = UDim2.fromOffset(12, 8),
+		Size = UDim2.new(1, -220, 0, 40),
+		Position = UDim2.fromOffset(150, 12),
 		Text = "",
-		TextColor3 = Ui.Colors.Gold,
+		TextColor3 = Color3.fromRGB(255, 227, 77),
 		TextXAlignment = Enum.TextXAlignment.Left,
+		ZIndex = 3,
 	})
-	title.Parent = popup
+	title.Parent = card
 	text = Ui.label({
 		Name = "Text",
-		Size = UDim2.new(1, -24, 0, 70),
-		Position = UDim2.fromOffset(12, 56),
+		Size = UDim2.new(1, -170, 0, 26),
+		Position = UDim2.fromOffset(150, 54),
 		Text = "",
-		TextWrapped = true,
 		TextXAlignment = Enum.TextXAlignment.Left,
+		ZIndex = 3,
 	})
-	text.Parent = popup
-	buy = Ui.button({
-		Name = "Buy",
-		Size = UDim2.fromOffset(240, 64),
+	text.Parent = card
+	buy = Instance.new("TextButton")
+	buy.Name = "Buy"
+	buy.Text = ""
+	buy.AutoButtonColor = true
+	buy.BorderSizePixel = 0
+	buy.Size = UDim2.fromOffset(220, 56)
+	buy.AnchorPoint = Vector2.new(0, 1)
+	buy.Position = UDim2.new(0, 150, 1, -24)
+	buy.ZIndex = 3
+	Ui.block(buy, Color3.fromRGB(76, 209, 55), 3, 5)
+	local label = Ui.label({
+		Name = "Label",
+		Size = UDim2.new(1, -12, 1, -10),
+		Position = UDim2.fromOffset(6, 3),
+		Text = "",
+		ZIndex = 4,
+	})
+	label.Parent = buy
+	buy.Activated:Connect(function()
+		Ui.sound("Click")
+		onBuy()
+	end)
+	buy.Parent = card
+	local close = Instance.new("TextButton")
+	close.Name = "Close"
+	close.Text = ""
+	close.BorderSizePixel = 0
+	close.Size = UDim2.fromOffset(42, 42)
+	close.AnchorPoint = Vector2.new(1, 0)
+	close.Position = UDim2.new(1, -10, 0, 10)
+	close.ZIndex = 4
+	Ui.block(close, Ui.Colors.Red or Color3.fromRGB(235, 60, 60), 3, 4)
+	Ui.label({
+		Name = "Label",
+		Size = UDim2.new(1, -10, 1, -10),
+		Position = UDim2.fromOffset(5, 3),
+		Text = "X",
+		ZIndex = 5,
+	}).Parent =
+		close
+	close.Activated:Connect(function()
+		Ui.sound("Click")
+		hide()
+	end)
+	close.Parent = card
+	-- The time left, shrinking along the bottom.
+	local track = Ui.frame({
+		Name = "Timer",
+		Size = UDim2.new(1, -24, 0, 8),
 		AnchorPoint = Vector2.new(0.5, 1),
-		Position = UDim2.new(0.5, 0, 1, -12),
-		BackgroundColor3 = Ui.Colors.Robux,
-	}, "BUY", onBuy)
-	buy.Parent = popup
-	Ui.button({
-		Name = "Close",
-		Size = UDim2.fromOffset(44, 44),
-		Position = UDim2.new(1, -52, 0, 8),
-		BackgroundColor3 = Ui.Colors.Red,
-	}, "X", hide).Parent =
-		popup
-	popup.Parent = Ui.root(gui)
+		Position = UDim2.new(0.5, 0, 1, -9),
+		BackgroundColor3 = Color3.fromRGB(40, 20, 70),
+		ZIndex = 3,
+	})
+	bar = Ui.frame({
+		Name = "Fill",
+		Size = UDim2.fromScale(1, 1),
+		BackgroundColor3 = Color3.fromRGB(255, 227, 77),
+		ZIndex = 4,
+	})
+	bar.Parent = track
+	track.Parent = card
+	card.Parent = Ui.root(gui)
+	RunService.RenderStepped:Connect(function(dt)
+		if card.Visible then
+			rays.Rotation = (rays.Rotation + dt * 35) % 360
+		end
+	end)
 end
 
 function OfferController:Start()
@@ -98,22 +189,32 @@ function OfferController:Start()
 			C.StarterPackController:Open() -- its own big window
 			return
 		end
+		serial += 1
+		local mine = serial
 		current = offer
 		title.Text = offer.Title
 		text.Text = offer.Text
+		picture.Image = (offer.Pic and Ui.Images[offer.Pic]) or Ui.Images.Gift or ""
 		if offer.Open then
 			Ui.setText(buy, "OPEN")
-			buy.BackgroundColor3 = Ui.Colors.Green
+			Ui.tint(buy, Color3.fromRGB(0, 170, 255))
 		else
-			Ui.setText(buy, `BUY {Ui.ROBUX}{offer.Price or "?"}`)
-			buy.BackgroundColor3 = Ui.Colors.Robux
+			Ui.setText(buy, `{Ui.ROBUX} {offer.Price or "?"}`)
+			Ui.tint(buy, Color3.fromRGB(76, 209, 55))
 		end
-		popup.Visible = true
+		card.Position = HIDDEN
+		card.Visible = true
+		TweenService:Create(card, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+			Position = SHOWN,
+		}):Play()
+		picture.Rotation = -15
+		TweenService:Create(picture, TweenInfo.new(0.6, Enum.EasingStyle.Elastic), { Rotation = 0 }):Play()
+		bar.Size = UDim2.fromScale(1, 1)
+		TweenService:Create(bar, TweenInfo.new(SECONDS, Enum.EasingStyle.Linear), { Size = UDim2.fromScale(0, 1) })
+			:Play()
 		Ui.sound("Pop")
-		local at = os.clock()
-		shownAt = at
-		task.delay(12, function()
-			if shownAt == at and current == offer then
+		task.delay(SECONDS, function()
+			if serial == mine then
 				hide()
 			end
 		end)

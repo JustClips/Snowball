@@ -69,6 +69,18 @@ local function notify(player: Player, text: string, kind: string?)
 	Net.fire("Notify", player, text, kind or "Good")
 end
 
+-- What a purchase just gave, for the BOUGHT! card ("+$424M CASH" instead of the pack's
+-- name, Dev 2026-11-20). Set by a grant, read once when "Purchased" fires.
+local gotText: { [Player]: string } = {}
+local function got(player: Player, text: string)
+	gotText[player] = text
+end
+local function takeGot(player: Player): string?
+	local t = gotText[player]
+	gotText[player] = nil
+	return t
+end
+
 -- The 3rd "not enough cash" in a session opens the Shop at Cash (Sweep's shortfall rule),
 -- at most SHORTFALL_MAX_OPENS times a session and never twice within the cooldown.
 local SHORTFALL_OPENS_AT = 3
@@ -170,7 +182,7 @@ local function applyPassEffects(player: Player)
 end
 
 -- What each product does. Runs without yielding so a receipt can't be granted twice.
-local GRANTS: { [string]: (product: any, buyer: Player, recipient: Player) -> string? } = {
+local GRANTS: { [string]: (product: any, buyer: Player, recipient: Player) -> () } = {
 	StarterPack = function(_product, _buyer, recipient)
 		local data = S.DataService:GetData(recipient)
 		local pack = Economy.StarterPack
@@ -226,11 +238,11 @@ local GRANTS: { [string]: (product: any, buyer: Player, recipient: Player) -> st
 		-- That many minutes of training at Auto Train speed, at your current rate.
 		local taps = product.Minutes * 60 * Economy.AutoTrainTapsPerSecond
 		local gain = S.TrainService:Grant(recipient, taps, true)
-		return `+{Format.big(gain)}`
+		got(recipient, `+{Format.big(gain)} POWER`)
 	end,
 	PowerPack = function(product, _buyer, recipient)
 		local gain = S.TrainService:Grant(recipient, product.Taps, true)
-		return `+{Format.big(gain)}`
+		got(recipient, `+{Format.big(gain)} POWER`)
 	end,
 	Boost = function(product, _buyer, recipient)
 		S.BoostService:AddPersonal(recipient, product.Boost, product.Minutes)
@@ -239,12 +251,12 @@ local GRANTS: { [string]: (product: any, buyer: Player, recipient: Player) -> st
 	LuckyRoll = function(product, _buyer, recipient)
 		local data = S.DataService:GetData(recipient)
 		data.Charges.LuckyRoll += product.Count
-		return `+{product.Count}`
+		got(recipient, `+{product.Count} LUCKY ROLLS`)
 	end,
 	SuperLucky = function(product, _buyer, recipient)
 		local data = S.DataService:GetData(recipient)
 		data.Charges.SuperLucky += product.Count
-		notify(recipient, "Your next roll has x100 luck!")
+		got(recipient, "x100 LUCK NEXT ROLL")
 	end,
 	ServerLuck = function(product, buyer)
 		S.BoostService:AddServerLuck(product.Mult, product.Minutes, buyer)
@@ -252,7 +264,7 @@ local GRANTS: { [string]: (product: any, buyer: Player, recipient: Player) -> st
 	GoldenRuns = function(product, _buyer, recipient)
 		local data = S.DataService:GetData(recipient)
 		data.Charges.GoldenRuns += product.Count
-		return `+{product.Count}`
+		got(recipient, `+{product.Count} GOLDEN RUNS`)
 	end,
 	EggPack = function(product, _buyer, recipient)
 		local data = S.DataService:GetData(recipient)
@@ -272,7 +284,7 @@ local GRANTS: { [string]: (product: any, buyer: Player, recipient: Player) -> st
 	CashPack = function(product, _buyer, recipient)
 		local cash = cashPackAmount(recipient, product)
 		S.CashService:Give(recipient, cash, product.Key, Enum.AnalyticsEconomyTransactionType.IAP)
-		return "+" .. Format.cash(cash)
+		got(recipient, `+{Format.cash(cash)} CASH`)
 	end,
 	Avalanche = function(_product, buyer)
 		S.AvalancheService:Trigger(buyer)
@@ -282,7 +294,7 @@ local GRANTS: { [string]: (product: any, buyer: Player, recipient: Player) -> st
 	end,
 	WheelSpins = function(product, _buyer, recipient)
 		S.RewardService:AddSpins(recipient, product.Count)
-		return `+{product.Count}`
+		notify(recipient, `+{product.Count} Lucky Wheel spins!`)
 	end,
 	DoubleOffline = function(_product, _buyer, recipient)
 		S.PetService:DoubleOffline(recipient)
@@ -321,10 +333,7 @@ local function processReceipt(info): Enum.ProductPurchaseDecision
 		end
 	end
 
-	-- A grant may return what you got ("+$424M", "+9.6K"): the purchase stamp shows that
-	-- instead of the product name (Dev 2026-11-20).
 	local ok, err = pcall(GRANTS[product.Kind], product, buyer, recipient)
-	local got = if ok and type(err) == "string" then err else nil
 	if not ok then
 		warn(`[ShopService] grant {product.Key} failed: {err}`)
 		return Enum.ProductPurchaseDecision.NotProcessedYet
@@ -342,11 +351,12 @@ local function processReceipt(info): Enum.ProductPurchaseDecision
 	S.AnalyticsService:Purchased(buyer, product.Key, spent, product.Kind == "WheelSpins")
 	-- The purchase celebration (PurchaseController): instant "you got it" feedback.
 	if recipient ~= buyer then
-		Net.fire("Purchased", recipient, product.Key, { From = buyer.DisplayName, Got = got })
-		Net.fire("Purchased", buyer, product.Key, { To = recipient.DisplayName, Got = got })
+		local text = takeGot(recipient)
+		Net.fire("Purchased", recipient, product.Key, { From = buyer.DisplayName, Got = text })
+		Net.fire("Purchased", buyer, product.Key, { To = recipient.DisplayName, Got = text })
 		S.DataService:SaveNow(recipient)
 	else
-		Net.fire("Purchased", buyer, product.Key, { Got = got })
+		Net.fire("Purchased", buyer, product.Key, { Got = takeGot(buyer) })
 	end
 	if S.DataService:SaveNow(buyer) then
 		return Enum.ProductPurchaseDecision.PurchaseGranted
@@ -397,7 +407,12 @@ local function studioGrant(player: Player, def, isPass: boolean, recipient: Play
 		S.StateService:Mark(recipient)
 	end
 	print(`[ShopService] STUDIO TEST BUY: {def.Key} for {recipient.Name} (no Robux, Studio only)`)
-	Net.fire("Purchased", recipient, def.Key, if recipient ~= player then { From = player.DisplayName } else {})
+	Net.fire(
+		"Purchased",
+		recipient,
+		def.Key,
+		{ From = if recipient ~= player then player.DisplayName else nil, Got = takeGot(recipient) }
+	)
 end
 
 local function promptPurchase(player: Player, key: any, giftToUserId: any): (boolean, string?)
@@ -511,6 +526,7 @@ function ShopService:Init(services)
 	Players.PlayerRemoving:Connect(function(player)
 		priceLevels[player.UserId] = nil
 		pendingGifts[player] = nil
+		gotText[player] = nil
 	end)
 end
 
