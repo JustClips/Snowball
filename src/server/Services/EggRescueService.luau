@@ -52,6 +52,7 @@ type State = {
 	knockedUntil: number,
 	endsAt: number,
 	busy: boolean, -- teleporting back to the pile
+	result: any?, -- the run's result: offers wait for the rescue (OfferService:AfterRun)
 }
 
 local states: { [Player]: State } = {}
@@ -242,6 +243,14 @@ local function finish(player: Player, reason: string)
 		event(player, "Ended", { Reason = reason, Saved = st.saved, Lost = #st.eggs + #st.held })
 		S.RollService:SendToDeck(player, st.lane)
 		S.StateService:Mark(player)
+		-- The result card shows now; any offer comes a little after it.
+		if st.result and S.OfferService then
+			task.delay(3, function()
+				if player.Parent then
+					S.OfferService:AfterRun(player, st.result)
+				end
+			end)
+		end
 	end
 	S.AnalyticsService:Custom(
 		player,
@@ -264,7 +273,14 @@ end
 
 -- Called by RollService when the ball has cracked. Returns false when there is nothing
 -- to rescue (RollService then sends you home as before).
-function EggRescueService:Begin(player: Player, s: number, x: number, eggs: { Egg }, lane: number): boolean
+function EggRescueService:Begin(
+	player: Player,
+	s: number,
+	x: number,
+	eggs: { Egg },
+	lane: number,
+	result: any?
+): boolean
 	if #eggs == 0 or states[player] or not player.Character then
 		return false
 	end
@@ -337,6 +353,7 @@ function EggRescueService:Begin(player: Player, s: number, x: number, eggs: { Eg
 		knockedUntil = 0,
 		endsAt = os.time() + Rescue.TimeLimit,
 		busy = false,
+		result = result,
 	}
 	folder:SetAttribute("YetiPos", st.yetiPos)
 	folder:SetAttribute("YetiState", st.yeti)

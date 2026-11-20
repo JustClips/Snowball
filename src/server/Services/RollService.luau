@@ -453,7 +453,9 @@ local function finish(player: Player, run: Run)
 		{ Zone = tostring(zone.Index), Pack = run.packQuality or "?", Eggs = tostring(#eggsAdded) }
 	)
 	S.StateService:Mark(player)
-	if S.OfferService then
+	-- Offers wait for the egg run to end (EggRescueService calls AfterRun then), so they
+	-- never sit on top of it.
+	if S.OfferService and not result.Rescue then
 		S.OfferService:AfterRun(player, result)
 	end
 	task.delay(CRACK_SECONDS, function()
@@ -461,8 +463,11 @@ local function finish(player: Player, run: Run)
 			setPhase(player, run, "Idle")
 			runs[player] = nil
 			setFocus(player, nil)
-			if S.EggRescueService and S.EggRescueService:Begin(player, ball.s, ball.x, run.eggs, run.lane) then
+			if S.EggRescueService and S.EggRescueService:Begin(player, ball.s, ball.x, run.eggs, run.lane, result) then
 				return
+			end
+			if result.Rescue and S.OfferService then
+				S.OfferService:AfterRun(player, result) -- no egg run after all
 			end
 			-- A few steps behind your pad: step forward onto it (or press ROLL) to go again.
 			standAtDeck(player, run.lane, 9)

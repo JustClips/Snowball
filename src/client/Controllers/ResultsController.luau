@@ -67,6 +67,12 @@ end
 local held: any = nil
 function ResultsController:Hold(result)
 	held = result
+	-- If the egg run never starts (no character, ...), show the card anyway.
+	task.delay(4, function()
+		if held == result and not game:GetService("Players").LocalPlayer:GetAttribute("Rescue") then
+			ResultsController:ShowHeld()
+		end
+	end)
 end
 
 function ResultsController:ShowHeld(saved: { string }?)
