@@ -29,7 +29,7 @@ Ui.Colors = {
 }
 
 local FONT = Font.new("rbxasset://fonts/families/Montserrat.json", Enum.FontWeight.Bold)
-local FONT_BLACK = Font.new("rbxasset://fonts/families/Montserrat.json", Enum.FontWeight.Black)
+local FONT_BLACK = Font.new("rbxasset://fonts/families/Montserrat.json", Enum.FontWeight.Heavy)
 Ui.Font = FONT
 Ui.FontBlack = FONT_BLACK
 

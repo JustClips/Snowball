@@ -27,7 +27,7 @@
       "$properties": { "CharacterAutoLoads": false }
     },
     "Lighting": {
-      "$properties": { "Technology": "Future", "GlobalShadows": true, "ClockTime": 13 }
+      "$properties": { "GlobalShadows": true, "ClockTime": 13 }
     }
   }
 }

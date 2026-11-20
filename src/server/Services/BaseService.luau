@@ -64,7 +64,7 @@ local function setOwnerName(index: number, player: Player?)
 		label.Name = "Label"
 		label.Size = UDim2.fromScale(1, 1)
 		label.BackgroundTransparency = 1
-		label.FontFace = Font.new("rbxasset://fonts/families/Montserrat.json", Enum.FontWeight.Black)
+		label.FontFace = Font.new("rbxasset://fonts/families/Montserrat.json", Enum.FontWeight.Heavy)
 		label.TextScaled = true
 		label.TextColor3 = Color3.new(1, 1, 1)
 		label.TextStrokeTransparency = 0.3
