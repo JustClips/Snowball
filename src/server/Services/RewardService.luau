@@ -251,7 +251,29 @@ function RewardService:Snapshot(player: Player): { [string]: any }?
 		claimed[i] = rt.PlaytimeClaimed[i] == true
 	end
 	local free, freeAt = freeSpin(data)
+	-- What each Cash reward pays this player right now, so the cards can show "$12.4K"
+	-- instead of a bare cash icon (Dev 2026-11-20: show how much they give).
+	local function cashOf(r: Rewards.Reward?): number?
+		while r do
+			if r.Kind == "Cash" then
+				return S.ShopService:CashFor(player, r.Seconds or 60, r.Floor)
+			end
+			r = r.Bonus
+		end
+		return nil
+	end
+	local cash = { Daily = {}, Playtime = {}, Wheel = {} }
+	for i, r in Rewards.Daily do
+		cash.Daily[i] = cashOf(r)
+	end
+	for i, e in Rewards.Playtime do
+		cash.Playtime[i] = cashOf(e.Reward)
+	end
+	for i, seg in Rewards.Wheel.Segments do
+		cash.Wheel[i] = cashOf(seg.Reward)
+	end
 	return {
+		CashOf = cash,
 		DailyIndex = index,
 		DailyReady = ready,
 		DailyStreak = streak,
