@@ -30,25 +30,39 @@ local ICONS = {
 local function card(parent: Frame, id: string, order: number, onBuy: () -> ())
 	local f = Ui.frame({
 		Name = id,
-		Size = UDim2.new(1, -8, 0, 84),
-		BackgroundColor3 = Ui.Colors.Panel,
+		Size = UDim2.new(1, -8, 0, 92),
+		BackgroundColor3 = Ui.Colors.PanelDark,
 		LayoutOrder = order,
 	})
-	Ui.gradient(f, Ui.Colors.Panel)
+	-- The Ultra pack's upgrade row: dark row, the picture in a darker square, name + what
+	-- it gives, a big price button on the right.
 	Ui.stroke(f, 3)
-	Ui.icon(ICONS[id] or "Upgrade", { Size = UDim2.fromOffset(72, 72), Position = UDim2.fromOffset(6, 6) }).Parent = f
+	local well = Ui.frame({
+		Name = "Well",
+		Size = UDim2.fromOffset(76, 76),
+		Position = UDim2.fromOffset(8, 8),
+		BackgroundColor3 = Ui.Colors.Ink,
+		BackgroundTransparency = 0.3,
+	})
+	well.Parent = f
+	Ui.icon(ICONS[id] or "Upgrade", {
+		Size = UDim2.fromOffset(66, 66),
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+	}).Parent =
+		well
 	local title = Ui.label({
 		Name = "Title",
-		Size = UDim2.new(1, -260, 0, 34),
-		Position = UDim2.fromOffset(86, 8),
+		Size = UDim2.new(1, -270, 0, 38),
+		Position = UDim2.fromOffset(96, 10),
 		TextXAlignment = Enum.TextXAlignment.Left,
 		Text = id,
 	})
 	title.Parent = f
 	local info = Ui.label({
 		Name = "Info",
-		Size = UDim2.new(1, -260, 0, 28),
-		Position = UDim2.fromOffset(86, 46),
+		Size = UDim2.new(1, -270, 0, 28),
+		Position = UDim2.fromOffset(96, 52),
 		TextXAlignment = Enum.TextXAlignment.Left,
 		Text = "",
 		TextColor3 = Ui.Colors.Green,
@@ -56,11 +70,10 @@ local function card(parent: Frame, id: string, order: number, onBuy: () -> ())
 	info.Parent = f
 	local buy = Ui.button({
 		Name = "Buy",
-		Size = UDim2.fromOffset(160, 66),
-		Position = UDim2.new(1, -168, 0, 9),
+		Size = UDim2.fromOffset(160, 70),
+		Position = UDim2.new(1, -170, 0, 11),
 		BackgroundColor3 = Ui.Colors.Green,
 	}, "BUY", onBuy)
-	Ui.gradient(buy, Ui.Colors.Green)
 	buy.Parent = f
 	f.Parent = parent
 	cards[id] = { title = title, info = info, buy = buy }
@@ -94,6 +107,7 @@ local function render(data)
 		c.title.Text = robux.Name
 		c.info.Text = `x{robux.Mult}`
 		Ui.setText(c.buy, `{Ui.ROBUX}{product.Price}`)
+		Ui.tint(c.buy, Ui.Colors.Purple) -- Robux buys are purple (Ultra pack)
 		c.buy.Visible = product.Id ~= 0
 	else
 		c.title.Text = "All Robux rollers owned"
@@ -136,7 +150,10 @@ end
 function UpgradesController:Init()
 	local gui = Ui.screen("Upgrades", 20)
 	local body
-	window, body = Ui.window(gui, "Window", "UPGRADE", Vector2.new(560, 560))
+	window, body = Ui.window(gui, "Window", "UPGRADES", Vector2.new(560, 560), {
+		Icon = "Upgrade",
+		Color = Ui.Colors.Green,
+	})
 	local list = Instance.new("ScrollingFrame")
 	list.Name = "List"
 	list.Size = UDim2.fromScale(1, 1)
